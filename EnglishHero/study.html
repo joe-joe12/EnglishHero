@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>English Hero - 單字學習與管理</title>
+  <link rel="stylesheet" href="css/style.css?v=2074">
   <style>
     body { background: #f8fafc; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; }
     .main-header { max-width: 650px; margin: 0 auto 15px auto; display: flex; justify-content: space-between; align-items: center; }
@@ -37,10 +38,10 @@
 </head>
 <body>
 
-<!-- 最上方的綠色標題列與回首頁按鈕 -->
+<!-- 上方標準標題列（字體大小與顏色與其他頁面一致） -->
 <header class="main-header">
-  <div style="font-size: 20px; font-weight: bold; color: #16a34a;">
-    📚 <a href="index.html" style="text-decoration: none; color: inherit;">English Hero - 背單字</a>
+  <div style="font-size: 20px; font-weight: bold; color: #1e293b;">
+    <a href="index.html" style="text-decoration: none; color: inherit;">📚 English Hero - 背單字</a>
   </div>
   <div>
     <button onclick="window.location.href='index.html'" style="padding: 6px 14px; background: #e2e8f0; color: #334155; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">回首頁</button>
@@ -55,7 +56,7 @@
     <button id="btn-back-folders" onclick="fetchAllWords(currentUser.uid)" style="display: none; padding: 6px 12px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">⬅️ 返回列表</button>
   </div>
 
-  <!-- 主要內容動態容器 (上方小方格與下方題庫會在這裡渲染) -->
+  <!-- 主要內容動態容器 -->
   <div id="flashcard-container">
     <p style="color:#666; text-align: center; padding: 30px;">載入中...</p>
   </div>
@@ -68,6 +69,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/study.js?v=2096"></script>
+<script src="js/study.js?v=2097"></script>
 </body>
 </html>
