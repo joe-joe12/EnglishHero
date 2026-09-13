@@ -28,19 +28,15 @@ const editModalContainer = document.getElementById("edit-modal-container");
 auth.onAuthStateChanged((user) => {
   if (user) {
     currentUser = user;
-    console.log("使用者已登入，UID:", user.uid);
     fetchAllWords(user.uid);
   } else {
-    console.log("未偵測到登入使用者，準備導向登入頁面...");
     window.location.replace("login.html?v=2074");
   }
 });
 
 function fetchAllWords(uid) {
-  console.log("正在從 Firestore 抓取單字...");
   db.collection("users").doc(uid).collection("words").get()
     .then((snapshot) => {
-      console.log(`成功抓取單字文件數: ${snapshot.size}`);
       allWords = [];
       snapshot.forEach(doc => {
         const data = doc.data();
@@ -65,8 +61,8 @@ function fetchAllWords(uid) {
       renderFolderList();
     })
     .catch((err) => {
-      console.error("載入失敗詳細資訊：", err);
-      containerEl.innerHTML = `<p style="color:red; text-align:center;">載入單字失敗: ${err.message}</p>`;
+      console.error("載入失敗：", err);
+      containerEl.innerHTML = `<p style="color:red; text-align:center;">載入單字失敗</p>`;
     });
 }
 
@@ -77,47 +73,43 @@ function renderFolderList() {
 
   const folderMap = {};
   
-  folderMap["🎯 今日背誦計畫"] = [];
-  folderMap["📁 昨天的單字"] = [];
+  // 只保留「已經背過的單字」作為特快專區
   folderMap["📦 已經背過的單字"] = [];
 
   allWords.forEach(w => {
-    const fName = w.folder || "未分類";
+    let fName = w.folder || "未分類";
+    // 如果以前留下的舊單字剛好在今日/昨日資料夾，自動把它們歸類到未分類或保留
     if (!folderMap[fName]) folderMap[fName] = [];
     folderMap[fName].push(w);
   });
 
-  const specialFolders = ["🎯 今日背誦計畫", "📁 昨天的單字", "📦 已經背過的單字"];
+  const specialFolders = ["📦 已經背過的單字"];
   let topBadgesHtml = `
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+    <div style="margin-bottom: 20px;">
   `;
 
   specialFolders.forEach((fName) => {
-    const count = folderMap[fName].length;
-    let badgeColor = "#0284c7";
-    let bgLight = "#e0f2fe";
-    if (fName.includes("昨天")) {
-      badgeColor = "#d97706";
-      bgLight = "#fef3c7";
-    } else if (fName.includes("背過")) {
-      badgeColor = "#059669";
-      bgLight = "#d1fae5";
-    }
-
+    const count = folderMap[fName] ? folderMap[fName].length : 0;
     topBadgesHtml += `
-      <div onclick="startStudy('${fName}')" style="background: ${bgLight}; border: 1px solid ${badgeColor}40; padding: 12px 10px; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
-        <div style="font-size: 13px; font-weight: bold; color: ${badgeColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${fName}</div>
-        <div style="font-size: 18px; font-weight: 800; color: ${badgeColor}; margin-top: 4px;">${count} <span style="font-size: 11px; font-weight: normal;">個字</span></div>
+      <div style="background: #d1fae5; border: 1px solid #05966940; padding: 14px; border-radius: 10px; text-align: center; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center;">
+        <div onclick="startStudy('${fName}')" style="cursor: pointer; text-align: left; flex-grow: 1;">
+          <div style="font-size: 14px; font-weight: bold; color: #059669;">📦 ${fName}</div>
+          <div style="font-size: 12px; color: #047857; margin-top: 2px;">共 ${count} 個字 (點擊開始複習)</div>
+        </div>
+        <div>
+          <button class="dots-btn" onclick="toggleFolderDropdown(event, '${fName}', 'special-learned')" style="padding: 6px 12px; font-size: 14px; background: #fff; border-radius: 6px; border: 1px solid #a7f3d0; cursor: pointer; color: #059669; font-weight: bold;">⚙️ 管理</button>
+        </div>
       </div>
     `;
   });
   topBadgesHtml += `</div>`;
 
-  let normalFolders = Object.keys(folderMap).filter(name => !specialFolders.includes(name));
+  // 一般題庫資料夾 (排除今日、昨日，隻保留自訂資料夾與已背過)
+  let normalFolders = Object.keys(folderMap).filter(name => !specialFolders.includes(name) && name !== "🎯 今日背誦計畫" && name !== "📁 昨天的單字");
   normalFolders.sort((a, b) => a.localeCompare(b));
 
   let html = topBadgesHtml;
-  html += `<div style="font-size: 16px; font-weight: bold; color: #334155; margin-bottom: 10px; border-left: 4px solid #4f46e5; padding-left: 8px;">📚 一般題庫資料夾</div>`;
+  html += `<div style="font-size: 16px; font-weight: bold; color: #334155; margin-bottom: 10px; border-left: 4px solid #4f46e5; padding-left: 8px;">📚 您的題庫資料夾</div>`;
 
   if (normalFolders.length === 0) {
     html += `<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 10px;">目前沒有其他自訂資料夾</p>`;
@@ -149,7 +141,7 @@ function renderFolderList() {
   `;
 
   containerEl.innerHTML = html;
-}
+};
 
 window.exportFolderData = function(folderName) {
   const targetWords = allWords.filter(w => w.folder === folderName);
@@ -232,9 +224,15 @@ window.toggleFolderDropdown = function(event, folderName, index) {
     return;
   }
 
-  const btn = document.getElementById(`dots-btn-${index}`);
-  if (!btn) return;
-  const rect = btn.getBoundingClientRect();
+  let rect;
+  if (index === 'special-learned') {
+    const btn = event.currentTarget;
+    rect = btn.getBoundingClientRect();
+  } else {
+    const btn = document.getElementById(`dots-btn-${index}`);
+    if (!btn) return;
+    rect = btn.getBoundingClientRect();
+  }
 
   const menu = document.createElement("div");
   menu.id = "global-dropdown-menu";
@@ -249,10 +247,12 @@ window.toggleFolderDropdown = function(event, folderName, index) {
   menu.style.minWidth = "170px";
   menu.style.padding = "4px 0";
 
+  const deleteText = folderName.includes("已經背過") ? `🗑️ 清空已背過單字` : `🗑️ 刪除資料夾`;
+
   menu.innerHTML = `
-    <button onclick="openFolderEditModal('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #334155; font-weight: bold;">✏️ 修改單字</button>
+    <button onclick="openFolderEditModal('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #334155; font-weight: bold;">✏️ 管理單字</button>
     <button onclick="exportFolderData('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #10b981; font-weight: bold;">📤 匯出此資料夾</button>
-    <button onclick="confirmDeleteFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #ef4444; font-weight: bold;">🗑️ 刪除資料夾</button>
+    <button onclick="confirmDeleteFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #ef4444; font-weight: bold;">${deleteText}</button>
   `;
 
   document.body.appendChild(menu);
@@ -332,7 +332,7 @@ function renderFlashcard() {
 
     <div style="margin-top: 12px; text-align: center;">
       <button onclick="markAsLearned()" style="width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; box-shadow: 0 4px 10px rgba(16,185,129,0.2);">
-        ✅ 我已經會了 (加入<span>📦 已經背過的單字</span>)
+        ✅ 我已經會了 (加入「📦 已經背過的單字」)
       </button>
     </div>
   `;
@@ -396,7 +396,7 @@ window.openFolderEditModal = function(folderName) {
   }
 
   let html = ``;
-  if (folderName === "📦 已經背過的單字") {
+  if (folderName.includes("已經背過")) {
     html += `
       <div style="margin-bottom: 15px; text-align: right;">
         <button onclick="confirmDeleteFolder('${folderName}')" style="padding: 8px 14px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">🗑️ 清空所有已背過單字</button>
@@ -520,7 +520,7 @@ window.deleteSingleWord = function(wordId) {
 };
 
 window.confirmDeleteFolder = function(folderName) {
-  if (confirm(`確定要刪除資料夾「${folderName}」以及裡面的所有單字嗎？`)) {
+  if (confirm(`確定要清空「${folderName}」裡面的所有單字嗎？`)) {
     deleteFolder(folderName);
   }
 };
@@ -540,6 +540,6 @@ window.deleteFolder = function(folderName) {
       renderFolderList();
     })
     .catch(err => {
-      alert("刪除資料夾失敗：" + err.message);
+      alert("清空資料夾失敗：" + err.message);
     });
 };
