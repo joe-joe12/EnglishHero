@@ -6,6 +6,7 @@
   <title>English Hero - 單字學習與管理</title>
   <style>
     body { background: #f8fafc; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; }
+    .main-header { max-width: 650px; margin: 0 auto 15px auto; display: flex; justify-content: space-between; align-items: center; }
     .study-container { max-width: 650px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); padding: 24px; }
     
     .folder-wrapper { position: relative; margin-bottom: 10px; border-radius: 8px; background: #f9fafb; border: 1px solid #e5e7eb; transition: 0.2s; }
@@ -36,20 +37,25 @@
 </head>
 <body>
 
+<!-- 最上方的綠色標題列與回首頁按鈕 -->
+<header class="main-header">
+  <div style="font-size: 20px; font-weight: bold; color: #16a34a;">
+    📚 <a href="index.html" style="text-decoration: none; color: inherit;">English Hero - 背單字</a>
+  </div>
+  <div>
+    <button onclick="window.location.href='index.html'" style="padding: 6px 14px; background: #e2e8f0; color: #334155; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">回首頁</button>
+  </div>
+</header>
+
 <div class="study-container">
   
-  <!-- 頂部標題與按鈕列 (收在同一個大框框內) -->
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px;">
-    <div style="font-size: 20px; font-weight: bold; color: #1e293b;">
-      📚 <span id="page-title">我的單字資料夾</span>
-    </div>
-    <div style="display: flex; gap: 8px;">
-      <button id="btn-back-folders" onclick="fetchAllWords(currentUser.uid)" style="display: none; padding: 6px 12px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">⬅️ 返回列表</button>
-      <button onclick="window.location.href='index.html'" style="padding: 6px 14px; background: #f1f5f9; color: #334155; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">回首頁</button>
-    </div>
+  <!-- 內部功能標題列與返回按鈕 -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2 id="page-title" style="margin: 0; color: #1e293b; font-size: 20px;">📁 我的單字資料夾</h2>
+    <button id="btn-back-folders" onclick="fetchAllWords(currentUser.uid)" style="display: none; padding: 6px 12px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">⬅️ 返回列表</button>
   </div>
 
-  <!-- 主要內容動態容器 -->
+  <!-- 主要內容動態容器 (上方小方格與下方題庫會在這裡渲染) -->
   <div id="flashcard-container">
     <p style="color:#666; text-align: center; padding: 30px;">載入中...</p>
   </div>
@@ -62,6 +68,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/study.js?v=2095"></script>
+<script src="js/study.js?v=2096"></script>
 </body>
 </html>
