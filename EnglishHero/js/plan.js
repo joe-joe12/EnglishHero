@@ -19,27 +19,28 @@ let allUserWords = [];
 let foldersMap = {};
 let currentTodayBatch = []; 
 
-auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged(async (user) => {
   if (user) {
     currentUser = user;
-    checkAndAutoRotatePlan(user.uid); // 🌟 每次登入先檢查是否跨日自動輪替
-    fetchUserFoldersAndWords();
+    // 1. 先執行跨日檢查與自動輪替
+    await checkAndAutoRotatePlan(user.uid);
+    // 2. 再載入資料夾與單字
+    await fetchUserFoldersAndWords();
   } else {
     window.location.replace("login.html?v=2120");
   }
 });
 
-// 🌟 核心跨日自動輪替檢查 (00:00 自動把今日計畫轉移到昨天)
+// 核心跨日自動輪替檢查 (00:00 自動把今日計畫轉移到昨天)
 async function checkAndAutoRotatePlan(uid) {
   try {
     const userDocRef = db.collection("users").doc(uid);
     const userDoc = await userDocRef.get();
     
-    const todayStr = new Date().toISOString().split('T')[0]; // 取得今天的日期字串 (例如 "2026-06-07")
+    const todayStr = new Date().toISOString().split('T')[0]; 
     const data = userDoc.exists ? userDoc.data() : {};
     const lastPlanDate = data.lastPlanDate || "";
 
-    // 如果上次更新計畫的日期不是今天，代表已經過了一天（跨日 00:00）
     if (lastPlanDate && lastPlanDate !== todayStr) {
       const userWordsRef = userDocRef.collection("words");
       const allSnapshot = await userWordsRef.get();
@@ -68,7 +69,6 @@ async function checkAndAutoRotatePlan(uid) {
         await deleteBatch.commit();
       }
 
-      // 將原本的「🎯 今日背誦計畫」整批搬到「📁 昨天的單字」
       if (currentPlanWords.length > 0) {
         let yesterdayBatch = db.batch();
         currentPlanWords.forEach(w => {
@@ -84,11 +84,8 @@ async function checkAndAutoRotatePlan(uid) {
         await yesterdayBatch.commit();
       }
 
-      // 更新記錄的日期為今天
       await userDocRef.set({ lastPlanDate: todayStr }, { merge: true });
-      console.log("已自動完成跨日單字輪替：今日計畫轉移至昨天的單字");
     } else if (!lastPlanDate) {
-      // 第一次使用，初始化記錄日期
       await userDocRef.set({ lastPlanDate: todayStr }, { merge: true });
     }
   } catch (err) {
@@ -228,7 +225,7 @@ window.generateGlobalPlan = function() {
   });
 };
 
-// 手動將新的一天加入「🎯 今日背誦計畫」（保留原本的今日內容，直到跨日才自動移到昨天）
+// 將今天份量寫入雲端
 window.saveGlobalPlanToCloud = async function() {
   if (currentTodayBatch.length === 0) {
     alert("目前沒有可加入的計畫單字！");
@@ -241,7 +238,6 @@ window.saveGlobalPlanToCloud = async function() {
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
     const allSnapshot = await userWordsRef.get();
 
-    // 1. 只清除舊的「🎯 今日背誦計畫」，不影響「📁 昨天的單字」
     let deleteBatch = db.batch();
     let deleteCount = 0;
 
@@ -257,7 +253,6 @@ window.saveGlobalPlanToCloud = async function() {
       await deleteBatch.commit();
     }
 
-    // 2. 將新的今日份量寫入「🎯 今日背誦計畫」
     let writeBatch = db.batch();
     for (const w of currentTodayBatch) {
       const newDocRef = userWordsRef.doc();
@@ -271,7 +266,6 @@ window.saveGlobalPlanToCloud = async function() {
     }
     await writeBatch.commit();
 
-    // 更新最後計畫日期
     const todayStr = new Date().toISOString().split('T')[0];
     await db.collection("users").doc(currentUser.uid).set({ lastPlanDate: todayStr }, { merge: true });
 
