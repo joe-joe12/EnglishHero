@@ -29,13 +29,22 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
-// 核心跨日自動輪替檢查 (00:00 自動把今日計畫轉移到昨天)
+// 取得台灣本地日期字串 (格式: "YYYY-MM-DD")
+function getLocalTodayStr() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// 核心跨日自動輪替檢查 (使用本地時間判斷 00:00 跨日)
 async function checkAndAutoRotatePlan(uid) {
   try {
     const userDocRef = db.collection("users").doc(uid);
     const userDoc = await userDocRef.get();
     
-    const todayStr = new Date().toISOString().split('T')[0]; 
+    const todayStr = getLocalTodayStr(); 
     const data = userDoc.exists ? userDoc.data() : {};
     const lastPlanDate = data.lastPlanDate || "";
 
@@ -67,6 +76,7 @@ async function checkAndAutoRotatePlan(uid) {
         await deleteBatch.commit();
       }
 
+      // 將原本的今日計畫搬到昨天
       if (currentPlanWords.length > 0) {
         let yesterdayBatch = db.batch();
         currentPlanWords.forEach(w => {
@@ -83,6 +93,7 @@ async function checkAndAutoRotatePlan(uid) {
       }
 
       await userDocRef.set({ lastPlanDate: todayStr }, { merge: true });
+      console.log("已完成跨日輪替：今日計畫轉移至昨天");
     } else if (!lastPlanDate) {
       await userDocRef.set({ lastPlanDate: todayStr }, { merge: true });
     }
@@ -223,7 +234,7 @@ window.generateGlobalPlan = function() {
   });
 };
 
-// 🌟 修改後：直接「加入（追加）」到今日計畫，不會覆蓋或刪除原本裡面的單字
+// 累積追加加入今日計畫（絕不覆蓋或刪除舊單字）
 window.saveGlobalPlanToCloud = async function() {
   if (currentTodayBatch.length === 0) {
     alert("目前沒有可加入的計畫單字！");
@@ -235,7 +246,6 @@ window.saveGlobalPlanToCloud = async function() {
   try {
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
 
-    // 直接批次寫入新單字（累加進去）
     let writeBatch = db.batch();
     for (const w of currentTodayBatch) {
       const newDocRef = userWordsRef.doc();
@@ -249,7 +259,7 @@ window.saveGlobalPlanToCloud = async function() {
     }
     await writeBatch.commit();
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
     await db.collection("users").doc(currentUser.uid).set({ lastPlanDate: todayStr }, { merge: true });
 
     alert(`🎉 成功將當天 ${currentTodayBatch.length} 個新單字追加加入「${planFolderName}」！`);
