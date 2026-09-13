@@ -22,9 +22,7 @@ let currentTodayBatch = [];
 auth.onAuthStateChanged(async (user) => {
   if (user) {
     currentUser = user;
-    // 1. 先執行跨日檢查與自動輪替
     await checkAndAutoRotatePlan(user.uid);
-    // 2. 再載入資料夾與單字
     await fetchUserFoldersAndWords();
   } else {
     window.location.replace("login.html?v=2120");
@@ -225,7 +223,7 @@ window.generateGlobalPlan = function() {
   });
 };
 
-// 將今天份量寫入雲端
+// 🌟 修改後：直接「加入（追加）」到今日計畫，不會覆蓋或刪除原本裡面的單字
 window.saveGlobalPlanToCloud = async function() {
   if (currentTodayBatch.length === 0) {
     alert("目前沒有可加入的計畫單字！");
@@ -236,23 +234,8 @@ window.saveGlobalPlanToCloud = async function() {
 
   try {
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-    const allSnapshot = await userWordsRef.get();
 
-    let deleteBatch = db.batch();
-    let deleteCount = 0;
-
-    allSnapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.folder === planFolderName) {
-        deleteBatch.delete(doc.ref);
-        deleteCount++;
-      }
-    });
-
-    if (deleteCount > 0) {
-      await deleteBatch.commit();
-    }
-
+    // 直接批次寫入新單字（累加進去）
     let writeBatch = db.batch();
     for (const w of currentTodayBatch) {
       const newDocRef = userWordsRef.doc();
@@ -269,7 +252,7 @@ window.saveGlobalPlanToCloud = async function() {
     const todayStr = new Date().toISOString().split('T')[0];
     await db.collection("users").doc(currentUser.uid).set({ lastPlanDate: todayStr }, { merge: true });
 
-    alert(`🎉 成功將當天 ${currentTodayBatch.length} 個新單字加入「${planFolderName}」！`);
+    alert(`🎉 成功將當天 ${currentTodayBatch.length} 個新單字追加加入「${planFolderName}」！`);
   } catch (err) {
     alert("加入資料夾失敗：" + err.message);
   }
