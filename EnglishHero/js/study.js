@@ -35,45 +35,36 @@ auth.onAuthStateChanged((user) => {
 });
 
 function fetchAllWords(uid) {
-  db.collection("users").doc(uid).collection("words").orderBy("createdAt", "asc").get()
+  // 🌟 改為直接抓取所有單字，不在查詢時用 orderBy 卡死，改在前端安全排序
+  db.collection("users").doc(uid).collection("words").get()
     .then((snapshot) => {
       allWords = [];
       snapshot.forEach(doc => {
         const data = doc.data();
+        let timeVal = 0;
+        if (data.createdAt && typeof data.createdAt.toMillis === 'function') {
+          timeVal = data.createdAt.toMillis();
+        } else if (data.createdAt && typeof data.createdAt === 'number') {
+          timeVal = data.createdAt;
+        }
+
         allWords.push({
           id: doc.id,
           en: data.en || "",
           pos: data.pos || "",
           ch: data.ch || "",
           folder: data.folder || "未分類",
-          createdAt: data.createdAt ? data.createdAt.toMillis() : 0
+          createdAt: timeVal
         });
       });
+
+      // 前端安全排序：舊到新
+      allWords.sort((a, b) => a.createdAt - b.createdAt);
       renderFolderList();
     })
     .catch((err) => {
-      console.warn("使用預設排序重試：", err);
-      db.collection("users").doc(uid).collection("words").get()
-        .then((snapshot) => {
-          allWords = [];
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            allWords.push({
-              id: doc.id,
-              en: data.en || "",
-              pos: data.pos || "",
-              ch: data.ch || "",
-              folder: data.folder || "未分類",
-              createdAt: data.createdAt && data.createdAt.toMillis ? data.createdAt.toMillis() : 0
-            });
-          });
-          allWords.sort((a, b) => a.createdAt - b.createdAt);
-          renderFolderList();
-        })
-        .catch(innerErr => {
-          console.error("載入失敗：", innerErr);
-          containerEl.innerHTML = `<p style="color:red; text-align:center;">載入單字失敗</p>`;
-        });
+      console.error("載入失敗：", err);
+      containerEl.innerHTML = `<p style="color:red; text-align:center;">載入單字失敗</p>`;
     });
 }
 
@@ -295,13 +286,11 @@ function renderFlashcard() {
       </span>
 
       <div style="margin-top: 5px;">
-        <!-- 英文與發音按鈕並排 -->
         <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 8px;">
           <div style="font-size: 34px; font-weight: bold; color: #1d4ed8;">${word.en}</div>
           <button onclick="speakWord('${word.en}', event)" style="background: #e0f2fe; color: #0284c7; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">🔊 唸</button>
         </div>
 
-        <!-- 中文意思直接顯示 -->
         <div style="font-size: 24px; font-weight: bold; color: #1f2937; margin-top: 12px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
           ${word.ch}
         </div>
