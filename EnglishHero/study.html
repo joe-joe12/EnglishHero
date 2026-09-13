@@ -6,9 +6,15 @@
   <title>English Hero - 單字學習與管理</title>
   <link rel="stylesheet" href="css/style.css?v=2074">
   <style>
-    body { background: #f8fafc; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; }
-    .main-header { max-width: 650px; margin: 0 auto 15px auto; display: flex; justify-content: space-between; align-items: center; }
-    .study-container { max-width: 650px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); padding: 24px; }
+    body { background: #f8fafc; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+    
+    /* 模仿其他頁面的乾淨頂部標題列 */
+    .main-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: #fff; border-bottom: 1px solid #e2e8f0; margin-bottom: 30px; }
+    .main-header .logo a { font-size: 22px; font-weight: bold; color: #16a34a; text-decoration: none; }
+    .btn-back-home { padding: 8px 18px; background: #fff; border: 1px solid #cbd5e1; color: #475569; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; text-decoration: none; }
+    .btn-back-home:hover { background: #f1f5f9; }
+
+    .study-container { max-width: 650px; margin: 0 auto 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); padding: 24px; }
     
     .folder-wrapper { position: relative; margin-bottom: 10px; border-radius: 8px; background: #f9fafb; border: 1px solid #e5e7eb; transition: 0.2s; }
     .folder-wrapper:hover { border-color: #3b82f6; background: #f8fafc; }
@@ -38,13 +44,13 @@
 </head>
 <body>
 
-<!-- 上方標準標題列（字體大小與顏色與其他頁面一致） -->
+<!-- 與其他頁面一致的標準頂部標題列 -->
 <header class="main-header">
-  <div style="font-size: 20px; font-weight: bold; color: #1e293b;">
-    <a href="index.html" style="text-decoration: none; color: inherit;">📚 English Hero - 背單字</a>
+  <div class="logo">
+    <a href="index.html">📚 English Hero - 背單字</a>
   </div>
   <div>
-    <button onclick="window.location.href='index.html'" style="padding: 6px 14px; background: #e2e8f0; color: #334155; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">回首頁</button>
+    <a href="index.html" class="btn-back-home">回首頁</a>
   </div>
 </header>
 
@@ -69,6 +75,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/study.js?v=2097"></script>
+<script src="js/study.js?v=2098"></script>
 </body>
 </html>
