@@ -179,27 +179,24 @@ window.saveGlobalPlanToCloud = async function() {
   try {
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
 
-    // 1. 先安全清空舊的「🎯 今日背誦計畫」
-    const snapshot = await userWordsRef.where("folder", "==", planFolderName).get();
-    
-    if (!snapshot.empty) {
-      let deleteBatch = db.batch();
-      let count = 0;
-      for (const doc of snapshot.docs) {
+    // 1. 安全抓取並刪除舊的「🎯 今日背誦計畫」（改用前端迴圈比對，避免 Firestore 複合索引報錯）
+    const allSnapshot = await userWordsRef.get();
+    let deleteBatch = db.batch();
+    let deleteCount = 0;
+
+    allSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.folder === planFolderName) {
         deleteBatch.delete(doc.ref);
-        count++;
-        if (count >= 400) {
-          await deleteBatch.commit();
-          deleteBatch = db.batch();
-          count = 0;
-        }
+        deleteCount++;
       }
-      if (count > 0) {
-        await deleteBatch.commit();
-      }
+    });
+
+    if (deleteCount > 0) {
+      await deleteBatch.commit();
     }
 
-    // 2. 將今天的份量寫入「🎯 今日背誦計畫」
+    // 2. 將今天的份量寫入「🎯 今日背誦計畫」，並補上 createdAt 讓背單字畫面抓得到
     let writeBatch = db.batch();
     let writeCount = 0;
 
@@ -209,7 +206,8 @@ window.saveGlobalPlanToCloud = async function() {
         en: w.en,
         pos: w.pos || "n.",
         ch: w.ch,
-        folder: planFolderName
+        folder: planFolderName,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp() // 🌟 關鍵修正：補上時間戳記
       });
       writeCount++;
       if (writeCount >= 400) {
