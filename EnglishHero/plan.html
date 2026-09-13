@@ -1,190 +1,77 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>全域連續學習計畫 - English Hero</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>English Hero - 每日連續學習計畫</title>
+  <link rel="stylesheet" href="css/style.css?v=2074">
   <style>
-    body {
-      background-color: #f3f4f6;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .plan-container {
-      max-width: 600px;
-      width: 100%;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      padding: 30px;
-      margin-top: 20px;
-      box-sizing: border-box;
-    }
-    .nav-bar {
-      max-width: 600px;
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .nav-bar a {
-      color: #4f46e5;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    .form-group label {
-      display: block;
-      font-weight: bold;
-      color: #374151;
-      margin-bottom: 8px;
-    }
-    .form-control {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid #d1d5db;
-      border-radius: 12px;
-      font-size: 16px;
-      box-sizing: border-box;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .form-control:focus {
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
-    .btn-primary {
-      width: 100%;
-      background-color: #4f46e5;
-      color: white;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .btn-primary:hover {
-      background-color: #4338ca;
-    }
-    .btn-success {
-      width: 100%;
-      background-color: #10b981;
-      color: white;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 15px;
-      transition: background-color 0.2s;
-    }
-    .btn-success:hover {
-      background-color: #059669;
-    }
-    .plan-result {
-      margin-top: 25px;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 20px;
-    }
-    .plan-title-box {
-      background-color: #eef2ff;
-      border: 1px solid #c7d2fe;
-      border-radius: 12px;
-      padding: 12px 16px;
-      color: #3730a3;
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 15px;
-    }
-    .word-item {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .word-en {
-      font-weight: bold;
-      color: #1f2937;
-      font-size: 18px;
-    }
-    .word-pos {
-      color: #6b7280;
-      font-size: 14px;
-      margin-left: 6px;
-    }
-    .word-ch {
-      color: #4b5563;
-      font-weight: 500;
-    }
-    .hidden {
-      display: none;
-    }
+    body { background: #f8fafc; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+    
+    /* 統一的頂部導覽列風格 */
+    .main-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: #fff; border-bottom: 1px solid #e2e8f0; margin-bottom: 30px; }
+    .main-header .logo a { font-size: 22px; font-weight: bold; color: #16a34a; text-decoration: none; }
+    .btn-back-home { padding: 8px 18px; background: #fff; border: 1px solid #cbd5e1; color: #475569; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; text-decoration: none; }
+    .btn-back-home:hover { background: #f1f5f9; }
+
+    .plan-container { max-width: 650px; margin: 0 auto 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); padding: 28px; box-sizing: border-box; }
+    
+    .section-title { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .hidden { display: none; }
+    
+    .word-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; margin-top: 6px; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .word-en { font-size: 16px; font-weight: bold; color: #1d4ed8; }
+    .word-pos { font-size: 12px; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+    .word-ch { font-size: 15px; font-weight: bold; color: #334155; }
   </style>
 </head>
 <body>
 
-  <div class="nav-bar">
-    <a href="index.html">← 返回首頁</a>
-    <span style="font-weight: bold; color: #1f2937;">🎯 全域連續學習計畫</span>
-    <div style="width: 60px;"></div>
+<!-- 統一的標準頂部標題列 -->
+<header class="main-header">
+  <div class="logo">
+    <a href="index.html">📚 English Hero - 背單字</a>
+  </div>
+  <div>
+    <a href="index.html" class="btn-back-home">回首頁</a>
+  </div>
+</header>
+
+<div class="plan-container">
+  
+  <h2 style="margin-top: 0; color: #1e293b; font-size: 22px; margin-bottom: 24px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px;">🎯 建立全域連續學習計畫</h2>
+
+  <div class="section-title">1. 設定各資料夾預計背完的天數：</div>
+  <div id="folder-settings-container" style="margin-bottom: 24px;">
+    <p style="color: #64748b; text-align: center; padding: 15px;">載入資料夾中...</p>
   </div>
 
-  <div class="plan-container">
+  <div class="section-title">2. 選擇你要預習/載入的是第幾天 (Day)：</div>
+  <div style="margin-bottom: 24px;">
+    <input type="number" id="target-day" min="1" value="1" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+  </div>
+
+  <button onclick="generateGlobalPlan()" style="width: 100%; padding: 14px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 12px rgba(79,70,229,0.25);">
+    🚀 預覽全域連續計畫
+  </button>
+
+  <!-- 預覽與寫入區塊 -->
+  <div id="plan-result" class="hidden" style="margin-top: 30px; border-top: 2px dashed #cbd5e1; padding-top: 20px;">
+    <h3 id="plan-title" style="color: #1e293b; font-size: 18px; margin-bottom: 12px;"></h3>
     
-    <div class="form-group">
-      <label>1. 設定各資料夾預計背完的天數：</label>
-      <div id="folder-settings-container" style="background: #f9fafb; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb;">
-        載入資料夾中...
-      </div>
-    </div>
+    <div id="daily-words-container" style="max-height: 350px; overflow-y: auto; margin-bottom: 20px; padding-right: 4px;"></div>
 
-    <div class="form-group">
-      <label>2. 選擇你要預習/載入的是第幾天 (Day)：</label>
-      <input type="number" id="target-day" min="1" value="1" class="form-control" placeholder="例如：1">
-    </div>
-
-    <button onclick="generateGlobalPlan()" class="btn-primary">
-      🚀 預覽全域連續計畫
+    <button onclick="saveGlobalPlanToCloud()" style="width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 12px rgba(16,185,129,0.25);">
+      🎯 將此天度加入「🎯 今日背誦計畫」資料夾
     </button>
-
-    <!-- 計畫結果展示區 -->
-    <div id="plan-result" class="plan-result hidden">
-      <div id="plan-title" class="plan-title-box"></div>
-      
-      <div style="font-weight: bold; color: #374151; margin-bottom: 10px; font-size: 14px;">
-        📖 當日串連複習單字：
-      </div>
-
-      <div id="daily-words-container" style="max-height: 300px; overflow-y: auto;">
-        <!-- 動態產生 -->
-      </div>
-
-      <button onclick="saveGlobalPlanToCloud()" class="btn-success">
-        📥 將此天進度加入「🎯 今日背誦計畫」資料夾
-      </button>
-    </div>
-
   </div>
 
-  <!-- Firebase 相關 SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-  <script src="js/plan.js?v=2120"></script>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/plan.js?v=2099"></script>
 </body>
 </html>
