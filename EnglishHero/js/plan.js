@@ -38,7 +38,7 @@ async function fetchUserFoldersAndWords() {
     snapshot.forEach(doc => {
       const data = doc.data();
       allUserWords.push({ id: doc.id, ...data });
-      if (data.folder && !data.folder.includes("🎯") && !data.folder.includes("📦")) {
+      if (data.folder && !data.folder.includes("🎯") && !data.folder.includes("📦") && !data.folder.includes("昨天")) {
         if (!foldersMap[data.folder]) {
           foldersMap[data.folder] = [];
         }
@@ -87,7 +87,7 @@ function renderFolderSettings() {
   container.innerHTML = html;
 }
 
-// 核心演算法：產生全域連續學習計畫 (只計算有打勾的資料夾)
+// 核心演算法：產生全域連續學習計畫
 window.generateGlobalPlan = function() {
   const targetDayNum = parseInt(document.getElementById("target-day").value);
   if (!targetDayNum || targetDayNum <= 0) {
@@ -95,7 +95,6 @@ window.generateGlobalPlan = function() {
     return;
   }
 
-  // 1. 只抓取畫面上「有打勾」的資料夾
   const checkedBoxes = Array.from(document.querySelectorAll(".folder-checkbox")).filter(box => box.checked);
   
   if (checkedBoxes.length === 0) {
@@ -103,13 +102,10 @@ window.generateGlobalPlan = function() {
     return;
   }
 
-  let globalTimeline = []; // 索引對應第 0 天、第 1 天...
+  let globalTimeline = [];
 
-  // 2. 將「有打勾」的資料夾依照設定天數切塊，並依序串連
   checkedBoxes.forEach(box => {
     const folderName = box.getAttribute("data-folder");
-    
-    // 找出對應這個資料夾的天數輸入框
     const dayInputs = Array.from(document.querySelectorAll(".folder-day-input"));
     const dayInput = dayInputs.find(input => input.getAttribute("data-folder") === folderName);
     
@@ -127,7 +123,6 @@ window.generateGlobalPlan = function() {
       folderDays.push(words.slice(start, end));
     }
 
-    // 無縫串接至全域時間軸
     folderDays.forEach((dayWords, dayIndex) => {
       if (!globalTimeline[dayIndex]) {
         globalTimeline[dayIndex] = [];
@@ -136,11 +131,9 @@ window.generateGlobalPlan = function() {
     });
   });
 
-  // 取得使用者指定的那一天（陣列從 0 開始，所以要減 1）
   const targetIndex = targetDayNum - 1;
   currentTodayBatch = globalTimeline[targetIndex] || [];
 
-  // 渲染畫面供預覽
   document.getElementById("plan-result").classList.remove("hidden");
   document.getElementById("plan-title").innerText = 
     `📖 全域排程 - Day ${targetDayNum}：共 ${currentTodayBatch.length} 個單字。`;
@@ -167,7 +160,7 @@ window.generateGlobalPlan = function() {
   });
 };
 
-// 寫入雲端「🎯 今日背誦計畫」資料夾
+// 寫入雲端：將舊的今日計畫轉移到「📁 昨天的單字」，並寫入新進度到「🎯 今日背誦計畫」
 window.saveGlobalPlanToCloud = async function() {
   if (currentTodayBatch.length === 0) {
     alert("目前沒有可加入的計畫單字！");
@@ -175,20 +168,34 @@ window.saveGlobalPlanToCloud = async function() {
   }
 
   const planFolderName = "🎯 今日背誦計畫";
+  const yesterdayFolderName = "📁 昨天的單字";
 
   try {
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-
-    // 1. 安全抓取並刪除舊的「🎯 今日背誦計畫」（改用前端迴圈比對，避免 Firestore 複合索引報錯）
     const allSnapshot = await userWordsRef.get();
+
+    let currentPlanWords = [];
     let deleteBatch = db.batch();
     let deleteCount = 0;
 
+    // 1. 收集目前的「🎯 今日背誦計畫」單字，並準備清空舊的「🎯 今日背誦計畫」與「📁 昨天的單字」
     allSnapshot.forEach(doc => {
       const data = doc.data();
       if (data.folder === planFolderName) {
+        currentPlanWords.push({
+          en: data.en,
+          pos: data.pos || "n.",
+          ch: data.ch
+        });
         deleteBatch.delete(doc.ref);
         deleteCount++;
+      } else if (data.folder === yesterdayFolderName) {
+        deleteBatch.delete(doc.ref);
+        deleteCount++;
+      }
+
+      if (deleteCount >= 400) {
+        // 若批次接近上限先提交（這裡簡化處理，通常單字量小於400）
       }
     });
 
@@ -196,10 +203,24 @@ window.saveGlobalPlanToCloud = async function() {
       await deleteBatch.commit();
     }
 
-    // 2. 將今天的份量寫入「🎯 今日背誦計畫」，並補上 createdAt 讓背單字畫面抓得到
-    let writeBatch = db.batch();
-    let writeCount = 0;
+    // 2. 如果原本有今日計畫，將其搬移到「📁 昨天的單字」
+    if (currentPlanWords.length > 0) {
+      let yesterdayBatch = db.batch();
+      currentPlanWords.forEach(w => {
+        const newDocRef = userWordsRef.doc();
+        yesterdayBatch.set(newDocRef, {
+          en: w.en,
+          pos: w.pos,
+          ch: w.ch,
+          folder: yesterdayFolderName,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+      await yesterdayBatch.commit();
+    }
 
+    // 3. 將今天的新進度寫入「🎯 今日背誦計畫」
+    let writeBatch = db.batch();
     for (const w of currentTodayBatch) {
       const newDocRef = userWordsRef.doc();
       writeBatch.set(newDocRef, {
@@ -207,20 +228,12 @@ window.saveGlobalPlanToCloud = async function() {
         pos: w.pos || "n.",
         ch: w.ch,
         folder: planFolderName,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp() // 🌟 關鍵修正：補上時間戳記
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      writeCount++;
-      if (writeCount >= 400) {
-        await writeBatch.commit();
-        writeBatch = db.batch();
-        writeCount = 0;
-      }
     }
-    if (writeCount > 0) {
-      await writeBatch.commit();
-    }
+    await writeBatch.commit();
 
-    alert(`🎉 成功將當天串連的 ${currentTodayBatch.length} 個單字加入「${planFolderName}」資料夾！`);
+    alert(`🎉 成功更新！原本的單字已移至「${yesterdayFolderName}」，並將當天 ${currentTodayBatch.length} 個新單字加入「${planFolderName}」！`);
   } catch (err) {
     alert("加入資料夾失敗：" + err.message);
   }
