@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Hero - 新增單字</title>
+  <link rel="stylesheet" href="css/style.css?v=2026">
+  <style>
+    .add-container { max-width: 500px; margin: 40px auto; padding: 30px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
+    .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+    .folder-input-group { display: flex; gap: 8px; }
+    .btn-submit { width: 100%; padding: 12px; background: #22c55e; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
+    .btn-submit:hover { background: #16a34a; }
+    .btn-secondary { padding: 0 16px; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .msg { margin-top: 15px; text-align: center; font-weight: bold; min-height: 24px; }
+    .msg.success { color: #16a34a; }
+    .msg.error { color: #dc2626; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="dashboard-body">
+
+<header class="main-header">
+  <div class="logo">
+    <a href="index.html?v=2026" style="text-decoration: none; color: inherit;">➕ English Hero - 新增單字</a>
+  </div>
+  <div class="user-panel">
+    <a href="index.html?v=2026" class="btn-back">回首頁</a>
+  </div>
+</header>
+
+<div class="add-container">
+  <h2 style="text-align: center; margin-bottom: 20px;">擴充單字庫</h2>
+  <form id="add-word-form">
+    
+    <!-- 選擇資料夾下拉選單 -->
+    <div class="form-group">
+      <label>📁 選擇分類資料夾</label>
+      <div class="folder-input-group">
+        <select id="folder-select" required>
+          <option value="">載入資料夾中...</option>
+        </select>
+        <button type="button" id="btn-toggle-new-folder" class="btn-secondary">＋ 新增資料夾</button>
+      </div>
+    </div>
+
+    <!-- 隱藏的新增資料夾輸入框 -->
+    <div class="form-group hidden" id="new-folder-group">
+      <label>✨ 輸入新資料夾名稱</label>
+      <div class="folder-input-group">
+        <input type="text" id="new-folder-input" placeholder="例如: 多益核心單字">
+        <button type="button" id="btn-cancel-new-folder" class="btn-secondary">取消</button>
+      </div>
+    </div>
+
+        <!-- 英文單字與自動查中文按鈕 -->
+    <div class="form-group">
+      <label>🔤 英文單字</label>
+      <div class="folder-input-group">
+        <input type="text" id="word-en" placeholder="例如: apple" autocomplete="off" required>
+        <button type="button" id="btn-auto-translate" class="btn-secondary" style="background: #3b82f6; color: #fff;">✨ 自動查中文</button>
+      </div>
+    </div>
+    
+    <!-- 新增：詞性選擇下拉選單 -->
+    <div class="form-group">
+      <label>🏷️ 詞性</label>
+      <select id="word-pos">
+        <option value="">(無/其他)</option>
+        <option value="n.">n. (名詞)</option>
+        <option value="v.">v. (動詞)</option>
+        <option value="adj.">adj. (形容詞)</option>
+        <option value="adv.">adv. (副詞)</option>
+        <option value="prep.">prep. (介系詞)</option>
+        <option value="conj.">conj. (連接詞)</option>
+        <option value="phr.">phr. (片語)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>🇹🇼 中文意思</label>
+      <input type="text" id="word-ch" placeholder="例如: 蘋果" autocomplete="off" required>
+    </div>
+
+
+    <button type="submit" class="btn-submit">儲存單字</button>
+  </form>
+  <div id="add-msg" class="msg"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="js/add.js?v=2035"></script>
+</body>
+</html>

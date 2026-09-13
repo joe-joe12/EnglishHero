@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Hero - 考單字</title>
+  <link rel="stylesheet" href="css/style.css?v=2026">
+  <style>
+    .study-container { max-width: 600px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    
+    /* 第一層大模式切換 */
+    .main-mode-tabs { display: flex; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; gap: 10px; }
+    .main-tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; color: #64748b; background: #f8fafc; border-radius: 8px 8px 0 0; border: 1px solid #e2e8f0; border-bottom: none; font-size: 16px; }
+    .main-tab.active { background: #fff; color: #3b82f6; border-color: #3b82f6; border-bottom: 2px solid #fff; margin-bottom: -2px; }
+
+    /* 第二層配對子模式切換 */
+    .sub-mode-container { display: flex; gap: 10px; margin-bottom: 15px; background: #f1f5f9; padding: 8px; border-radius: 8px; }
+    .sub-tab { flex: 1; padding: 8px; text-align: center; cursor: pointer; font-weight: bold; color: #64748b; border-radius: 6px; font-size: 14px; transition: 0.2s; }
+    .sub-tab.active { background: #3b82f6; color: #fff; }
+
+    .folder-filter-box { margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .folder-filter-box label { font-weight: bold; color: #334155; white-space: nowrap; }
+    .folder-filter-box select { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; }
+
+    /* 填空模式樣式 */
+    .fill-box { text-align: center; padding: 10px 0; }
+    .word-meaning { font-size: 24px; margin-bottom: 20px; font-weight: bold; color: #333; background: #f1f5f9; padding: 20px; border-radius: 10px; }
+    .fill-input { font-size: 20px; padding: 10px; width: 80%; max-width: 300px; text-align: center; border: 2px solid #ccc; border-radius: 8px; margin-bottom: 15px; }
+    .btn-submit { padding: 10px 30px; font-size: 18px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+    
+    /* 選擇測驗樣式 */
+    .quiz-box { text-align: center; padding: 10px 0; }
+    .question-title { font-size: 24px; margin-bottom: 20px; font-weight: bold; color: #1e293b; background: #f1f5f9; padding: 20px; border-radius: 10px; }
+    .options-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+    .option-btn { padding: 15px; font-size: 18px; font-weight: bold; background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 8px; cursor: pointer; transition: 0.2s; text-align: center; color: #334155; }
+    .option-btn:hover { background: #e2e8f0; border-color: #94a3b8; }
+    .option-btn.correct { background: #dcfce7 !important; border-color: #22c55e !important; color: #166534 !important; }
+    .option-btn.wrong { background: #fee2e2 !important; border-color: #ef4444 !important; color: #991b1b !important; }
+
+    .feedback { margin-top: 15px; font-size: 18px; font-weight: bold; min-height: 28px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="dashboard-body">
+
+<header class="main-header">
+  <div class="logo">
+    <a href="index.html?v=2026" style="text-decoration: none; color: inherit;">🎯 English Hero - 考單字</a>
+  </div>
+  <div class="user-panel">
+    <a href="index.html?v=2026" class="btn-back">回首頁</a>
+  </div>
+</header>
+
+<div class="study-container">
+  <!-- 第一層大模式切換 -->
+  <div class="main-mode-tabs">
+    <div id="main-tab-fill" class="main-tab active">✏️ 填空測驗</div>
+    <div id="main-tab-match" class="main-tab">🎴 選擇配對</div>
+  </div>
+
+  <!-- 資料夾選擇列 -->
+  <div class="folder-filter-box">
+    <label for="quiz-folder-select">🎯 測驗範圍：</label>
+    <select id="quiz-folder-select">
+      <option value="ALL">全部資料夾 (綜合測驗)</option>
+    </select>
+  </div>
+
+  <!-- 第二層配對子模式切換（只有在點擊「選擇配對」時才顯示） -->
+  <div id="sub-mode-box" class="sub-mode-container hidden">
+    <div id="sub-tab-en-ch" class="sub-tab active">🔤 一英三中 (看英選中)</div>
+    <div id="sub-tab-ch-en" class="sub-tab">🇹🇼 一中三英 (看中選英)</div>
+  </div>
+
+  <!-- 填空遊戲畫面 -->
+  <div id="mode-fill" class="fill-box">
+    <div class="word-meaning" id="fill-question">載入單字中...</div>
+    <input type="text" id="fill-answer" class="fill-input" placeholder="請輸入英文單字" autocomplete="off">
+    <br>
+    <button id="btn-check-fill" class="btn-submit">送出對答案</button>
+    <div id="fill-feedback" class="feedback"></div>
+  </div>
+
+  <!-- 選擇配對遊戲畫面 -->
+  <div id="mode-match" class="quiz-box hidden">
+    <div class="question-title" id="match-question">載入單字中...</div>
+    <div class="options-grid" id="options-container"></div>
+    <div id="match-feedback" class="feedback"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="js/quiz.js?v=2026"></script>
+</body>
+</html>

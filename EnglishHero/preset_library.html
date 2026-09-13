@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Hero - 精選題庫專區</title>
+  <link rel="stylesheet" href="css/style.css?v=2076">
+  <style>
+    .lib-container { max-width: 700px; margin: 30px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .preset-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 16px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; }
+    .preset-info h3 { margin: 0 0 6px 0; color: #1e293b; font-size: 18px; }
+    .preset-info p { margin: 0; color: #64748b; font-size: 13px; }
+    .btn-add-preset { background: #10b981; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .btn-add-preset:hover { background: #059669; }
+  </style>
+</head>
+<body class="dashboard-body">
+
+<header class="main-header">
+  <div class="logo">
+    <a href="index.html?v=2076" style="text-decoration: none; color: inherit;">📚 English Hero - 題庫專區</a>
+  </div>
+  <div class="user-panel">
+    <a href="index.html?v=2076" class="btn-back">回首頁</a>
+  </div>
+</header>
+
+<div class="lib-container">
+  <h2 style="margin-top: 0; color: #1e293b; margin-bottom: 6px;">🎯 選擇您想要加入的精選題庫</h2>
+  <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">點擊「加入題庫」即可將該分類的所有單字一鍵匯入您的個人資料夾中！</p>
+
+  <div id="preset-list-container">
+    <!-- 題庫項目 1：國中 2000 單字精選 -->
+    <div class="preset-card">
+      <div class="preset-info">
+        <h3>📖 國中基礎 2000 單字精選</h3>
+        <p>包含國中階段最常用、最重要的核心基礎單字。</p>
+      </div>
+      <button class="btn-add-preset" onclick="importPreset('junior_2000')">➕ 加入題庫</button>
+    </div>
+
+    <!-- 題庫項目 2：國中會考高頻單字 -->
+    <div class="preset-card">
+      <div class="preset-info">
+        <h3>🔥 國中會考高頻單字</h3>
+        <p>歷屆會考出現頻率最高之核心單字與片語總整理。</p>
+      </div>
+      <button class="btn-add-preset" onclick="importPreset('cap_exam')">➕ 加入題庫</button>
+    </div>
+
+    <!-- LiveABC 9月份題庫按鈕 -->
+    <div class="preset-card">
+      <div class="preset-info">
+        <h3>📚 LiveABC 9月份</h3>
+        <p>精選 9 月份最新單字，無音標對照版，輕鬆擴充字彙量。</p>
+      </div>
+      <button class="btn-add-preset" onclick="importPreset('liveabc_sep')">➕ 加入題庫</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<!-- 引入 JS 邏輯 -->
+<script src="js/preset.js"></script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全域連續學習計畫 - English Hero</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      background-color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .plan-container {
+      max-width: 600px;
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 30px;
+      margin-top: 20px;
+      box-sizing: border-box;
+    }
+    .nav-bar {
+      max-width: 600px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-bar a {
+      color: #4f46e5;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 16px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-control:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    .btn-primary {
+      width: 100%;
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn-primary:hover {
+      background-color: #4338ca;
+    }
+    .btn-success {
+      width: 100%;
+      background-color: #10b981;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background-color 0.2s;
+    }
+    .btn-success:hover {
+      background-color: #059669;
+    }
+    .plan-result {
+      margin-top: 25px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 20px;
+    }
+    .plan-title-box {
+      background-color: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #3730a3;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .word-item {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .word-en {
+      font-weight: bold;
+      color: #1f2937;
+      font-size: 18px;
+    }
+    .word-pos {
+      color: #6b7280;
+      font-size: 14px;
+      margin-left: 6px;
+    }
+    .word-ch {
+      color: #4b5563;
+      font-weight: 500;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="nav-bar">
+    <a href="index.html">← 返回首頁</a>
+    <span style="font-weight: bold; color: #1f2937;">🎯 全域連續學習計畫</span>
+    <div style="width: 60px;"></div>
+  </div>
+
+  <div class="plan-container">
+    
+    <div class="form-group">
+      <label>1. 設定各資料夾預計背完的天數：</label>
+      <div id="folder-settings-container" style="background: #f9fafb; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb;">
+        載入資料夾中...
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>2. 選擇你要預習/載入的是第幾天 (Day)：</label>
+      <input type="number" id="target-day" min="1" value="1" class="form-control" placeholder="例如：1">
+    </div>
+
+    <button onclick="generateGlobalPlan()" class="btn-primary">
+      🚀 預覽全域連續計畫
+    </button>
+
+    <!-- 計畫結果展示區 -->
+    <div id="plan-result" class="plan-result hidden">
+      <div id="plan-title" class="plan-title-box"></div>
+      
+      <div style="font-weight: bold; color: #374151; margin-bottom: 10px; font-size: 14px;">
+        📖 當日串連複習單字：
+      </div>
+
+      <div id="daily-words-container" style="max-height: 300px; overflow-y: auto;">
+        <!-- 動態產生 -->
+      </div>
+
+      <button onclick="saveGlobalPlanToCloud()" class="btn-success">
+        📥 將此天進度加入「🎯 今日背誦計畫」資料夾
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Firebase 相關 SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="js/plan.js?v=2120"></script>
+</body>
+</html>
