@@ -35,7 +35,6 @@ auth.onAuthStateChanged((user) => {
 });
 
 function fetchAllWords(uid) {
-  // 🌟 改為直接抓取所有單字，不在查詢時用 orderBy 卡死，改在前端安全排序
   db.collection("users").doc(uid).collection("words").get()
     .then((snapshot) => {
       allWords = [];
@@ -58,7 +57,6 @@ function fetchAllWords(uid) {
         });
       });
 
-      // 前端安全排序：舊到新
       allWords.sort((a, b) => a.createdAt - b.createdAt);
       renderFolderList();
     })
@@ -75,7 +73,9 @@ function renderFolderList() {
 
   const folderMap = {};
   
+  // 確保這三個核心資料夾一定存在
   folderMap["🎯 今日背誦計畫"] = [];
+  folderMap["📁 昨天的單字"] = [];
   folderMap["📦 已經背過的單字"] = [];
 
   allWords.forEach(w => {
@@ -84,21 +84,48 @@ function renderFolderList() {
     folderMap[fName].push(w);
   });
 
-  let folders = Object.keys(folderMap);
+  // 1. 渲染頂部的三個精巧小方格快捷區
+  const specialFolders = ["🎯 今日背誦計畫", "📁 昨天的單字", "📦 已經背過的單字"];
+  let topBadgesHtml = `
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+  `;
 
-  folders.sort((a, b) => {
-    if (a === "🎯 今日背誦計畫") return -1;
-    if (b === "🎯 今日背誦計畫") return 1;
-    if (a === "📦 已經背過的單字") return -1;
-    if (b === "📦 已經背過的單字") return 1;
-    return a.localeCompare(b);
+  specialFolders.forEach((fName) => {
+    const count = folderMap[fName].length;
+    let badgeColor = "#0284c7";
+    let bgLight = "#e0f2fe";
+    if (fName.includes("昨天")) {
+      badgeColor = "#d97706";
+      bgLight = "#fef3c7";
+    } else if (fName.includes("背過")) {
+      badgeColor = "#059669";
+      bgLight = "#d1fae5";
+    }
+
+    topBadgesHtml += `
+      <div onclick="startStudy('${fName}')" style="background: ${bgLight}; border: 1px solid ${badgeColor}40; padding: 12px 10px; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+        <div style="font-size: 13px; font-weight: bold; color: ${badgeColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${fName}</div>
+        <div style="font-size: 18px; font-weight: 800; color: ${badgeColor}; margin-top: 4px;">${count} <span style="font-size: 11px; font-weight: normal;">個字</span></div>
+      </div>
+    `;
   });
+  topBadgesHtml += `</div>`;
 
-  let html = "";
-  folders.forEach((folderName, index) => {
+  // 2. 一般自訂資料夾列表 (排除這三個特殊置頂資料夾)
+  let normalFolders = Object.keys(folderMap).filter(name => !specialFolders.includes(name));
+  normalFolders.sort((a, b) => a.localeCompare(b));
+
+  let html = topBadgesHtml;
+  html += `<div style="font-size: 16px; font-weight: bold; color: #334155; margin-bottom: 10px; border-left: 4px solid #4f46e5; padding-left: 8px;">📚 一般題庫資料夾</div>`;
+
+  if (normalFolders.length === 0) {
+    html += `<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 10px;">目前沒有其他自訂資料夾</p>`;
+  }
+
+  normalFolders.forEach((folderName, index) => {
     const count = folderMap[folderName].length;
     html += `
-      <div class="folder-wrapper">
+      <div class="folder-wrapper" style="margin-bottom: 10px;">
         <div class="folder-item" onclick="startStudy('${folderName}')">
           <div class="folder-info">
             <h3>📁 ${folderName}</h3>
@@ -250,7 +277,6 @@ window.startStudy = function(folderName) {
   renderFlashcard();
 };
 
-// 🔊 英文朗讀語音合成函式
 window.speakWord = function(text, event) {
   if (event) event.stopPropagation();
   if (!text) return;
