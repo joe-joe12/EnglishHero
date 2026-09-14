@@ -122,7 +122,8 @@ subTabChEn.addEventListener("click", () => {
   initCurrentMode();
 });
 
-function initCurrentMode() {
+// 🌟 設為全域函數，確保結算畫面的按鈕能夠順利呼叫
+window.initCurrentMode = function() {
   const currentList = getFilteredWords();
   quizQueue = [...currentList].sort(() => Math.random() - 0.5);
   wrongList = [];
@@ -133,7 +134,7 @@ function initCurrentMode() {
   } else {
     startMatchGame();
   }
-}
+};
 
 // ==================== 模式一：填空測驗邏輯 ====================
 function startFillGame() {
@@ -144,7 +145,6 @@ function startFillGame() {
 
   currentWord = quizQueue[currentIndex];
 
-  // 動態渲染填空測驗的介面，確保每次題目重置時輸入框與按鈕都是全新的、未被鎖定的狀態
   modeFill.innerHTML = `
     <div style="text-align: center; padding: 10px;">
       <div id="fill-feedback" style="font-size: 14px; font-weight: bold; color: #475569; margin-bottom: 12px;">
@@ -169,7 +169,6 @@ function startFillGame() {
 
   fillAnswerInput.focus();
 
-  // 綁定送出事件
   btnCheck.addEventListener("click", checkFillAnswer);
   fillAnswerInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") checkFillAnswer();
@@ -186,7 +185,6 @@ function checkFillAnswer() {
   const userInput = fillAnswerInput.value.trim().toLowerCase();
   if (!userInput) return;
 
-  // 鎖定輸入避免重複送出
   fillAnswerInput.disabled = true;
   btnCheck.disabled = true;
 
@@ -203,12 +201,11 @@ function checkFillAnswer() {
       mode: "填空"
     });
 
-    // 直接在畫面下方給出正確答案
     fillFeedback.innerHTML = `❌ 答錯囉！正確答案是：<strong style="color: #2563eb; font-size: 18px;">${currentWord.en}</strong>`;
     fillFeedback.style.color = "#dc2626";
     
     currentIndex++;
-    setTimeout(startFillGame, 2500); // 停留 2.5 秒讓使用者看清楚正確答案
+    setTimeout(startFillGame, 2500);
   }
 }
 
