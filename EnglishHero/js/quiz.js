@@ -27,22 +27,16 @@ const quizFolderSelect = document.getElementById("quiz-folder-select");
 const modeFill = document.getElementById("mode-fill");
 const modeMatch = document.getElementById("mode-match");
 
-// 填空元素
-const fillQuestion = document.getElementById("fill-question");
-const fillAnswer = document.getElementById("fill-answer");
-const btnCheckFill = document.getElementById("btn-check-fill");
-const fillFeedback = document.getElementById("fill-feedback");
-
 // 配對元素
 const matchQuestion = document.getElementById("match-question");
 const optionsContainer = document.getElementById("options-container");
 const matchFeedback = document.getElementById("match-feedback");
 
 // 測驗狀態控制
-let quizQueue = [];     // 當前一輪要考的單字清單（已洗牌）
-let wrongList = [];     // 錯題記錄
-let currentIndex = 0;   // 目前考到第幾題
-let currentWord = null; // 當前題目
+let quizQueue = [];     
+let wrongList = [];     
+let currentIndex = 0;   
+let currentWord = null; 
 let isAnswerLocked = false;
 
 auth.onAuthStateChanged((user) => {
@@ -74,7 +68,7 @@ function fetchAllUserData(uid) {
       });
 
       if (allWordsList.length === 0) {
-        fillQuestion.textContent = "單字庫為空，請先至「新增單字」建立！";
+        modeFill.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">單字庫為空，請先至「新增單字」建立！</p>`;
         matchQuestion.textContent = "單字庫為空，請先至「新增單字」建立！";
         return;
       }
@@ -82,7 +76,7 @@ function fetchAllUserData(uid) {
       initCurrentMode();
     })
     .catch((err) => {
-      fillQuestion.textContent = "資料載入失敗：" + err.message;
+      modeFill.innerHTML = `<p style="text-align:center; padding:20px; color:red;">資料載入失敗：${err.message}</p>`;
     });
 }
 
@@ -130,7 +124,6 @@ subTabChEn.addEventListener("click", () => {
 
 function initCurrentMode() {
   const currentList = getFilteredWords();
-  // 複製一份並隨機洗牌，確保每個單字都考到且順序打散
   quizQueue = [...currentList].sort(() => Math.random() - 0.5);
   wrongList = [];
   currentIndex = 0;
@@ -149,29 +142,53 @@ function startFillGame() {
     return;
   }
 
-  fillAnswer.value = "";
-  fillFeedback.textContent = `進度: ${currentIndex + 1} / ${quizQueue.length}`;
-  fillFeedback.style.color = "#475569";
-
   currentWord = quizQueue[currentIndex];
-  fillQuestion.textContent = currentWord.ch;
-  fillAnswer.disabled = false;
-  btnCheckFill.disabled = false;
-  fillAnswer.focus();
+
+  // 動態渲染填空測驗的介面，確保每次題目重置時輸入框與按鈕都是全新的、未被鎖定的狀態
+  modeFill.innerHTML = `
+    <div style="text-align: center; padding: 10px;">
+      <div id="fill-feedback" style="font-size: 14px; font-weight: bold; color: #475569; margin-bottom: 12px;">
+        進度: ${currentIndex + 1} / ${quizQueue.length}
+      </div>
+      <div id="fill-question" style="font-size: 28px; font-weight: bold; color: #1e293b; margin-bottom: 20px;">
+        ${currentWord.ch}
+      </div>
+      <div style="margin-bottom: 16px;">
+        <input type="text" id="fill-answer" placeholder="請輸入英文單字..." autocomplete="off" style="width: 80%; max-width: 350px; padding: 12px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 8px; outline: none; text-align: center;">
+      </div>
+      <div>
+        <button id="btn-check-fill" style="padding: 10px 24px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(59,130,246,0.25);">
+          送出答案
+        </button>
+      </div>
+    </div>
+  `;
+
+  const fillAnswerInput = document.getElementById("fill-answer");
+  const btnCheck = document.getElementById("btn-check-fill");
+
+  fillAnswerInput.focus();
+
+  // 綁定送出事件
+  btnCheck.addEventListener("click", checkFillAnswer);
+  fillAnswerInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") checkFillAnswer();
+  });
 }
 
-btnCheckFill.addEventListener("click", checkFillAnswer);
-fillAnswer.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") checkFillAnswer();
-});
-
 function checkFillAnswer() {
-  if (!currentWord || fillAnswer.disabled) return;
-  const userInput = fillAnswer.value.trim().toLowerCase();
+  const fillAnswerInput = document.getElementById("fill-answer");
+  const btnCheck = document.getElementById("btn-check-fill");
+  const fillFeedback = document.getElementById("fill-feedback");
+
+  if (!fillAnswerInput || fillAnswerInput.disabled) return;
+  
+  const userInput = fillAnswerInput.value.trim().toLowerCase();
   if (!userInput) return;
 
-  fillAnswer.disabled = true;
-  btnCheckFill.disabled = true;
+  // 鎖定輸入避免重複送出
+  fillAnswerInput.disabled = true;
+  btnCheck.disabled = true;
 
   if (userInput === currentWord.en.toLowerCase()) {
     fillFeedback.textContent = "✅ 答對了！";
@@ -179,7 +196,6 @@ function checkFillAnswer() {
     currentIndex++;
     setTimeout(startFillGame, 800);
   } else {
-    // 答錯：記錄錯題，並直接給出正確答案
     wrongList.push({
       en: currentWord.en,
       ch: currentWord.ch,
@@ -187,11 +203,12 @@ function checkFillAnswer() {
       mode: "填空"
     });
 
-    fillFeedback.innerHTML = `❌ 答錯囉！正確答案是：<strong style="color: #2563eb;">${currentWord.en}</strong>`;
+    // 直接在畫面下方給出正確答案
+    fillFeedback.innerHTML = `❌ 答錯囉！正確答案是：<strong style="color: #2563eb; font-size: 18px;">${currentWord.en}</strong>`;
     fillFeedback.style.color = "#dc2626";
     
     currentIndex++;
-    setTimeout(startFillGame, 2200); // 停留稍久一點讓使用者看答案
+    setTimeout(startFillGame, 2500); // 停留 2.5 秒讓使用者看清楚正確答案
   }
 }
 
@@ -325,7 +342,6 @@ function showQuizResult(modeName) {
     </div>
   `;
 
-  // 根據當前是大模式填空還是配對，替換對應容器的顯示
   if (mainTabFill.classList.contains("active")) {
     modeFill.innerHTML = resultHtml;
   } else {
