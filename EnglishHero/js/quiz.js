@@ -38,8 +38,11 @@ const matchQuestion = document.getElementById("match-question");
 const optionsContainer = document.getElementById("options-container");
 const matchFeedback = document.getElementById("match-feedback");
 
-let currentFillWord = null;
-let currentMatchWord = null;
+// 測驗狀態控制
+let quizQueue = [];     // 當前一輪要考的單字清單（已洗牌）
+let wrongList = [];     // 錯題記錄
+let currentIndex = 0;   // 目前考到第幾題
+let currentWord = null; // 當前題目
 let isAnswerLocked = false;
 
 auth.onAuthStateChanged((user) => {
@@ -116,16 +119,22 @@ mainTabMatch.addEventListener("click", () => {
 subTabEnCh.addEventListener("click", () => {
   subTabEnCh.classList.add("active");
   subTabChEn.classList.remove("active");
-  startMatchGame();
+  initCurrentMode();
 });
 
 subTabChEn.addEventListener("click", () => {
   subTabChEn.classList.add("active");
   subTabEnCh.classList.remove("active");
-  startMatchGame();
+  initCurrentMode();
 });
 
 function initCurrentMode() {
+  const currentList = getFilteredWords();
+  // 複製一份並隨機洗牌，確保每個單字都考到且順序打散
+  quizQueue = [...currentList].sort(() => Math.random() - 0.5);
+  wrongList = [];
+  currentIndex = 0;
+
   if (mainTabFill.classList.contains("active")) {
     startFillGame();
   } else {
@@ -133,19 +142,21 @@ function initCurrentMode() {
   }
 }
 
-// --- 模式一：填空邏輯 ---
+// ==================== 模式一：填空測驗邏輯 ====================
 function startFillGame() {
-  const currentList = getFilteredWords();
-  if (currentList.length === 0) {
-    fillQuestion.textContent = "此資料夾中沒有單字！";
-    fillAnswer.value = "";
+  if (currentIndex >= quizQueue.length) {
+    showQuizResult("填空測驗");
     return;
   }
+
   fillAnswer.value = "";
-  fillFeedback.textContent = "";
-  const randomIndex = Math.floor(Math.random() * currentList.length);
-  currentFillWord = currentList[randomIndex];
-  fillQuestion.textContent = currentFillWord.ch;
+  fillFeedback.textContent = `進度: ${currentIndex + 1} / ${quizQueue.length}`;
+  fillFeedback.style.color = "#475569";
+
+  currentWord = quizQueue[currentIndex];
+  fillQuestion.textContent = currentWord.ch;
+  fillAnswer.disabled = false;
+  btnCheckFill.disabled = false;
   fillAnswer.focus();
 }
 
@@ -155,32 +166,48 @@ fillAnswer.addEventListener("keypress", (e) => {
 });
 
 function checkFillAnswer() {
-  if (!currentFillWord) return;
+  if (!currentWord || fillAnswer.disabled) return;
   const userInput = fillAnswer.value.trim().toLowerCase();
   if (!userInput) return;
 
-  if (userInput === currentFillWord.en.toLowerCase()) {
+  fillAnswer.disabled = true;
+  btnCheckFill.disabled = true;
+
+  if (userInput === currentWord.en.toLowerCase()) {
     fillFeedback.textContent = "✅ 答對了！";
     fillFeedback.style.color = "#16a34a";
-    setTimeout(startFillGame, 1000);
+    currentIndex++;
+    setTimeout(startFillGame, 800);
   } else {
-    fillFeedback.textContent = "❌ 答錯囉！提示字首: " + currentFillWord.en.charAt(0);
+    // 答錯：記錄錯題，並直接給出正確答案
+    wrongList.push({
+      en: currentWord.en,
+      ch: currentWord.ch,
+      userAnswer: userInput,
+      mode: "填空"
+    });
+
+    fillFeedback.innerHTML = `❌ 答錯囉！正確答案是：<strong style="color: #2563eb;">${currentWord.en}</strong>`;
     fillFeedback.style.color = "#dc2626";
-    fillAnswer.focus();
+    
+    currentIndex++;
+    setTimeout(startFillGame, 2200); // 停留稍久一點讓使用者看答案
   }
 }
 
-// --- 模式二：配對選擇邏輯 (一英三中 / 一中三英) ---
+// ==================== 模式二：選擇配對測驗邏輯 ====================
 function startMatchGame() {
   const currentList = getFilteredWords();
-  isAnswerLocked = false;
-  matchFeedback.textContent = "";
-  optionsContainer.innerHTML = "";
 
-  if (currentList.length === 0) {
-    matchQuestion.textContent = "此資料夾中沒有單字！";
+  if (currentIndex >= quizQueue.length) {
+    showQuizResult("選擇測驗");
     return;
   }
+
+  isAnswerLocked = false;
+  matchFeedback.textContent = `進度: ${currentIndex + 1} / ${quizQueue.length}`;
+  matchFeedback.style.color = "#475569";
+  optionsContainer.innerHTML = "";
 
   if (currentList.length < 3) {
     matchQuestion.textContent = "⚠️ 該資料夾單字少於 3 個，請至少新增 3 個單字才能進行選擇測驗！";
@@ -188,21 +215,20 @@ function startMatchGame() {
   }
 
   const isEnToCh = subTabEnCh.classList.contains("active");
-  const randomIndex = Math.floor(Math.random() * currentList.length);
-  currentMatchWord = currentList[randomIndex];
+  currentWord = quizQueue[currentIndex];
 
   if (isEnToCh) {
-    matchQuestion.textContent = `英文：${currentMatchWord.en}`;
+    matchQuestion.textContent = `英文：${currentWord.en}`;
   } else {
-    matchQuestion.textContent = `中文：${currentMatchWord.ch}`;
+    matchQuestion.textContent = `中文：${currentWord.ch}`;
   }
 
-  let wrongOptions = currentList.filter(item => item.en !== currentMatchWord.en);
+  let wrongOptions = currentList.filter(item => item.en !== currentWord.en);
   wrongOptions.sort(() => Math.random() - 0.5);
   const selectedWrong = wrongOptions.slice(0, 2);
 
   let choices = [
-    { text: isEnToCh ? currentMatchWord.ch : currentMatchWord.en, isCorrect: true },
+    { text: isEnToCh ? currentWord.ch : currentWord.en, isCorrect: true },
     { text: isEnToCh ? selectedWrong[0].ch : selectedWrong[0].en, isCorrect: false },
     { text: isEnToCh ? selectedWrong[1].ch : selectedWrong[1].en, isCorrect: false }
   ];
@@ -224,15 +250,24 @@ function handleMatchClick(clickedBtn, isCorrect) {
 
   const allButtons = optionsContainer.querySelectorAll(".option-btn");
   const isEnToCh = subTabEnCh.classList.contains("active");
-  const targetText = isEnToCh ? currentMatchWord.ch : currentMatchWord.en;
+  const targetText = isEnToCh ? currentWord.ch : currentWord.en;
 
   if (isCorrect) {
     clickedBtn.classList.add("correct");
     matchFeedback.textContent = "✅ 答對了！";
     matchFeedback.style.color = "#16a34a";
-    setTimeout(startMatchGame, 1000);
+    currentIndex++;
+    setTimeout(startMatchGame, 800);
   } else {
     clickedBtn.classList.add("wrong");
+    
+    wrongList.push({
+      en: currentWord.en,
+      ch: currentWord.ch,
+      userAnswer: "選擇錯誤選項",
+      mode: "選擇"
+    });
+
     matchFeedback.textContent = "❌ 答錯囉！";
     matchFeedback.style.color = "#dc2626";
 
@@ -242,6 +277,58 @@ function handleMatchClick(clickedBtn, isCorrect) {
       }
     });
 
-    setTimeout(startMatchGame, 1800);
+    currentIndex++;
+    setTimeout(startMatchGame, 1500);
+  }
+}
+
+// ==================== 結算畫面 ====================
+function showQuizResult(modeName) {
+  const total = quizQueue.length;
+  const correctCount = total - wrongList.length;
+  const score = Math.round((correctCount / total) * 100);
+
+  let resultHtml = `
+    <div style="text-align: center; padding: 20px;">
+      <h2 style="color: #1e293b; margin-bottom: 10px;">🎉 ${modeName} 測驗結束！</h2>
+      <p style="font-size: 18px; color: #475569; margin-bottom: 20px;">
+        總題數：<b>${total}</b> | 答對：<span style="color: #16a34a; font-weight: bold;">${correctCount}</span> | 答錯：<span style="color: #dc2626; font-weight: bold;">${wrongList.length}</span> (得分: ${score}分)
+      </p>
+  `;
+
+  if (wrongList.length > 0) {
+    resultHtml += `
+      <div style="text-align: left; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 20px; max-height: 250px; overflow-y: auto;">
+        <h4 style="color: #b91c1c; margin-top: 0; margin-bottom: 10px;">📋 錯題訂正清單：</h4>
+    `;
+    wrongList.forEach((item, idx) => {
+      resultHtml += `
+        <div style="margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed #fca5a5; font-size: 14px; color: #334155;">
+          <b>${idx + 1}. 中文：</b>${item.ch} <br>
+          👉 正確英文：<span style="color: #2563eb; font-weight: bold;">${item.en}</span>
+        </div>
+      `;
+    });
+    resultHtml += `</div>`;
+  } else {
+    resultHtml += `
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin-bottom: 20px; color: #166534; font-weight: bold;">
+        🌟 太神啦！全部答對，沒有錯題！
+      </div>
+    `;
+  }
+
+  resultHtml += `
+      <button onclick="initCurrentMode()" style="padding: 12px 24px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
+        🔄 重新測驗一輪
+      </button>
+    </div>
+  `;
+
+  // 根據當前是大模式填空還是配對，替換對應容器的顯示
+  if (mainTabFill.classList.contains("active")) {
+    modeFill.innerHTML = resultHtml;
+  } else {
+    modeMatch.innerHTML = resultHtml;
   }
 }
