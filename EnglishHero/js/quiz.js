@@ -122,9 +122,18 @@ subTabChEn.addEventListener("click", () => {
   initCurrentMode();
 });
 
-// 🌟 設為全域函數，確保結算畫面的按鈕能夠順利呼叫
-window.initCurrentMode = function() {
+function initCurrentMode() {
   const currentList = getFilteredWords();
+  
+  if (currentList.length === 0) {
+    if (mainTabFill.classList.contains("active")) {
+      modeFill.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">此資料夾中沒有單字！</p>`;
+    } else {
+      matchQuestion.textContent = "此資料夾中沒有單字！";
+    }
+    return;
+  }
+
   quizQueue = [...currentList].sort(() => Math.random() - 0.5);
   wrongList = [];
   currentIndex = 0;
@@ -134,7 +143,7 @@ window.initCurrentMode = function() {
   } else {
     startMatchGame();
   }
-};
+}
 
 // ==================== 模式一：填空測驗邏輯 ====================
 function startFillGame() {
@@ -333,7 +342,7 @@ function showQuizResult(modeName) {
   }
 
   resultHtml += `
-      <button onclick="initCurrentMode()" style="padding: 12px 24px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
+      <button id="btn-restart-quiz" style="padding: 12px 24px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(79,70,229,0.25);">
         🔄 重新測驗一輪
       </button>
     </div>
@@ -343,5 +352,13 @@ function showQuizResult(modeName) {
     modeFill.innerHTML = resultHtml;
   } else {
     modeMatch.innerHTML = resultHtml;
+  }
+
+  // 透過程式碼動態繫結「重新測驗一輪」按鈕事件，確保點擊必生效
+  const restartBtn = document.getElementById("btn-restart-quiz");
+  if (restartBtn) {
+    restartBtn.addEventListener("click", () => {
+      initCurrentMode();
+    });
   }
 }
