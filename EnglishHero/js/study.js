@@ -66,6 +66,7 @@ function fetchAllWords(uid) {
     });
 }
 
+// 渲染根目錄資料夾列表
 function renderFolderList() {
   pageTitleEl.textContent = "📁 我的單字資料夾";
   btnBackFolders.style.display = "none";
@@ -99,24 +100,62 @@ function renderFolderList() {
   });
   topBadgesHtml += `</div>`;
 
-  let normalFolders = Object.keys(folderMap).filter(name => !specialFolders.includes(name) && name !== "🎯 今日背誦計畫" && name !== "📁 昨天的單字");
+  // 整理出「根目錄資料夾」與「子資料夾」的階層關係
+  // 格式若為 "Parent/Child"，則 Parent 是根目錄，Child 是子資料夾
+  const rootFoldersMap = {};
+  const subFoldersMap = {}; // key: parentName, value: Set of childFolderNames
+
+  Object.keys(folderMap).forEach(fName => {
+    if (specialFolders.includes(fName)) return;
+
+    if (fName.includes("/")) {
+      const parts = fName.split("/");
+      const parent = parts[0];
+      if (!subFoldersMap[parent]) subFoldersMap[parent] = new Set();
+      subFoldersMap[parent].add(fName);
+    } else {
+      rootFoldersMap[fName] = folderMap[fName];
+    }
+  });
+
+  let normalFolders = Object.keys(rootFoldersMap);
   normalFolders.sort((a, b) => a.localeCompare(b));
 
   let html = topBadgesHtml;
   html += `<div style="font-size: 16px; font-weight: bold; color: #334155; margin-bottom: 10px; border-left: 4px solid #4f46e5; padding-left: 8px;">📚 您的題庫資料夾</div>`;
 
-  if (normalFolders.length === 0) {
+  if (normalFolders.length === 0 && Object.keys(subFoldersMap).length === 0) {
     html += `<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 10px;">目前沒有其他自訂資料夾</p>`;
   }
 
-  normalFolders.forEach((folderName, index) => {
-    const count = folderMap[folderName].length;
+  // 渲染獨立的根目錄資料夾，或包含子資料夾的母資料夾
+  const allMainFolderNames = Array.from(new Set([...normalFolders, ...Object.keys(subFoldersMap)]));
+  allMainFolderNames.sort((a, b) => a.localeCompare(b));
+
+  allMainFolderNames.forEach((folderName, index) => {
+    const hasSub = subFoldersMap[folderName] && subFoldersMap[folderName].size > 0;
+    
+    // 計算總單字數（包含底下的所有子資料夾）
+    let totalCount = 0;
+    if (rootFoldersMap[folderName]) {
+      totalCount += rootFoldersMap[folderName].length;
+    }
+    if (hasSub) {
+      subFoldersMap[folderName].forEach(sub => {
+        totalCount += folderMap[sub].length;
+      });
+    }
+
+    // 如果有子資料夾，點擊時進入子資料夾清單；如果沒有，直接開始背單字
+    const clickAction = hasSub ? `openSubFolderView('${folderName}')` : `startStudy('${folderName}')`;
+    const subText = hasSub ? `包含 ${subFoldersMap[folderName].size} 個小資料夾 (共 ${totalCount} 個單字)` : `共 ${totalCount} 個單字 (點擊開始背單字)`;
+
     html += `
       <div class="folder-wrapper" style="margin-bottom: 10px;">
-        <div class="folder-item" onclick="startStudy('${folderName}')">
+        <div class="folder-item" onclick="${clickAction}">
           <div class="folder-info">
-            <h3>📁 ${folderName}</h3>
-            <p>共 ${count} 個單字 (點擊開始背單字)</p>
+            <h3>📁 ${folderName} ${hasSub ? '<span style="font-size: 12px; background: #e0e7ff; color: #4f46e5; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">階層資料夾</span>' : ''}</h3>
+            <p>${subText}</p>
           </div>
           
           <div class="dots-container" onclick="event.stopPropagation()">
@@ -137,8 +176,55 @@ function renderFolderList() {
   containerEl.innerHTML = html;
 }
 
+// 🌟 開啟子資料夾列表檢視
+window.openSubFolderView = function(parentFolderName) {
+  pageTitleEl.textContent = `📁 ${parentFolderName} - 小資料夾列表`;
+  btnBackFolders.style.display = "block";
+
+  // 找出屬於這個 parent 的所有子資料夾
+  const subFolders = Array.from(new Set(allWords.map(w => w.folder)))
+    .filter(f => f.startsWith(`${parentFolderName}/`));
+
+  subFolders.sort((a, b) => a.localeCompare(b));
+
+  let html = `
+    <div style="margin-bottom: 15px; font-size: 14px; color: #64748b;">
+      點擊下方的小資料夾即可開始背單字或管理：
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+  `;
+
+  subFolders.forEach((subFolderFullName, index) => {
+    const subName = subFolderFullName.split("/")[1];
+    const count = allWords.filter(w => w.folder === subFolderFullName).length;
+
+    html += `
+      <div class="folder-wrapper" style="margin-bottom: 0;">
+        <div class="folder-item" onclick="startStudy('${subFolderFullName}')">
+          <div class="folder-info">
+            <h3>📂 ${subName}</h3>
+            <p>共 ${count} 個單字 (點擊開始背單字)</p>
+          </div>
+          <div class="dots-container" onclick="event.stopPropagation()">
+            <button class="dots-btn" id="sub-dots-${index}" onclick="toggleFolderDropdown(event, '${subFolderFullName}', 'sub-${index}')">⚙️</button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  html += `
+    <div style="margin-top: 25px; text-align: center;">
+      <button onclick="renderFolderList()" style="padding: 8px 16px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">⬅️ 返回根目錄資料夾</button>
+    </div>
+  `;
+
+  containerEl.innerHTML = html;
+};
+
 window.exportFolderData = function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName);
+  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
   if (targetWords.length === 0) {
     alert("這個資料夾沒有單字可以匯出！");
     return;
@@ -154,7 +240,7 @@ window.exportFolderData = function(folderName) {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportDataObj, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `english_hero_${folderName}_backup.json`);
+  downloadAnchor.setAttribute("download", `english_hero_${folderName.replace('/', '_')}_backup.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
@@ -209,7 +295,7 @@ window.importData = function(event) {
   reader.readAsText(file);
 };
 
-// 🌟 新增「拆分資料夾」功能
+// 🌟 拆分資料夾功能（改為建立 Parent/Part 格式的子資料夾）
 window.splitFolder = function(folderName) {
   const targetWords = allWords.filter(w => w.folder === folderName);
   if (targetWords.length === 0) {
@@ -217,7 +303,7 @@ window.splitFolder = function(folderName) {
     return;
   }
 
-  const input = prompt(`請輸入每個子資料夾要包含幾個單字？（目前總共有 ${targetWords.length} 個單字）`, "10");
+  const input = prompt(`請輸入每個小資料夾要包含幾個單字？（目前總共有 ${targetWords.length} 個單字）`, "10");
   if (!input) return;
 
   const size = parseInt(input);
@@ -226,18 +312,17 @@ window.splitFolder = function(folderName) {
     return;
   }
 
-  if (!confirm(`確定要將「${folderName}」以每 ${size} 個單字為一組，拆分成多個子資料夾嗎？`)) {
+  if (!confirm(`確定要將「${folderName}」以每 ${size} 個單字為一組，拆分為階層式小資料夾嗎？`)) {
     return;
   }
 
-  // 開始批次更新 Firebase
   const batch = db.batch();
   const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
 
   let partCount = 1;
   for (let i = 0; i < targetWords.length; i += size) {
     const chunk = targetWords.slice(i, i + size);
-    const newFolderName = `${folderName}_Part ${partCount}`;
+    const newFolderName = `${folderName}/Part ${partCount}`;
     
     chunk.forEach(w => {
       const docRef = userWordsRef.doc(w.id);
@@ -248,7 +333,7 @@ window.splitFolder = function(folderName) {
 
   batch.commit()
     .then(() => {
-      alert(`🎉 成功將資料夾拆分成 ${partCount - 1} 個子資料夾！`);
+      alert(`🎉 成功將大資料夾拆分為 ${partCount - 1} 個小資料夾！`);
       fetchAllWords(currentUser.uid);
     })
     .catch(err => {
@@ -265,15 +350,17 @@ window.toggleFolderDropdown = function(event, folderName, index) {
     return;
   }
 
-  let rect;
+  let btn;
   if (index === 'special-learned') {
-    const btn = event.currentTarget;
-    rect = btn.getBoundingClientRect();
+    btn = event.currentTarget;
+  } else if (String(index).startsWith('sub-')) {
+    btn = document.getElementById(`sub-dots-${index.replace('sub-', '')}`);
   } else {
-    const btn = document.getElementById(`dots-btn-${index}`);
-    if (!btn) return;
-    rect = btn.getBoundingClientRect();
+    btn = document.getElementById(`dots-btn-${index}`);
   }
+  if (!btn) return;
+
+  const rect = btn.getBoundingClientRect();
 
   const menu = document.createElement("div");
   menu.id = "global-dropdown-menu";
@@ -291,7 +378,8 @@ window.toggleFolderDropdown = function(event, folderName, index) {
   const deleteText = folderName.includes("已經背過") ? `🗑️ 清空已背過單字` : `🗑️ 刪除資料夾`;
 
   let splitBtnHtml = "";
-  if (!folderName.includes("已經背過")) {
+  // 只有非子資料夾且非已背過的夾子可以再拆分
+  if (!folderName.includes("已經背過") && !folderName.includes("/")) {
     splitBtnHtml = `<button onclick="splitFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #4f46e5; font-weight: bold;">📦 拆分為多個子資料夾</button>`;
   }
 
@@ -421,7 +509,8 @@ window.markAsLearned = async function() {
 
 if (btnBackFolders) {
   btnBackFolders.addEventListener("click", () => {
-    fetchAllWords(currentUser.uid);
+    // 如果在子資料夾檢視內，點上一頁回到根目錄；否則重新載入根目錄
+    renderFolderList();
   });
 }
 
@@ -435,8 +524,8 @@ window.openFolderEditModal = function(folderName) {
   if (targetWords.length === 0) {
     containerEl.innerHTML = `
       <div style="text-align: center; color: #666; padding: 20px;">
-        <p>這個資料夾裡沒有單字。</p>
-        <button onclick="fetchAllWords(currentUser.uid)" style="margin-top: 10px; padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">返回資料夾列表</button>
+        <p>這個資料夾裡沒有直接的單字（可能包含子資料夾）。</p>
+        <button onclick="renderFolderList()" style="margin-top: 10px; padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">返回資料夾列表</button>
       </div>
     `;
     return;
@@ -470,7 +559,7 @@ window.openFolderEditModal = function(folderName) {
   html += `</div>`;
   html += `
     <div style="margin-top: 15px; text-align: center;">
-      <button onclick="fetchAllWords(currentUser.uid)" style="padding: 8px 16px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">⬅️ 返回資料夾列表</button>
+      <button onclick="renderFolderList()" style="padding: 8px 16px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">⬅️ 返回資料夾列表</button>
     </div>
   `;
 
@@ -567,13 +656,15 @@ window.deleteSingleWord = function(wordId) {
 };
 
 window.confirmDeleteFolder = function(folderName) {
-  if (confirm(`確定要清空「${folderName}」裡面的所有單字嗎？`)) {
+  const msg = folderName.includes("/") ? `確定要刪除小資料夾「${folderName}」以及裡面的所有單字嗎？` : `確定要刪除大資料夾「${folderName}」以及底下所有的子資料夾與單字嗎？`;
+  if (confirm(msg)) {
     deleteFolder(folderName);
   }
 };
 
 window.deleteFolder = function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName);
+  // 如果刪除的是大資料夾，連同底下所有帶有 "folderName/" 的子資料夾一起刪除
+  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
   const batch = db.batch();
 
   targetWords.forEach(w => {
@@ -583,10 +674,10 @@ window.deleteFolder = function(folderName) {
 
   batch.commit()
     .then(() => {
-      allWords = allWords.filter(w => w.folder !== folderName);
+      allWords = allWords.filter(w => w.folder !== folderName && !w.folder.startsWith(`${folderName}/`));
       renderFolderList();
     })
     .catch(err => {
-      alert("清空資料夾失敗：" + err.message);
+      alert("刪除資料夾失敗：" + err.message);
     });
 };
