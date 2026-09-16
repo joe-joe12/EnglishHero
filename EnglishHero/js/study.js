@@ -72,21 +72,16 @@ function renderFolderList() {
   currentFolderForManagement = "";
 
   const folderMap = {};
-  
-  // 只保留「已經背過的單字」作為特快專區
   folderMap["📦 已經背過的單字"] = [];
 
   allWords.forEach(w => {
     let fName = w.folder || "未分類";
-    // 如果以前留下的舊單字剛好在今日/昨日資料夾，自動把它們歸類到未分類或保留
     if (!folderMap[fName]) folderMap[fName] = [];
     folderMap[fName].push(w);
   });
 
   const specialFolders = ["📦 已經背過的單字"];
-  let topBadgesHtml = `
-    <div style="margin-bottom: 20px;">
-  `;
+  let topBadgesHtml = `<div style="margin-bottom: 20px;">`;
 
   specialFolders.forEach((fName) => {
     const count = folderMap[fName] ? folderMap[fName].length : 0;
@@ -104,7 +99,6 @@ function renderFolderList() {
   });
   topBadgesHtml += `</div>`;
 
-  // 一般題庫資料夾 (排除今日、昨日，隻保留自訂資料夾與已背過)
   let normalFolders = Object.keys(folderMap).filter(name => !specialFolders.includes(name) && name !== "🎯 今日背誦計畫" && name !== "📁 昨天的單字");
   normalFolders.sort((a, b) => a.localeCompare(b));
 
@@ -141,7 +135,7 @@ function renderFolderList() {
   `;
 
   containerEl.innerHTML = html;
-};
+}
 
 window.exportFolderData = function(folderName) {
   const targetWords = allWords.filter(w => w.folder === folderName);
@@ -215,6 +209,53 @@ window.importData = function(event) {
   reader.readAsText(file);
 };
 
+// 🌟 新增「拆分資料夾」功能
+window.splitFolder = function(folderName) {
+  const targetWords = allWords.filter(w => w.folder === folderName);
+  if (targetWords.length === 0) {
+    alert("這個資料夾沒有單字可以拆分！");
+    return;
+  }
+
+  const input = prompt(`請輸入每個子資料夾要包含幾個單字？（目前總共有 ${targetWords.length} 個單字）`, "10");
+  if (!input) return;
+
+  const size = parseInt(input);
+  if (isNaN(size) || size <= 0) {
+    alert("請輸入有效的數字！");
+    return;
+  }
+
+  if (!confirm(`確定要將「${folderName}」以每 ${size} 個單字為一組，拆分成多個子資料夾嗎？`)) {
+    return;
+  }
+
+  // 開始批次更新 Firebase
+  const batch = db.batch();
+  const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+
+  let partCount = 1;
+  for (let i = 0; i < targetWords.length; i += size) {
+    const chunk = targetWords.slice(i, i + size);
+    const newFolderName = `${folderName}_Part ${partCount}`;
+    
+    chunk.forEach(w => {
+      const docRef = userWordsRef.doc(w.id);
+      batch.update(docRef, { folder: newFolderName });
+    });
+    partCount++;
+  }
+
+  batch.commit()
+    .then(() => {
+      alert(`🎉 成功將資料夾拆分成 ${partCount - 1} 個子資料夾！`);
+      fetchAllWords(currentUser.uid);
+    })
+    .catch(err => {
+      alert("拆分失敗：" + err.message);
+    });
+};
+
 window.toggleFolderDropdown = function(event, folderName, index) {
   event.stopPropagation();
   
@@ -244,13 +285,19 @@ window.toggleFolderDropdown = function(event, folderName, index) {
   menu.style.borderRadius = "8px";
   menu.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)";
   menu.style.zIndex = "999999";
-  menu.style.minWidth = "170px";
+  menu.style.minWidth = "180px";
   menu.style.padding = "4px 0";
 
   const deleteText = folderName.includes("已經背過") ? `🗑️ 清空已背過單字` : `🗑️ 刪除資料夾`;
 
+  let splitBtnHtml = "";
+  if (!folderName.includes("已經背過")) {
+    splitBtnHtml = `<button onclick="splitFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #4f46e5; font-weight: bold;">📦 拆分為多個子資料夾</button>`;
+  }
+
   menu.innerHTML = `
     <button onclick="openFolderEditModal('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #334155; font-weight: bold;">✏️ 管理單字</button>
+    ${splitBtnHtml}
     <button onclick="exportFolderData('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #10b981; font-weight: bold;">📤 匯出此資料夾</button>
     <button onclick="confirmDeleteFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #ef4444; font-weight: bold;">${deleteText}</button>
   `;
