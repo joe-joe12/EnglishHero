@@ -18,9 +18,10 @@
     .sub-tab { flex: 1; padding: 8px; text-align: center; cursor: pointer; font-weight: bold; color: #64748b; border-radius: 6px; font-size: 14px; transition: 0.2s; }
     .sub-tab.active { background: #3b82f6; color: #fff; }
 
-    .folder-filter-box { margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .folder-filter-box { margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 10px; }
+    .folder-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
     .folder-filter-box label { font-weight: bold; color: #334155; white-space: nowrap; }
-    .folder-filter-box select { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; }
+    .folder-filter-box select { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; background: #fff; }
 
     /* 填空模式樣式 */
     .fill-box { text-align: center; padding: 10px 0; }
@@ -59,12 +60,20 @@
     <div id="main-tab-match" class="main-tab">🎴 選擇配對</div>
   </div>
 
-  <!-- 資料夾選擇列 -->
+  <!-- 資料夾選擇列 (包含主選單與子選單容器) -->
   <div class="folder-filter-box">
-    <label for="quiz-folder-select">🎯 測驗範圍：</label>
-    <select id="quiz-folder-select">
-      <option value="ALL">全部資料夾 (綜合測驗)</option>
-    </select>
+    <div class="folder-row">
+      <label for="quiz-folder-select">🎯 測驗範圍：</label>
+      <select id="quiz-folder-select">
+        <option value="ALL">全部資料夾 (綜合測驗)</option>
+      </select>
+    </div>
+    <!-- 🌟 第二層子資料夾選單直接寫在這裡，完美排在下方 -->
+    <div id="sub-folder-select-container" class="hidden">
+      <select id="quiz-sub-folder-select" style="width: 100%;">
+        <option value="ALL_SUB">-- 選擇子資料夾 (全部) --</option>
+      </select>
+    </div>
   </div>
 
   <!-- 第二層配對子模式切換（只有在點擊「選擇配對」時才顯示） -->
