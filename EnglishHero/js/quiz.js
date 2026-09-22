@@ -24,17 +24,8 @@ const subTabEnCh = document.getElementById("sub-tab-en-ch");
 const subTabChEn = document.getElementById("sub-tab-ch-en");
 const quizFolderSelect = document.getElementById("quiz-folder-select");
 
-// 🌟 強制第二層子資料夾選單在主選單下方獨立一行、寬度 100% 佔滿
-let subFolderSelectContainer = document.getElementById("sub-folder-select-container");
-if (!subFolderSelectContainer) {
-  subFolderSelectContainer = document.createElement("div");
-  subFolderSelectContainer.id = "sub-folder-select-container";
-  subFolderSelectContainer.style.width = "100%";
-  subFolderSelectContainer.style.marginTop = "12px";
-  
-  const parentCard = quizFolderSelect.closest("div") || quizFolderSelect.parentNode;
-  parentCard.appendChild(subFolderSelectContainer);
-}
+const subFolderContainer = document.getElementById("sub-folder-select-container");
+const subFolderSelect = document.getElementById("quiz-sub-folder-select");
 
 const modeFill = document.getElementById("mode-fill");
 const modeMatch = document.getElementById("mode-match");
@@ -102,33 +93,31 @@ function fetchAllUserData(uid) {
     });
 }
 
-// 🌟 更新第二層子資料夾選單，確保選單寬度百分百貼齊主選單
+// 🌟 更新第二層子資料夾選單
 function updateSubFolderDropdown() {
   const selectedMain = quizFolderSelect.value;
-  subFolderSelectContainer.innerHTML = "";
+  subFolderSelect.innerHTML = `<option value="ALL_SUB">-- 選擇子資料夾 (全部) --</option>`;
 
-  if (selectedMain === "ALL") return;
+  if (selectedMain === "ALL") {
+    subFolderContainer.classList.add("hidden");
+    return;
+  }
 
   const subFolders = Array.from(new Set(allWordsList.map(w => w.folder)))
     .filter(f => f !== selectedMain && f.startsWith(selectedMain));
 
   if (subFolders.length > 0) {
     subFolders.sort();
-    let selectHtml = `
-      <select id="quiz-sub-folder-select" style="padding: 10px 12px; font-size: 14px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; width: 100%; box-sizing: border-box;">
-        <option value="ALL_SUB">-- 選擇子資料夾 (全部) --</option>
-    `;
     subFolders.forEach(subFull => {
-      selectHtml += `<option value="${subFull}">${subFull}</option>`;
+      const opt = document.createElement("option");
+      opt.value = subFull;
+      // 顯示子資料夾名稱（如 Part 1）
+      opt.textContent = subFull.includes("/") ? subFull.split("/")[1] : subFull;
+      subFolderSelect.appendChild(opt);
     });
-    selectHtml += `</select>`;
-    
-    subFolderSelectContainer.innerHTML = selectHtml;
-
-    const subSelectEl = document.getElementById("quiz-sub-folder-select");
-    subSelectEl.addEventListener("change", () => {
-      initCurrentMode();
-    });
+    subFolderContainer.classList.remove("hidden"); // 顯示第二層選單
+  } else {
+    subFolderContainer.classList.add("hidden"); // 沒有子資料夾就隱藏
   }
 }
 
@@ -136,8 +125,7 @@ function getFilteredWords() {
   const selectedMain = quizFolderSelect.value;
   if (selectedMain === "ALL") return allWordsList;
 
-  const subSelectEl = document.getElementById("quiz-sub-folder-select");
-  const selectedSub = subSelectEl ? subSelectEl.value : "ALL_SUB";
+  const selectedSub = subFolderSelect ? subFolderSelect.value : "ALL_SUB";
 
   if (!selectedSub || selectedSub === "ALL_SUB") {
     return allWordsList.filter(item => item.folder === selectedMain || item.folder.startsWith(selectedMain));
@@ -148,6 +136,10 @@ function getFilteredWords() {
 
 quizFolderSelect.addEventListener("change", () => {
   updateSubFolderDropdown();
+  initCurrentMode();
+});
+
+subFolderSelect.addEventListener("change", () => {
   initCurrentMode();
 });
 
