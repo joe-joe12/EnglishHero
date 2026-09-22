@@ -24,10 +24,18 @@ const subTabEnCh = document.getElementById("sub-tab-en-ch");
 const subTabChEn = document.getElementById("sub-tab-ch-en");
 const quizFolderSelect = document.getElementById("quiz-folder-select");
 
+// 🌟 動態建立或取得第二層「子資料夾選擇選單」的容器
+let subFolderSelectContainer = document.getElementById("sub-folder-select-container");
+if (!subFolderSelectContainer) {
+  subFolderSelectContainer = document.createElement("div");
+  subFolderSelectContainer.id = "sub-folder-select-container";
+  subFolderSelectContainer.style.margin = "10px 0";
+  quizFolderSelect.parentNode.insertBefore(subFolderSelectContainer, quizFolderSelect.nextSibling);
+}
+
 const modeFill = document.getElementById("mode-fill");
 const modeMatch = document.getElementById("mode-match");
 
-// 配對元素
 const matchQuestion = document.getElementById("match-question");
 const optionsContainer = document.getElementById("options-container");
 const matchFeedback = document.getElementById("match-feedback");
@@ -51,16 +59,20 @@ function fetchAllUserData(uid) {
   db.collection("users").doc(uid).collection("words").get()
     .then((snapshot) => {
       allWordsList = [];
-      const foldersSet = new Set();
+      const parentFoldersSet = new Set();
 
       snapshot.forEach(doc => {
         const data = doc.data();
         allWordsList.push(data);
-        if (data.folder) foldersSet.add(data.folder);
+        if (data.folder) {
+          // 如果資料夾名稱包含斜線 (例如 "多益單字/Part 1")，主資料夾就是斜線前面的部分
+          const mainName = data.folder.includes("/") ? data.folder.split("/")[0] : data.folder;
+          parentFoldersSet.add(mainName);
+        }
       });
 
       quizFolderSelect.innerHTML = `<option value="ALL">全部資料夾 (綜合測驗)</option>`;
-      foldersSet.forEach(folderName => {
+      Array.from(parentFoldersSet).sort().forEach(folderName => {
         const opt = document.createElement("option");
         opt.value = folderName;
         opt.textContent = folderName;
@@ -73,6 +85,7 @@ function fetchAllUserData(uid) {
         return;
       }
 
+      updateSubFolderDropdown();
       initCurrentMode();
     })
     .catch((err) => {
@@ -80,13 +93,55 @@ function fetchAllUserData(uid) {
     });
 }
 
+// 🌟 更新第二層子資料夾選單
+function updateSubFolderDropdown() {
+  const selectedMain = quizFolderSelect.value;
+  subFolderSelectContainer.innerHTML = "";
+
+  if (selectedMain === "ALL") return;
+
+  // 找出屬於這個主資料夾底下的所有子資料夾 (格式為 "Main/Sub")
+  const subFolders = Array.from(new Set(allWordsList.map(w => w.folder)))
+    .filter(f => f.startsWith(`${selectedMain}/`));
+
+  if (subFolders.length > 0) {
+    subFolders.sort();
+    let selectHtml = `
+      <select id="quiz-sub-folder-select" style="padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; width: 100%; max-width: 300px;">
+        <option value="ALL_SUB">-- 該主資料夾全部單字 (包含所有子資料夾) --</option>
+    `;
+    subFolders.forEach(subFull => {
+      const subName = subFull.split("/")[1];
+      selectHtml += `<option value="${subFull}">${subName}</option>`;
+    });
+    selectHtml += `</select>`;
+    subFolderSelectContainer.innerHTML = selectHtml;
+
+    const subSelectEl = document.getElementById("quiz-sub-folder-select");
+    subSelectEl.addEventListener("change", () => {
+      initCurrentMode();
+    });
+  }
+}
+
 function getFilteredWords() {
-  const selectedFolder = quizFolderSelect.value;
-  if (selectedFolder === "ALL") return allWordsList;
-  return allWordsList.filter(item => item.folder === selectedFolder);
+  const selectedMain = quizFolderSelect.value;
+  if (selectedMain === "ALL") return allWordsList;
+
+  const subSelectEl = document.getElementById("quiz-sub-folder-select");
+  const selectedSub = subSelectEl ? subSelectEl.value : "ALL_SUB";
+
+  if (!selectedSub || selectedSub === "ALL_SUB") {
+    // 回傳主資料夾本身 或 該主資料夾底下的所有子資料夾單字
+    return allWordsList.filter(item => item.folder === selectedMain || item.folder.startsWith(`${selectedMain}/`));
+  } else {
+    // 只回傳特定選中的子資料夾單字
+    return allWordsList.filter(item => item.folder === selectedSub);
+  }
 }
 
 quizFolderSelect.addEventListener("change", () => {
+  updateSubFolderDropdown();
   initCurrentMode();
 });
 
@@ -122,7 +177,7 @@ subTabChEn.addEventListener("click", () => {
   initCurrentMode();
 });
 
-function initCurrentMode() {
+window.initCurrentMode = function() {
   const currentList = getFilteredWords();
   
   if (currentList.length === 0) {
@@ -143,7 +198,7 @@ function initCurrentMode() {
   } else {
     startMatchGame();
   }
-}
+};
 
 // ==================== 模式一：填空測驗邏輯 ====================
 function startFillGame() {
@@ -354,7 +409,6 @@ function showQuizResult(modeName) {
     modeMatch.innerHTML = resultHtml;
   }
 
-  // 透過程式碼動態繫結「重新測驗一輪」按鈕事件，確保點擊必生效
   const restartBtn = document.getElementById("btn-restart-quiz");
   if (restartBtn) {
     restartBtn.addEventListener("click", () => {
