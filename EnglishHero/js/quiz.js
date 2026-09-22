@@ -24,13 +24,15 @@ const subTabEnCh = document.getElementById("sub-tab-en-ch");
 const subTabChEn = document.getElementById("sub-tab-ch-en");
 const quizFolderSelect = document.getElementById("quiz-folder-select");
 
-// 🌟 動態建立或取得第二層「子資料夾選擇選單」的容器
+// 🌟 動態建立第二層「子資料夾選擇選單」的容器，精準放置在主選單下方
 let subFolderSelectContainer = document.getElementById("sub-folder-select-container");
 if (!subFolderSelectContainer) {
   subFolderSelectContainer = document.createElement("div");
   subFolderSelectContainer.id = "sub-folder-select-container";
-  subFolderSelectContainer.style.margin = "10px 0";
-  quizFolderSelect.parentNode.insertBefore(subFolderSelectContainer, quizFolderSelect.nextSibling);
+  subFolderSelectContainer.style.marginTop = "10px";
+  
+  const parentCard = quizFolderSelect.closest("div") || quizFolderSelect.parentNode;
+  parentCard.appendChild(subFolderSelectContainer);
 }
 
 const modeFill = document.getElementById("mode-fill");
@@ -65,7 +67,7 @@ function fetchAllUserData(uid) {
         const data = doc.data();
         allWordsList.push(data);
         if (data.folder) {
-          // 如果資料夾名稱包含斜線 (例如 "多益單字/Part 1")，主資料夾就是斜線前面的部分
+          // 如果資料夾名稱包含斜線 (例如 "高頻單字/Part 1")，主資料夾就是斜線前面的部分
           const mainName = data.folder.includes("/") ? data.folder.split("/")[0] : data.folder;
           parentFoldersSet.add(mainName);
         }
@@ -100,21 +102,21 @@ function updateSubFolderDropdown() {
 
   if (selectedMain === "ALL") return;
 
-  // 找出屬於這個主資料夾底下的所有子資料夾 (格式為 "Main/Sub")
   const subFolders = Array.from(new Set(allWordsList.map(w => w.folder)))
     .filter(f => f.startsWith(`${selectedMain}/`));
 
   if (subFolders.length > 0) {
     subFolders.sort();
     let selectHtml = `
-      <select id="quiz-sub-folder-select" style="padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; width: 100%; max-width: 300px;">
-        <option value="ALL_SUB">-- 該主資料夾全部單字 (包含所有子資料夾) --</option>
+      <select id="quiz-sub-folder-select" style="padding: 10px 12px; font-size: 14px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; width: 100%; box-sizing: border-box;">
+        <option value="ALL_SUB">-- 全部子資料夾 (綜合測驗) --</option>
     `;
     subFolders.forEach(subFull => {
       const subName = subFull.split("/")[1];
       selectHtml += `<option value="${subFull}">${subName}</option>`;
     });
     selectHtml += `</select>`;
+    
     subFolderSelectContainer.innerHTML = selectHtml;
 
     const subSelectEl = document.getElementById("quiz-sub-folder-select");
@@ -132,10 +134,8 @@ function getFilteredWords() {
   const selectedSub = subSelectEl ? subSelectEl.value : "ALL_SUB";
 
   if (!selectedSub || selectedSub === "ALL_SUB") {
-    // 回傳主資料夾本身 或 該主資料夾底下的所有子資料夾單字
     return allWordsList.filter(item => item.folder === selectedMain || item.folder.startsWith(`${selectedMain}/`));
   } else {
-    // 只回傳特定選中的子資料夾單字
     return allWordsList.filter(item => item.folder === selectedSub);
   }
 }
