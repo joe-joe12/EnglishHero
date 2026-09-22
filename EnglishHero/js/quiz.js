@@ -24,17 +24,6 @@ const subTabEnCh = document.getElementById("sub-tab-en-ch");
 const subTabChEn = document.getElementById("sub-tab-ch-en");
 const quizFolderSelect = document.getElementById("quiz-folder-select");
 
-// 🌟 動態建立第二層「子資料夾選擇選單」的容器，精準放置在主選單下方
-let subFolderSelectContainer = document.getElementById("sub-folder-select-container");
-if (!subFolderSelectContainer) {
-  subFolderSelectContainer = document.createElement("div");
-  subFolderSelectContainer.id = "sub-folder-select-container";
-  subFolderSelectContainer.style.marginTop = "10px";
-  
-  const parentCard = quizFolderSelect.closest("div") || quizFolderSelect.parentNode;
-  parentCard.appendChild(subFolderSelectContainer);
-}
-
 const modeFill = document.getElementById("mode-fill");
 const modeMatch = document.getElementById("mode-match");
 
@@ -61,20 +50,17 @@ function fetchAllUserData(uid) {
   db.collection("users").doc(uid).collection("words").get()
     .then((snapshot) => {
       allWordsList = [];
-      const parentFoldersSet = new Set();
+      const foldersSet = new Set();
 
       snapshot.forEach(doc => {
         const data = doc.data();
         allWordsList.push(data);
-        if (data.folder) {
-          // 如果資料夾名稱包含斜線 (例如 "高頻單字/Part 1")，主資料夾就是斜線前面的部分
-          const mainName = data.folder.includes("/") ? data.folder.split("/")[0] : data.folder;
-          parentFoldersSet.add(mainName);
-        }
+        if (data.folder) foldersSet.add(data.folder);
       });
 
+      // 直接把所有資料夾（含子資料夾）平鋪列出，最直覺好選
       quizFolderSelect.innerHTML = `<option value="ALL">全部資料夾 (綜合測驗)</option>`;
-      Array.from(parentFoldersSet).sort().forEach(folderName => {
+      Array.from(foldersSet).sort().forEach(folderName => {
         const opt = document.createElement("option");
         opt.value = folderName;
         opt.textContent = folderName;
@@ -87,7 +73,6 @@ function fetchAllUserData(uid) {
         return;
       }
 
-      updateSubFolderDropdown();
       initCurrentMode();
     })
     .catch((err) => {
@@ -95,53 +80,13 @@ function fetchAllUserData(uid) {
     });
 }
 
-// 🌟 更新第二層子資料夾選單
-function updateSubFolderDropdown() {
-  const selectedMain = quizFolderSelect.value;
-  subFolderSelectContainer.innerHTML = "";
-
-  if (selectedMain === "ALL") return;
-
-  const subFolders = Array.from(new Set(allWordsList.map(w => w.folder)))
-    .filter(f => f.startsWith(`${selectedMain}/`));
-
-  if (subFolders.length > 0) {
-    subFolders.sort();
-    let selectHtml = `
-      <select id="quiz-sub-folder-select" style="padding: 10px 12px; font-size: 14px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; width: 100%; box-sizing: border-box;">
-        <option value="ALL_SUB">-- 全部子資料夾 (綜合測驗) --</option>
-    `;
-    subFolders.forEach(subFull => {
-      const subName = subFull.split("/")[1];
-      selectHtml += `<option value="${subFull}">${subName}</option>`;
-    });
-    selectHtml += `</select>`;
-    
-    subFolderSelectContainer.innerHTML = selectHtml;
-
-    const subSelectEl = document.getElementById("quiz-sub-folder-select");
-    subSelectEl.addEventListener("change", () => {
-      initCurrentMode();
-    });
-  }
-}
-
 function getFilteredWords() {
-  const selectedMain = quizFolderSelect.value;
-  if (selectedMain === "ALL") return allWordsList;
-
-  const subSelectEl = document.getElementById("quiz-sub-folder-select");
-  const selectedSub = subSelectEl ? subSelectEl.value : "ALL_SUB";
-
-  if (!selectedSub || selectedSub === "ALL_SUB") {
-    return allWordsList.filter(item => item.folder === selectedMain || item.folder.startsWith(`${selectedMain}/`));
-  } else {
-    return allWordsList.filter(item => item.folder === selectedSub);
-  }
+  const selectedFolder = quizFolderSelect.value;
+  if (selectedFolder === "ALL") return allWordsList;
+  return allWordsList.filter(item => item.folder === selectedFolder);
 }
 
 quizFolderSelect.addEventListener("change", () => {
-  updateSubFolderDropdown();
   initCurrentMode();
 });
 
@@ -377,7 +322,7 @@ function showQuizResult(modeName) {
   if (wrongList.length > 0) {
     resultHtml += `
       <div style="text-align: left; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 20px; max-height: 250px; overflow-y: auto;">
-        <h4 style="color: #b91c1c; margin-top: 0; margin-bottom: 10px;">📋 錯題訂正清單：</h4>
+        <h4 style="color: #b91c1c; margin-top: 0; margin-bottom: 10px;">📋 📋 錯題訂正清單：</h4>
     `;
     wrongList.forEach((item, idx) => {
       resultHtml += `
