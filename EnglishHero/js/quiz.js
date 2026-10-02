@@ -237,7 +237,6 @@ function startFillGame() {
 function checkFillAnswer() {
   const fillAnswerInput = document.getElementById("fill-answer");
   const btnCheck = document.getElementById("btn-check-fill");
-  const fillFeedback = document.getElementById("fill-feedback");
 
   if (!fillAnswerInput || fillAnswerInput.disabled) return;
   
@@ -247,48 +246,48 @@ function checkFillAnswer() {
   fillAnswerInput.disabled = true;
   btnCheck.disabled = true;
 
-  if (userInput === currentWord.en.toLowerCase()) {
-    fillFeedback.textContent = "✅ 答對了！";
-    fillFeedback.style.color = "#16a34a";
-    currentIndex++;
-    setTimeout(startFillGame, 800);
-  } else {
+  const isCorrect = (userInput === currentWord.en.toLowerCase());
+
+  if (!isCorrect) {
     wrongList.push({
       en: currentWord.en,
       ch: currentWord.ch,
       userAnswer: userInput,
       mode: "填空"
     });
+  }
 
-    // 🌟 答錯時改變畫面，顯示錯誤提示並提供「確認，下一題」按鈕，讓使用者有時間看
-    modeFill.innerHTML = `
-      <div style="text-align: center; padding: 10px;">
-        <div style="font-size: 14px; font-weight: bold; color: #475569; margin-bottom: 12px;">
-          進度: ${currentIndex + 1} / ${quizQueue.length}
-        </div>
-        <div style="font-size: 24px; font-weight: bold; color: #1e293b; margin-bottom: 10px;">
-          ${currentWord.ch}
-        </div>
-        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: inline-block; width: 100%; max-width: 400px; box-sizing: border-box; text-align: left;">
-          <div style="color: #dc2626; font-weight: bold; margin-bottom: 6px; font-size: 16px;">❌ 答錯囉！</div>
-          <div style="font-size: 14px; color: #334155; margin-bottom: 4px;">你的回答：<span style="color: #ef4444; font-weight: bold; text-decoration: line-through;">${userInput}</span></div>
-          <div style="font-size: 15px; color: #1e293b;">正確答案：<strong style="color: #2563eb; font-size: 18px;">${currentWord.en}</strong></div>
-        </div>
-        <div>
-          <button id="btn-next-fill" style="padding: 12px 30px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(79,70,229,0.25);">
-            確認，下一題 ➡️
-          </button>
-        </div>
+  // 🌟 不管答對或答錯，都統一跳出確認畫面，讓使用者手動點擊按鈕或按 Enter 進入下一題
+  modeFill.innerHTML = `
+    <div style="text-align: center; padding: 10px;">
+      <div style="font-size: 14px; font-weight: bold; color: #475569; margin-bottom: 12px;">
+        進度: ${currentIndex + 1} / ${quizQueue.length}
       </div>
-    `;
+      <div style="font-size: 24px; font-weight: bold; color: #1e293b; margin-bottom: 10px;">
+        ${currentWord.ch}
+      </div>
+      <div style="background: ${isCorrect ? '#f0fdf4' : '#fef2f2'}; border: 1px solid ${isCorrect ? '#bbf7d0' : '#fecaca'}; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: inline-block; width: 100%; max-width: 400px; box-sizing: border-box; text-align: left;">
+        <div style="color: ${isCorrect ? '#16a34a' : '#dc2626'}; font-weight: bold; margin-bottom: 6px; font-size: 16px;">
+          ${isCorrect ? '✅ 答對了！' : '❌ 答錯囉！'}
+        </div>
+        <div style="font-size: 14px; color: #334155; margin-bottom: 4px;">你的回答：<span style="color: ${isCorrect ? '#16a34a' : '#ef4444'}; font-weight: bold; ${isCorrect ? '' : 'text-decoration: line-through;'}">${userInput}</span></div>
+        <div style="font-size: 15px; color: #1e293b;">正確答案：<strong style="color: #2563eb; font-size: 18px;">${currentWord.en}</strong></div>
+      </div>
+      <div>
+        <button id="btn-next-fill" style="padding: 12px 30px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(79,70,229,0.25);">
+          確認，下一題 ➡️
+        </button>
+      </div>
+    </div>
+  `;
 
-    currentIndex++;
+  currentIndex++;
 
-    const btnNext = document.getElementById("btn-next-fill");
+  const btnNext = document.getElementById("btn-next-fill");
+  if (btnNext) {
     btnNext.focus();
     btnNext.addEventListener("click", startFillGame);
     
-    // 支援按 Enter 鍵直接進入下一題
     document.addEventListener("keydown", function handleEnterNext(e) {
       if (e.key === "Enter") {
         document.removeEventListener("keydown", handleEnterNext);
@@ -393,7 +392,7 @@ function showQuizResult(modeName) {
 
   let resultHtml = `
     <div style="text-align: center; padding: 20px;">
-      <h2 style="color: #1e293b; margin-bottom: 10px;">🎉 ${modeName} 測試結束！</h2>
+      <h2 style="color: #1e293b; margin-bottom: 10px;">🎉 ${modeName} 測驗結束！</h2>
       <p style="font-size: 18px; color: #475569; margin-bottom: 20px;">
         總題數：<b>${total}</b> | 答對：<span style="color: #16a34a; font-weight: bold;">${correctCount}</span> | 答錯：<span style="color: #dc2626; font-weight: bold;">${wrongList.length}</span> (得分: ${score}分)
       </p>
