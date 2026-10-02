@@ -93,7 +93,6 @@ function fetchAllUserData(uid) {
     });
 }
 
-// 🌟 更新第二層子資料夾選單
 function updateSubFolderDropdown() {
   const selectedMain = quizFolderSelect.value;
   subFolderSelect.innerHTML = `<option value="ALL_SUB">-- 選擇子資料夾 (全部) --</option>`;
@@ -111,13 +110,12 @@ function updateSubFolderDropdown() {
     subFolders.forEach(subFull => {
       const opt = document.createElement("option");
       opt.value = subFull;
-      // 顯示子資料夾名稱（如 Part 1）
       opt.textContent = subFull.includes("/") ? subFull.split("/")[1] : subFull;
       subFolderSelect.appendChild(opt);
     });
-    subFolderContainer.classList.remove("hidden"); // 顯示第二層選單
+    subFolderContainer.classList.remove("hidden");
   } else {
-    subFolderContainer.classList.add("hidden"); // 沒有子資料夾就隱藏
+    subFolderContainer.classList.add("hidden");
   }
 }
 
@@ -262,11 +260,41 @@ function checkFillAnswer() {
       mode: "填空"
     });
 
-    fillFeedback.innerHTML = `❌ 答錯囉！正確答案是：<strong style="color: #2563eb; font-size: 18px;">${currentWord.en}</strong>`;
-    fillFeedback.style.color = "#dc2626";
-    
+    // 🌟 答錯時改變畫面，顯示錯誤提示並提供「確認，下一題」按鈕，讓使用者有時間看
+    modeFill.innerHTML = `
+      <div style="text-align: center; padding: 10px;">
+        <div style="font-size: 14px; font-weight: bold; color: #475569; margin-bottom: 12px;">
+          進度: ${currentIndex + 1} / ${quizQueue.length}
+        </div>
+        <div style="font-size: 24px; font-weight: bold; color: #1e293b; margin-bottom: 10px;">
+          ${currentWord.ch}
+        </div>
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: inline-block; width: 100%; max-width: 400px; box-sizing: border-box; text-align: left;">
+          <div style="color: #dc2626; font-weight: bold; margin-bottom: 6px; font-size: 16px;">❌ 答錯囉！</div>
+          <div style="font-size: 14px; color: #334155; margin-bottom: 4px;">你的回答：<span style="color: #ef4444; font-weight: bold; text-decoration: line-through;">${userInput}</span></div>
+          <div style="font-size: 15px; color: #1e293b;">正確答案：<strong style="color: #2563eb; font-size: 18px;">${currentWord.en}</strong></div>
+        </div>
+        <div>
+          <button id="btn-next-fill" style="padding: 12px 30px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(79,70,229,0.25);">
+            確認，下一題 ➡️
+          </button>
+        </div>
+      </div>
+    `;
+
     currentIndex++;
-    setTimeout(startFillGame, 2500);
+
+    const btnNext = document.getElementById("btn-next-fill");
+    btnNext.focus();
+    btnNext.addEventListener("click", startFillGame);
+    
+    // 支援按 Enter 鍵直接進入下一題
+    document.addEventListener("keydown", function handleEnterNext(e) {
+      if (e.key === "Enter") {
+        document.removeEventListener("keydown", handleEnterNext);
+        startFillGame();
+      }
+    }, { once: true });
   }
 }
 
@@ -365,7 +393,7 @@ function showQuizResult(modeName) {
 
   let resultHtml = `
     <div style="text-align: center; padding: 20px;">
-      <h2 style="color: #1e293b; margin-bottom: 10px;">🎉 ${modeName} 測驗結束！</h2>
+      <h2 style="color: #1e293b; margin-bottom: 10px;">🎉 ${modeName} 測試結束！</h2>
       <p style="font-size: 18px; color: #475569; margin-bottom: 20px;">
         總題數：<b>${total}</b> | 答對：<span style="color: #16a34a; font-weight: bold;">${correctCount}</span> | 答錯：<span style="color: #dc2626; font-weight: bold;">${wrongList.length}</span> (得分: ${score}分)
       </p>
@@ -373,14 +401,15 @@ function showQuizResult(modeName) {
 
   if (wrongList.length > 0) {
     resultHtml += `
-      <div style="text-align: left; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 20px; max-height: 250px; overflow-y: auto;">
-        <h4 style="color: #b91c1c; margin-top: 0; margin-bottom: 10px;">📋 錯題訂正清單：</h4>
+      <div style="text-align: left; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+        <h4 style="color: #b91c1c; margin-top: 0; margin-bottom: 12px;">📋 錯題訂正清單：</h4>
     `;
     wrongList.forEach((item, idx) => {
       resultHtml += `
-        <div style="margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed #fca5a5; font-size: 14px; color: #334155;">
-          <b>${idx + 1}. 中文：</b>${item.ch} <br>
-          👉 正確英文：<span style="color: #2563eb; font-weight: bold;">${item.en}</span>
+        <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed #fca5a5; font-size: 14px; color: #334155;">
+          <b>${idx + 1}. 中文意思：</b><span style="color: #1e293b; font-weight: bold;">${item.ch}</span> <br>
+          ❌ 你的回答：<span style="color: #ef4444; text-decoration: line-through;">${item.userAnswer}</span> <br>
+          ✅ 正確英文：<span style="color: #2563eb; font-weight: bold; font-size: 15px;">${item.en}</span>
         </div>
       `;
     });
