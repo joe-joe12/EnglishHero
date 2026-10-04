@@ -119,7 +119,10 @@ function renderFolderList() {
   normalFolders.sort((a, b) => a.localeCompare(b));
 
   let html = topBadgesHtml;
-  html += `<div style="font-size: 16px; font-weight: bold; color: #334155; margin-bottom: 10px; border-left: 4px solid #4f46e5; padding-left: 8px;">📚 您的題庫資料夾</div>`;
+  html += `<div style="font-size: 16px; font-weight: bold; color: #334155; margin-bottom: 10px; border-left: 4px solid #4f46e5; padding-left: 8px; display: flex; justify-content: space-between; align-items: center;">
+    <span>📚 您的題庫資料夾</span>
+    <button onclick="createNewEmptyFolder()" style="padding: 6px 12px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(79,70,229,0.2);">➕ 新增資料夾</button>
+  </div>`;
 
   if (normalFolders.length === 0 && Object.keys(subFoldersMap).length === 0) {
     html += `<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 10px;">目前沒有其他自訂資料夾</p>`;
@@ -168,7 +171,39 @@ function renderFolderList() {
   `;
 
   containerEl.innerHTML = html;
-}
+};
+
+// 🌟 新增空白資料夾功能（透過新增一個佔位用單字或直接建立）
+window.createNewEmptyFolder = function() {
+  const folderName = prompt("請輸入新資料夾名稱：");
+  if (!folderName || !folderName.trim()) return;
+
+  const cleanName = folderName.trim();
+  
+  // 檢查是否已存在
+  const exists = allWords.some(w => w.folder === cleanName || w.folder.startsWith(`${cleanName}/`));
+  if (exists) {
+    alert("此資料夾名稱已存在！");
+    return;
+  }
+
+  // 因為 Firestore 中資料夾是依附在單字上的，我們建立一個系統佔位單字來讓資料夾生效
+  const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+  userWordsRef.add({
+    en: "___placeholder___",
+    pos: "other",
+    ch: "（空白資料夾佔位用）",
+    folder: cleanName,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(() => {
+    alert(`📁 成功建立資料夾「${cleanName}」！`);
+    fetchAllWords(currentUser.uid);
+  })
+  .catch(err => {
+    alert("建立失敗：" + err.message);
+  });
+};
 
 window.openSubFolderView = function(parentFolderName) {
   pageTitleEl.textContent = `📁 ${parentFolderName} - 小資料夾列表`;
@@ -215,10 +250,54 @@ window.openSubFolderView = function(parentFolderName) {
   containerEl.innerHTML = html;
 };
 
-// 🌟 新增：檢視單字清單功能（顯示中文、英文、詞性）
+// 🌟 新增：將整個資料夾移動或複製到另一個指定資料夾中
+window.moveToTargetFolder = function(sourceFolderName) {
+  // 找出該資料夾底下的所有真實單字（排除佔位用單字）
+  const targetWords = allWords.filter(w => (w.folder === sourceFolderName || w.folder.startsWith(`${sourceFolderName}/`)) && w.en !== "___placeholder___");
+
+  if (targetWords.length === 0) {
+    alert("這個資料夾中沒有任何單字可以移動！");
+    return;
+  }
+
+  // 取得現有所有主資料夾名稱供選擇
+  const existingFolders = Array.from(new Set(allWords.map(w => w.folder.includes("/") ? w.folder.split("/")[0] : w.folder)))
+    .filter(f => f !== sourceFolderName && !f.includes("已經背過"));
+
+  let promptMsg = `請輸入要將「${sourceFolderName}」的 ${targetWords.length} 個單字移入哪一個目標資料夾名稱？\n`;
+  if (existingFolders.length > 0) {
+    promptMsg += `現有資料夾參考：${existingFolders.join(", ")}`;
+  }
+
+  const destFolder = prompt(promptMsg, "");
+  if (!destFolder || !destFolder.trim()) return;
+
+  const cleanDest = destFolder.trim();
+
+  if (!confirm(`確定要將「${sourceFolderName}」的所有單字移動到「${cleanDest}」嗎？`)) {
+    return;
+  }
+
+  const batch = db.batch();
+  const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+
+  targetWords.forEach(w => {
+    const docRef = userWordsRef.doc(w.id);
+    batch.update(docRef, { folder: cleanDest });
+  });
+
+  batch.commit()
+    .then(() => {
+      alert(`🎉 成功將 ${targetWords.length} 個單字移動至「${cleanDest}」！`);
+      fetchAllWords(currentUser.uid);
+    })
+    .catch(err => {
+      alert("移動失敗：" + err.message);
+    });
+};
+
 window.viewFolderWords = function(folderName) {
-  // 如果是主資料夾，包含其底下所有子資料夾的單字；如果是小資料夾，只包含該小資料夾單字
-  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
+  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`)).filter(w => w.en !== "___placeholder___");
 
   pageTitleEl.textContent = `📖 檢視單字：${folderName}`;
   btnBackFolders.style.display = "block";
@@ -267,7 +346,7 @@ window.viewFolderWords = function(folderName) {
 };
 
 window.exportFolderData = function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
+  const targetWords = allWords.filter(w => (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== "___placeholder___");
   if (targetWords.length === 0) {
     alert("這個資料夾沒有單字可以匯出！");
     return;
@@ -339,7 +418,7 @@ window.importData = function(event) {
 };
 
 window.addAllToLearned = function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
+  const targetWords = allWords.filter(w => (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== "___placeholder___");
   
   if (targetWords.length === 0) {
     alert("這個資料夾中沒有任何單字！");
@@ -375,7 +454,7 @@ window.addAllToLearned = function(folderName) {
 };
 
 window.splitFolder = function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName);
+  const targetWords = allWords.filter(w => w.folder === folderName && w.en !== "___placeholder___");
   if (targetWords.length === 0) {
     alert("這個資料夾沒有單字可以拆分！");
     return;
@@ -465,9 +544,15 @@ window.toggleFolderDropdown = function(event, folderName, index) {
     markLearnedBtnHtml = `<button onclick="addAllToLearned('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #059669; font-weight: bold;">✅ 整夾加入已背過</button>`;
   }
 
+  let moveToFolderBtnHtml = "";
+  if (!folderName.includes("已經背過")) {
+    moveToFolderBtnHtml = `<button onclick="moveToTargetFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #d97706; font-weight: bold;">📁 新增至…資料夾</button>`;
+  }
+
   menu.innerHTML = `
     <button onclick="viewFolderWords('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #2563eb; font-weight: bold;">📖 檢視單字</button>
     <button onclick="openFolderEditModal('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #334155; font-weight: bold;">✏️ 管理單字</button>
+    ${moveToFolderBtnHtml}
     ${markLearnedBtnHtml}${splitBtnHtml}
     <button onclick="exportFolderData('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #10b981; font-weight: bold;">📤 匯出此資料夾</button>
     <button onclick="confirmDeleteFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100\%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #ef4444; font-weight: bold;">${deleteText}</button>
@@ -490,7 +575,7 @@ window.startStudy = function(folderName) {
   pageTitleEl.textContent = `🎯 背單字：${folderName}`;
   btnBackFolders.style.display = "block";
 
-  currentFolderWords = allWords.filter(w => w.folder === folderName);
+  currentFolderWords = allWords.filter(w => w.folder === folderName && w.en !== "___placeholder___");
   currentIndex = 0;
 
   renderFlashcard();
@@ -598,7 +683,7 @@ if (btnBackFolders) {
 
 window.openFolderEditModal = function(folderName) {
   currentFolderForManagement = folderName;
-  const targetWords = allWords.filter(w => w.folder === folderName);
+  const targetWords = allWords.filter(w => w.folder === folderName && w.en !== "___placeholder___");
 
   pageTitleEl.textContent = `✏️ 管理資料夾：${folderName}`;
   btnBackFolders.style.display = "block";
