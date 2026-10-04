@@ -215,6 +215,57 @@ window.openSubFolderView = function(parentFolderName) {
   containerEl.innerHTML = html;
 };
 
+// 🌟 新增：檢視單字清單功能（顯示中文、英文、詞性）
+window.viewFolderWords = function(folderName) {
+  // 如果是主資料夾，包含其底下所有子資料夾的單字；如果是小資料夾，只包含該小資料夾單字
+  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
+
+  pageTitleEl.textContent = `📖 檢視單字：${folderName}`;
+  btnBackFolders.style.display = "block";
+
+  if (targetWords.length === 0) {
+    containerEl.innerHTML = `
+      <div style="text-align: center; color: #666; padding: 30px;">
+        <p>這個資料夾中沒有任何單字。</p>
+        <button onclick="renderFolderList()" style="margin-top: 10px; padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">返回資料夾列表</button>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `
+    <div style="margin-bottom: 15px; font-size: 14px; color: #64748b; font-weight: bold;">
+      共 ${targetWords.length} 個單字清單：
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+  `;
+
+  targetWords.forEach((w, idx) => {
+    html += `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+          <span style="font-size: 12px; color: #94a3b8; font-weight: bold; min-width: 24px;">${idx + 1}.</span>
+          <span style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${w.en}</span>
+          <span style="font-size: 12px; background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${w.pos || '無詞性'}</span>
+          <span style="font-size: 15px; color: #334155; margin-left: 5px;">${w.ch}</span>
+        </div>
+        <div style="font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">
+          ${w.folder}
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  html += `
+    <div style="margin-top: 25px; text-align: center;">
+      <button onclick="renderFolderList()" style="padding: 10px 20px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(79,70,229,0.25);">⬅️ 返回資料夾列表</button>
+    </div>
+  `;
+
+  containerEl.innerHTML = html;
+};
+
 window.exportFolderData = function(folderName) {
   const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
   if (targetWords.length === 0) {
@@ -287,9 +338,7 @@ window.importData = function(event) {
   reader.readAsText(file);
 };
 
-// 🌟 新增：將整個資料夾（或小資料夾）的所有單字批次加入「已經背過的單字」
 window.addAllToLearned = function(folderName) {
-  // 如果點擊的是主資料夾，包含其底下所有子資料夾的單字；如果是小資料夾，只包含該小資料夾單字
   const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
   
   if (targetWords.length === 0) {
@@ -417,6 +466,7 @@ window.toggleFolderDropdown = function(event, folderName, index) {
   }
 
   menu.innerHTML = `
+    <button onclick="viewFolderWords('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #2563eb; font-weight: bold;">📖 檢視單字</button>
     <button onclick="openFolderEditModal('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #334155; font-weight: bold;">✏️ 管理單字</button>
     ${markLearnedBtnHtml}${splitBtnHtml}
     <button onclick="exportFolderData('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #10b981; font-weight: bold;">📤 匯出此資料夾</button>
