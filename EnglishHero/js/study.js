@@ -173,21 +173,18 @@ function renderFolderList() {
   containerEl.innerHTML = html;
 };
 
-// 🌟 新增空白資料夾功能（透過新增一個佔位用單字或直接建立）
 window.createNewEmptyFolder = function() {
   const folderName = prompt("請輸入新資料夾名稱：");
   if (!folderName || !folderName.trim()) return;
 
   const cleanName = folderName.trim();
   
-  // 檢查是否已存在
   const exists = allWords.some(w => w.folder === cleanName || w.folder.startsWith(`${cleanName}/`));
   if (exists) {
     alert("此資料夾名稱已存在！");
     return;
   }
 
-  // 因為 Firestore 中資料夾是依附在單字上的，我們建立一個系統佔位單字來讓資料夾生效
   const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
   userWordsRef.add({
     en: "___placeholder___",
@@ -250,21 +247,19 @@ window.openSubFolderView = function(parentFolderName) {
   containerEl.innerHTML = html;
 };
 
-// 🌟 新增：將整個資料夾移動或複製到另一個指定資料夾中
-window.moveToTargetFolder = function(sourceFolderName) {
-  // 找出該資料夾底下的所有真實單字（排除佔位用單字）
+// 🌟 修改為「複製至…資料夾」（原本的單字會保留）
+window.copyToTargetFolder = function(sourceFolderName) {
   const targetWords = allWords.filter(w => (w.folder === sourceFolderName || w.folder.startsWith(`${sourceFolderName}/`)) && w.en !== "___placeholder___");
 
   if (targetWords.length === 0) {
-    alert("這個資料夾中沒有任何單字可以移動！");
+    alert("這個資料夾中沒有任何單字可以複製！");
     return;
   }
 
-  // 取得現有所有主資料夾名稱供選擇
   const existingFolders = Array.from(new Set(allWords.map(w => w.folder.includes("/") ? w.folder.split("/")[0] : w.folder)))
     .filter(f => f !== sourceFolderName && !f.includes("已經背過"));
 
-  let promptMsg = `請輸入要將「${sourceFolderName}」的 ${targetWords.length} 個單字移入哪一個目標資料夾名稱？\n`;
+  let promptMsg = `請輸入要將「${sourceFolderName}」的 ${targetWords.length} 個單字複製到哪一個目標資料夾名稱？\n`;
   if (existingFolders.length > 0) {
     promptMsg += `現有資料夾參考：${existingFolders.join(", ")}`;
   }
@@ -274,7 +269,7 @@ window.moveToTargetFolder = function(sourceFolderName) {
 
   const cleanDest = destFolder.trim();
 
-  if (!confirm(`確定要將「${sourceFolderName}」的所有單字移動到「${cleanDest}」嗎？`)) {
+  if (!confirm(`確定要將「${sourceFolderName}」的所有單字複製一份到「${cleanDest}」嗎？（原本的單字會保留）`)) {
     return;
   }
 
@@ -282,17 +277,23 @@ window.moveToTargetFolder = function(sourceFolderName) {
   const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
 
   targetWords.forEach(w => {
-    const docRef = userWordsRef.doc(w.id);
-    batch.update(docRef, { folder: cleanDest });
+    const newDocRef = userWordsRef.doc(); // 建立全新文件作為複本
+    batch.set(newDocRef, {
+      en: w.en,
+      pos: w.pos || "n.",
+      ch: w.ch,
+      folder: cleanDest,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
   });
 
   batch.commit()
     .then(() => {
-      alert(`🎉 成功將 ${targetWords.length} 個單字移動至「${cleanDest}」！`);
+      alert(`🎉 成功將 ${targetWords.length} 個單字複製並放入「${cleanDest}」！`);
       fetchAllWords(currentUser.uid);
     })
     .catch(err => {
-      alert("移動失敗：" + err.message);
+      alert("複製失敗：" + err.message);
     });
 };
 
@@ -544,15 +545,15 @@ window.toggleFolderDropdown = function(event, folderName, index) {
     markLearnedBtnHtml = `<button onclick="addAllToLearned('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #059669; font-weight: bold;">✅ 整夾加入已背過</button>`;
   }
 
-  let moveToFolderBtnHtml = "";
+  let copyToFolderBtnHtml = "";
   if (!folderName.includes("已經背過")) {
-    moveToFolderBtnHtml = `<button onclick="moveToTargetFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #d97706; font-weight: bold;">📁 新增至…資料夾</button>`;
+    copyToFolderBtnHtml = `<button onclick="copyToTargetFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #d97706; font-weight: bold;">📁 複製至…資料夾</button>`;
   }
 
   menu.innerHTML = `
     <button onclick="viewFolderWords('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #2563eb; font-weight: bold;">📖 檢視單字</button>
     <button onclick="openFolderEditModal('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #334155; font-weight: bold;">✏️ 管理單字</button>
-    ${moveToFolderBtnHtml}
+    ${copyToFolderBtnHtml}
     ${markLearnedBtnHtml}${splitBtnHtml}
     <button onclick="exportFolderData('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #10b981; font-weight: bold;">📤 匯出此資料夾</button>
     <button onclick="confirmDeleteFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100\%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #ef4444; font-weight: bold;">${deleteText}</button>
