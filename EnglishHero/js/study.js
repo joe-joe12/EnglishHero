@@ -171,7 +171,7 @@ function renderFolderList() {
   `;
 
   containerEl.innerHTML = html;
-};
+}
 
 window.createNewEmptyFolder = function() {
   const folderName = prompt("請輸入新資料夾名稱：");
@@ -247,7 +247,6 @@ window.openSubFolderView = function(parentFolderName) {
   containerEl.innerHTML = html;
 };
 
-// 🌟 修改為「複製至…資料夾」（原本的單字會保留）
 window.copyToTargetFolder = function(sourceFolderName) {
   const targetWords = allWords.filter(w => (w.folder === sourceFolderName || w.folder.startsWith(`${sourceFolderName}/`)) && w.en !== "___placeholder___");
 
@@ -277,7 +276,7 @@ window.copyToTargetFolder = function(sourceFolderName) {
   const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
 
   targetWords.forEach(w => {
-    const newDocRef = userWordsRef.doc(); // 建立全新文件作為複本
+    const newDocRef = userWordsRef.doc();
     batch.set(newDocRef, {
       en: w.en,
       pos: w.pos || "n.",
@@ -532,6 +531,8 @@ window.toggleFolderDropdown = function(event, folderName, index) {
   menu.style.zIndex = "999999";
   menu.style.minWidth = "200px";
   menu.style.padding = "4px 0";
+  menu.style.maxHeight = "250px";
+  menu.style.overflowY = "auto";
 
   const deleteText = folderName.includes("已經背過") ? `🗑️ 清空已背過單字` : `🗑️ 刪除資料夾`;
 
@@ -741,7 +742,7 @@ window.openSingleEditModal = function(wordId) {
   editModalContainer.innerHTML = `
     <div class="edit-modal-backdrop">
       <div class="edit-card">
-        <h3 style="margin-top: 0; color: #1e293b; margin-bottom: 16px;">✏️ 修改單字資料</h3>
+        <h3 style="margin-top: 0; color: #1e293b; margin-bottom: 16px;">✏️️ 修改單字資料</h3>
         
         <div class="form-group">
           <label>英文單字 (English)</label>
