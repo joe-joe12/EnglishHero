@@ -531,7 +531,9 @@ window.toggleFolderDropdown = function(event, folderName, index) {
   menu.style.zIndex = "999999";
   menu.style.minWidth = "200px";
   menu.style.padding = "4px 0";
-  menu.style.maxHeight = "250px";
+  
+  // 🌟 限制最多顯示 3 個選項的高度（約 135px），超過自動出現滾動條
+  menu.style.maxHeight = "135px";
   menu.style.overflowY = "auto";
 
   const deleteText = folderName.includes("已經背過") ? `🗑️ 清空已背過單字` : `🗑️ 刪除資料夾`;
@@ -742,7 +744,7 @@ window.openSingleEditModal = function(wordId) {
   editModalContainer.innerHTML = `
     <div class="edit-modal-backdrop">
       <div class="edit-card">
-        <h3 style="margin-top: 0; color: #1e293b; margin-bottom: 16px;">✏️️ 修改單字資料</h3>
+        <h3 style="margin-top: 0; color: #1e293b; margin-bottom: 16px;">✏️ 修改單字資料</h3>
         
         <div class="form-group">
           <label>英文單字 (English)</label>
