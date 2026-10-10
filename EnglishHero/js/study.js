@@ -58,7 +58,11 @@ function fetchAllWords(uid) {
       });
 
       allWords.sort((a, b) => a.createdAt - b.createdAt);
-      renderFolderList();
+      
+      // 如果目前正在背單字或檢視單字中，不要強行把畫面切回資料夾列表
+      if (pageTitleEl.textContent.startsWith("📁 我的單字資料夾")) {
+        renderFolderList();
+      }
     })
     .catch((err) => {
       console.error("載入失敗：", err);
@@ -531,8 +535,6 @@ window.toggleFolderDropdown = function(event, folderName, index) {
   menu.style.zIndex = "999999";
   menu.style.minWidth = "200px";
   menu.style.padding = "4px 0";
-  
-  // 🌟 限制最多顯示 3 個選項的高度（約 135px），超過自動出現滾動條
   menu.style.maxHeight = "135px";
   menu.style.overflowY = "auto";
 
@@ -605,7 +607,7 @@ function renderFlashcard() {
     containerEl.innerHTML = `
       <div style="text-align: center; color: #666; padding: 30px;">
         <p>這個資料夾目前沒有任何單字。</p>
-        <button onclick="fetchAllWords(currentUser.uid)" style="margin-top: 10px; padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">返回資料夾列表</button>
+        <button onclick="renderFolderList()" style="margin-top: 10px; padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">返回資料夾列表</button>
       </div>
     `;
     return;
@@ -670,6 +672,15 @@ window.markAsLearned = async function() {
       ch: word.ch,
       folder: "📦 已經背過的單字",
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // 將已加入的單字同步推入本機快取陣列，避免重新整理
+    allWords.push({
+      en: word.en,
+      pos: word.pos || "n.",
+      ch: word.ch,
+      folder: "📦 已經背過的單字",
+      createdAt: Date.now()
     });
 
     alert(`太棒了！「${word.en}」已成功加入「📦 已經背過的單字」！`);
