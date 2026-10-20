@@ -1,1 +1,22 @@
-lungting_grade1_l4.json
+[
+  { "en": "sensitive", "pos": "adj.", "ch": "敏感的" },
+  { "en": "keen", "pos": "adj.", "ch": "敏銳的；渴望的；熱衷的" },
+  { "en": "detect", "pos": "vt.", "ch": "偵測到；察覺" },
+  { "en": "item", "pos": "n.", "ch": "一項物品" },
+  { "en": "accomplish", "pos": "vt.", "ch": "達成" },
+  { "en": "disease", "pos": "n.", "ch": "疾病" },
+  { "en": "infected", "pos": "adj.", "ch": "遭感染的" },
+  { "en": "locate", "pos": "vt.", "ch": "找到……的位置" },
+  { "en": "reward", "pos": "n. / vt.", "ch": "獎勵；報酬 / 獎賞；提供報酬" },
+  { "en": "ability", "pos": "n.", "ch": "能力" },
+  { "en": "predict", "pos": "vt.", "ch": "預測" },
+  { "en": "manage", "pos": "vt. / vi.", "ch": "設法成功做到；能夠應付 / 明智地使用、管理" },
+  { "en": "create", "pos": "vt.", "ch": "創造；產生出" },
+  { "en": "expose", "pos": "vt.", "ch": "使接觸；使體驗 / 使暴露；使遭受" },
+  { "en": "perform", "pos": "vt. / vi.", "ch": "做某事；做種行為 / 表演" },
+  { "en": "behavior", "pos": "n.", "ch": "行為" },
+  { "en": "alert", "pos": "n. / adj.", "ch": "警示 / 警覺的" },
+  { "en": "complete", "pos": "adj. / vt.", "ch": "已完成的；完整的 / 完成" },
+  { "en": "assign", "pos": "vt.", "ch": "指派" },
+  { "en": "specific", "pos": "adj.", "ch": "特定的" }
+]
