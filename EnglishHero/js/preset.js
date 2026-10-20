@@ -25,6 +25,10 @@ auth.onAuthStateChanged((user) => {
 });
 
 const PRESET_CONFIGS = {
+  lungting_grade1_l4: {
+    folderName: "📁 龍騰版高一第四課",
+    fileUrl: "./JSON/lungting_grade1_l4.json"
+  },
   junior_2000: {
     folderName: "📖 國中基礎2000單",
     fileUrl: "./JSON/junior_2000.json"
@@ -41,12 +45,22 @@ const PRESET_CONFIGS = {
 
 window.importPreset = async function(presetKey) {
   const config = PRESET_CONFIGS[presetKey];
-  if (!config) return;
+  if (!config) {
+    alert("找不到對應的題庫設定！");
+    return;
+  }
 
   try {
     const response = await fetch(config.fileUrl);
-    if (!response.ok) throw new Error("無法載入題庫檔案，請檢查路徑");
+    if (!response.ok) {
+      throw new Error(`HTTP 錯誤！狀態碼：${response.status}，請檢查檔案路徑是否正確。`);
+    }
     const words = await response.json();
+
+    if (!words || words.length === 0) {
+      alert("此題庫檔案內容為空！");
+      return;
+    }
 
     if (!confirm(`確定要將「${config.folderName}」共 ${words.length} 個單字加入您的資料庫嗎？`)) {
       return;
@@ -66,8 +80,9 @@ window.importPreset = async function(presetKey) {
     });
 
     await batch.commit();
-    alert(`成功加入「${config.folderName}」！`);
+    alert(`🎉 成功加入「${config.folderName}」！`);
   } catch (err) {
-    alert("加入題庫失敗：" + err.message);
+    console.error("載入 JSON 失敗：", err);
+    alert(`加入題庫失敗：${err.message}\n(請確認專案根目錄是否有 JSON 資料夾以及對應的檔案)`);
   }
 };
