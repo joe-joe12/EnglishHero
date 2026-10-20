@@ -33,6 +33,10 @@ const PRESET_CONFIGS = {
     folderName: "📁 龍騰版高一第五課",
     fileUrl: "./JSON/lungting_grade1_l5.json"
   },
+  lungting_grade1_l5: {
+    folderName: "📁 龍騰版高一第六課",
+    fileUrl: "./JSON/lungting_grade1_l6.json"
+  },
   junior_2000: {
     folderName: "📖 國中基礎2000單",
     fileUrl: "./JSON/junior_2000.json"
