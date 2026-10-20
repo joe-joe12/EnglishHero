@@ -1,1 +1,18 @@
-
+[
+  { "en": "plastic", "pos": "adj.", "ch": "塑膠的" },
+  { "en": "convenience", "pos": "n.", "ch": "便利" },
+  { "en": "eagerly", "pos": "adv.", "ch": "渴望地" },
+  { "en": "surround", "pos": "vt.", "ch": "圍繞" },
+  { "en": "drift", "pos": "vi.", "ch": "漂流" },
+  { "en": "envy", "pos": "vt.", "ch": "羨慕" },
+  { "en": "crowded", "pos": "adj.", "ch": "擁擠的" },
+  { "en": "obviously", "pos": "adv.", "ch": "顯然" },
+  { "en": "product", "pos": "n.", "ch": "產品" },
+  { "en": "consume", "pos": "vt.", "ch": "吃喝、消耗" },
+  { "en": "poisonous", "pos": "adj.", "ch": "有毒的" },
+  { "en": "substance", "pos": "n.", "ch": "物質" },
+  { "en": "recycling", "pos": "n.", "ch": "回收" },
+  { "en": "harm", "pos": "n.", "ch": "傷害" },
+  { "en": "environment", "pos": "n. sing.", "ch": "自然環境" },
+  { "en": "properly", "pos": "adv.", "ch": "適當地" }
+]
