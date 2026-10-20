@@ -1,0 +1,19 @@
+[
+  { "en": "freedom", "pos": "n.", "ch": "自由" },
+  { "en": "statue", "pos": "n.", "ch": "雕像" },
+  { "en": "remove", "pos": "vt.", "ch": "移除" },
+  { "en": "celebration", "pos": "n.", "ch": "慶祝、慶祝活動" },
+  { "en": "independence", "pos": "n.", "ch": "獨立" },
+  { "en": "monument", "pos": "n.", "ch": "紀念碑" },
+  { "en": "symbolize", "pos": "vt.", "ch": "象徵、代表" },
+  { "en": "firmly", "pos": "adv.", "ch": "牢固地、堅定地" },
+  { "en": "represent", "pos": "vt.", "ch": "作為……的象徵、代表" },
+  { "en": "ancient", "pos": "adj.", "ch": "古代的、古老的" },
+  { "en": "slavery", "pos": "n.", "ch": "蓄奴制、奴隸身分" },
+  { "en": "unfair", "pos": "adj.", "ch": "不公正的、不公平的" },
+  { "en": "treatment", "pos": "n.", "ch": "對待、待遇" },
+  { "en": "tourist", "pos": "n.", "ch": "遊客" },
+  { "en": "attraction", "pos": "n.", "ch": "有吸引力的事物或地點" },
+  { "en": "landmark", "pos": "n.", "ch": "地標" },
+  { "en": "globe", "pos": "n. sing.", "ch": "地球、世界" }
+]
