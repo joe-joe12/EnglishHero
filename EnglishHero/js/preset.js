@@ -33,7 +33,7 @@ const PRESET_CONFIGS = {
     folderName: "📁 龍騰版高一第五課",
     fileUrl: "./JSON/lungting_grade1_l5.json"
   },
-  lungting_grade1_l6: { // ✅ 修正 Key 衝突，改為 l6
+  lungting_grade1_l6: {
     folderName: "📁 龍騰版高一第六課",
     fileUrl: "./JSON/lungting_grade1_l6.json"
   },
@@ -76,7 +76,7 @@ window.importPreset = async function(presetKey) {
 
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
 
-    // ✅ 解決 Firestore 500 筆 Batch 寫入限制：分批（每 400 筆）批次提交
+    // 分批寫入 (每 400 筆為一個 Batch)，避免觸發 Firestore 500 筆上限限制
     const BATCH_SIZE = 400;
     for (let i = 0; i < words.length; i += BATCH_SIZE) {
       const chunk = words.slice(i, i + BATCH_SIZE);
