@@ -33,7 +33,7 @@ const PRESET_CONFIGS = {
     folderName: "📁 龍騰版高一第五課",
     fileUrl: "./JSON/lungting_grade1_l5.json"
   },
-  lungting_grade1_l6: {
+  lungting_grade1_l6: { // ✅ 修正 Key 衝突，改為 l6
     folderName: "📁 龍騰版高一第六課",
     fileUrl: "./JSON/lungting_grade1_l6.json"
   },
@@ -74,21 +74,29 @@ window.importPreset = async function(presetKey) {
       return;
     }
 
-    const batch = db.batch();
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
 
-    words.forEach(w => {
-      const newDocRef = userWordsRef.doc();
-      batch.set(newDocRef, {
-        en: w.en,
-        pos: w.pos || "n.",
-        ch: w.ch,
-        folder: config.folderName
-      });
-    });
+    // ✅ 解決 Firestore 500 筆 Batch 寫入限制：分批（每 400 筆）批次提交
+    const BATCH_SIZE = 400;
+    for (let i = 0; i < words.length; i += BATCH_SIZE) {
+      const chunk = words.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
 
-    await batch.commit();
-    alert(`🎉 成功加入「${config.folderName}」！`);
+      chunk.forEach(w => {
+        const newDocRef = userWordsRef.doc();
+        batch.set(newDocRef, {
+          en: w.en,
+          pos: w.pos || "n.",
+          ch: w.ch,
+          folder: config.folderName,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+
+      await batch.commit();
+    }
+
+    alert(`🎉 成功加入「${config.folderName}」共 ${words.length} 個單字！`);
   } catch (err) {
     console.error("載入 JSON 失敗：", err);
     alert(`加入題庫失敗：${err.message}\n(請確認專案根目錄是否有 JSON 資料夾以及對應的檔案)`);
