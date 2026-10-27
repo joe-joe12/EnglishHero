@@ -33,7 +33,7 @@ const PRESET_CONFIGS = {
     folderName: "📁 龍騰版高一第五課",
     fileUrl: "./JSON/lungting_grade1_l5.json"
   },
-  lungting_grade1_l5: {
+  lungting_grade1_l6: {
     folderName: "📁 龍騰版高一第六課",
     fileUrl: "./JSON/lungting_grade1_l6.json"
   },
