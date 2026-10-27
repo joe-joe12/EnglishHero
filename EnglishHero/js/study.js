@@ -59,7 +59,6 @@ function fetchAllWords(uid) {
 
       allWords.sort((a, b) => a.createdAt - b.createdAt);
       
-      // 如果目前正在背單字或檢視單字中，不要強行把畫面切回資料夾列表
       if (pageTitleEl.textContent.startsWith("📁 我的單字資料夾")) {
         renderFolderList();
       }
@@ -251,7 +250,7 @@ window.openSubFolderView = function(parentFolderName) {
   containerEl.innerHTML = html;
 };
 
-window.copyToTargetFolder = function(sourceFolderName) {
+window.copyToTargetFolder = async function(sourceFolderName) {
   const targetWords = allWords.filter(w => (w.folder === sourceFolderName || w.folder.startsWith(`${sourceFolderName}/`)) && w.en !== "___placeholder___");
 
   if (targetWords.length === 0) {
@@ -276,28 +275,33 @@ window.copyToTargetFolder = function(sourceFolderName) {
     return;
   }
 
-  const batch = db.batch();
-  const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+  try {
+    const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+    const BATCH_SIZE = 400;
 
-  targetWords.forEach(w => {
-    const newDocRef = userWordsRef.doc();
-    batch.set(newDocRef, {
-      en: w.en,
-      pos: w.pos || "n.",
-      ch: w.ch,
-      folder: cleanDest,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  });
+    for (let i = 0; i < targetWords.length; i += BATCH_SIZE) {
+      const chunk = targetWords.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
 
-  batch.commit()
-    .then(() => {
-      alert(`🎉 成功將 ${targetWords.length} 個單字複製並放入「${cleanDest}」！`);
-      fetchAllWords(currentUser.uid);
-    })
-    .catch(err => {
-      alert("複製失敗：" + err.message);
-    });
+      chunk.forEach(w => {
+        const newDocRef = userWordsRef.doc();
+        batch.set(newDocRef, {
+          en: w.en,
+          pos: w.pos || "n.",
+          ch: w.ch,
+          folder: cleanDest,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+
+      await batch.commit();
+    }
+
+    alert(`🎉 成功將 ${targetWords.length} 個單字複製並放入「${cleanDest}」！`);
+    fetchAllWords(currentUser.uid);
+  } catch (err) {
+    alert("複製失敗：" + err.message);
+  }
 };
 
 window.viewFolderWords = function(folderName) {
@@ -377,7 +381,7 @@ window.importData = function(event) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const importedWords = JSON.parse(e.target.result);
       if (!Array.isArray(importedWords)) {
@@ -390,38 +394,40 @@ window.importData = function(event) {
         return;
       }
 
-      const batch = db.batch();
       const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+      const BATCH_SIZE = 400;
 
-      importedWords.forEach(w => {
-        if (w.en && w.ch) {
-          const newDocRef = userWordsRef.doc();
-          batch.set(newDocRef, {
-            en: w.en,
-            pos: w.pos || "n.",
-            ch: w.ch,
-            folder: w.folder || "匯入分類",
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        }
-      });
+      for (let i = 0; i < importedWords.length; i += BATCH_SIZE) {
+        const chunk = importedWords.slice(i, i + BATCH_SIZE);
+        const batch = db.batch();
 
-      batch.commit().then(() => {
-        alert("資料匯入成功！");
-        event.target.value = "";
-        fetchAllWords(currentUser.uid);
-      }).catch(err => {
-        alert("匯入失敗：" + err.message);
-      });
+        chunk.forEach(w => {
+          if (w.en && w.ch) {
+            const newDocRef = userWordsRef.doc();
+            batch.set(newDocRef, {
+              en: w.en,
+              pos: w.pos || "n.",
+              ch: w.ch,
+              folder: w.folder || "匯入分類",
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        });
 
+        await batch.commit();
+      }
+
+      alert("資料匯入成功！");
+      event.target.value = "";
+      fetchAllWords(currentUser.uid);
     } catch (err) {
-      alert("解析 JSON 檔案失敗：" + err.message);
+      alert("解析或匯入失敗：" + err.message);
     }
   };
   reader.readAsText(file);
 };
 
-window.addAllToLearned = function(folderName) {
+window.addAllToLearned = async function(folderName) {
   const targetWords = allWords.filter(w => (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== "___placeholder___");
   
   if (targetWords.length === 0) {
@@ -433,28 +439,33 @@ window.addAllToLearned = function(folderName) {
     return;
   }
 
-  const batch = db.batch();
-  const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+  try {
+    const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+    const BATCH_SIZE = 400;
 
-  targetWords.forEach(w => {
-    const newDocRef = userWordsRef.doc();
-    batch.set(newDocRef, {
-      en: w.en,
-      pos: w.pos || "n.",
-      ch: w.ch,
-      folder: "📦 已經背過的單字",
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  });
+    for (let i = 0; i < targetWords.length; i += BATCH_SIZE) {
+      const chunk = targetWords.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
 
-  batch.commit()
-    .then(() => {
-      alert(`🎉 成功將 ${targetWords.length} 個單字加入「📦 已經背過的單字」！`);
-      fetchAllWords(currentUser.uid);
-    })
-    .catch(err => {
-      alert("操作失敗：" + err.message);
-    });
+      chunk.forEach(w => {
+        const newDocRef = userWordsRef.doc();
+        batch.set(newDocRef, {
+          en: w.en,
+          pos: w.pos || "n.",
+          ch: w.ch,
+          folder: "📦 已經背過的單字",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+
+      await batch.commit();
+    }
+
+    alert(`🎉 成功將 ${targetWords.length} 個單字加入「📦 已經背過的單字」！`);
+    fetchAllWords(currentUser.uid);
+  } catch (err) {
+    alert("操作失敗：" + err.message);
+  }
 };
 
 window.splitFolder = function(folderName) {
@@ -535,7 +546,7 @@ window.toggleFolderDropdown = function(event, folderName, index) {
   menu.style.zIndex = "999999";
   menu.style.minWidth = "200px";
   menu.style.padding = "4px 0";
-  menu.style.maxHeight = "135px";
+  menu.style.maxHeight = "260px";
   menu.style.overflowY = "auto";
 
   const deleteText = folderName.includes("已經背過") ? `🗑️ 清空已背過單字` : `🗑️ 刪除資料夾`;
@@ -561,7 +572,7 @@ window.toggleFolderDropdown = function(event, folderName, index) {
     ${copyToFolderBtnHtml}
     ${markLearnedBtnHtml}${splitBtnHtml}
     <button onclick="exportFolderData('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #10b981; font-weight: bold;">📤 匯出此資料夾</button>
-    <button onclick="confirmDeleteFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100\%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #ef4444; font-weight: bold;">${deleteText}</button>
+    <button onclick="confirmDeleteFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #ef4444; font-weight: bold;">${deleteText}</button>
   `;
 
   document.body.appendChild(menu);
@@ -635,7 +646,7 @@ function renderFlashcard() {
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
       <button onclick="prevCard()" style="padding: 10px 20px; background: #f3f4f6; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">⬅️ 上一張</button>
-      <span style="font-size: 15px; font-weight: bold; color: #475569;">${currentIndex + 1} /${currentFolderWords.length}</span>
+      <span style="font-size: 15px; font-weight: bold; color: #475569;">${currentIndex + 1} / ${currentFolderWords.length}</span>
       <button onclick="nextCard()" style="padding: 10px 20px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">下一張 ➡️</button>
     </div>
 
@@ -674,17 +685,13 @@ window.markAsLearned = async function() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // 將已加入的單字同步推入本機快取陣列，避免重新整理
-    allWords.push({
-      en: word.en,
-      pos: word.pos || "n.",
-      ch: word.ch,
-      folder: "📦 已經背過的單字",
-      createdAt: Date.now()
-    });
-
     alert(`太棒了！「${word.en}」已成功加入「📦 已經背過的單字」！`);
-    nextCard(); 
+
+    currentFolderWords.splice(currentIndex, 1);
+    if (currentIndex >= currentFolderWords.length) {
+      currentIndex = 0;
+    }
+    renderFlashcard();
   } catch (err) {
     alert("操作失敗：" + err.message);
   }
@@ -846,15 +853,27 @@ window.confirmDeleteFolder = function(folderName) {
 
 window.deleteFolder = function(folderName) {
   const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
-  const batch = db.batch();
+  if (targetWords.length === 0) return;
 
-  targetWords.forEach(w => {
-    const docRef = db.collection("users").doc(currentUser.uid).collection("words").doc(w.id);
-    batch.delete(docRef);
-  });
+  const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+  const BATCH_SIZE = 400;
+  const deletePromises = [];
 
-  batch.commit()
+  for (let i = 0; i < targetWords.length; i += BATCH_SIZE) {
+    const chunk = targetWords.slice(i, i + BATCH_SIZE);
+    const batch = db.batch();
+
+    chunk.forEach(w => {
+      const docRef = userWordsRef.doc(w.id);
+      batch.delete(docRef);
+    });
+
+    deletePromises.push(batch.commit());
+  }
+
+  Promise.all(deletePromises)
     .then(() => {
+      alert(`🗑️ 成功刪除資料夾「${folderName}」！`);
       allWords = allWords.filter(w => w.folder !== folderName && !w.folder.startsWith(`${folderName}/`));
       renderFolderList();
     })
