@@ -195,6 +195,12 @@ window.initCurrentMode = function() {
   }
 };
 
+// 輔助函式：產生詞性標籤 HTML
+function getPosTagHtml(pos) {
+  if (!pos) return '';
+  return `<span style="font-size: 14px; color: #0284c7; background: #e0f2fe; padding: 2px 7px; border-radius: 4px; margin-right: 8px; font-weight: bold; vertical-align: middle;">${pos}</span>`;
+}
+
 // ==================== 模式一：填空測驗邏輯 ====================
 function startFillGame() {
   if (currentIndex >= quizQueue.length) {
@@ -210,7 +216,7 @@ function startFillGame() {
         進度: ${currentIndex + 1} / ${quizQueue.length}
       </div>
       <div id="fill-question" style="font-size: 28px; font-weight: bold; color: #1e293b; margin-bottom: 20px;">
-        ${currentWord.ch}
+        ${getPosTagHtml(currentWord.pos)}${currentWord.ch}
       </div>
       <div style="margin-bottom: 16px;">
         <input type="text" id="fill-answer" placeholder="請輸入英文單字..." autocomplete="off" style="width: 80%; max-width: 350px; padding: 12px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 8px; outline: none; text-align: center;">
@@ -251,20 +257,21 @@ function checkFillAnswer() {
   if (!isCorrect) {
     wrongList.push({
       en: currentWord.en,
+      pos: currentWord.pos || "",
       ch: currentWord.ch,
       userAnswer: userInput,
       mode: "填空"
     });
   }
 
-  // 🌟 不管答對或答錯，都統一跳出確認畫面，讓使用者手動點擊按鈕或按 Enter 進入下一題
+  // 送出後結果顯示畫面 (包含詞性)
   modeFill.innerHTML = `
     <div style="text-align: center; padding: 10px;">
       <div style="font-size: 14px; font-weight: bold; color: #475569; margin-bottom: 12px;">
         進度: ${currentIndex + 1} / ${quizQueue.length}
       </div>
       <div style="font-size: 24px; font-weight: bold; color: #1e293b; margin-bottom: 10px;">
-        ${currentWord.ch}
+        ${getPosTagHtml(currentWord.pos)}${currentWord.ch}
       </div>
       <div style="background: ${isCorrect ? '#f0fdf4' : '#fef2f2'}; border: 1px solid ${isCorrect ? '#bbf7d0' : '#fecaca'}; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: inline-block; width: 100%; max-width: 400px; box-sizing: border-box; text-align: left;">
         <div style="color: ${isCorrect ? '#16a34a' : '#dc2626'}; font-weight: bold; margin-bottom: 6px; font-size: 16px;">
@@ -322,7 +329,7 @@ function startMatchGame() {
   if (isEnToCh) {
     matchQuestion.textContent = `英文：${currentWord.en}`;
   } else {
-    matchQuestion.textContent = `中文：${currentWord.ch}`;
+    matchQuestion.innerHTML = `中文：${getPosTagHtml(currentWord.pos)}${currentWord.ch}`;
   }
 
   let wrongOptions = currentList.filter(item => item.en !== currentWord.en);
@@ -330,9 +337,9 @@ function startMatchGame() {
   const selectedWrong = wrongOptions.slice(0, 2);
 
   let choices = [
-    { text: isEnToCh ? currentWord.ch : currentWord.en, isCorrect: true },
-    { text: isEnToCh ? selectedWrong[0].ch : selectedWrong[0].en, isCorrect: false },
-    { text: isEnToCh ? selectedWrong[1].ch : selectedWrong[1].en, isCorrect: false }
+    { text: isEnToCh ? `${getPosTagHtml(currentWord.pos)}${currentWord.ch}` : currentWord.en, rawText: isEnToCh ? currentWord.ch : currentWord.en, isCorrect: true },
+    { text: isEnToCh ? `${getPosTagHtml(selectedWrong[0].pos)}${selectedWrong[0].ch}` : selectedWrong[0].en, rawText: isEnToCh ? selectedWrong[0].ch : selectedWrong[0].en, isCorrect: false },
+    { text: isEnToCh ? `${getPosTagHtml(selectedWrong[1].pos)}${selectedWrong[1].ch}` : selectedWrong[1].en, rawText: isEnToCh ? selectedWrong[1].ch : selectedWrong[1].en, isCorrect: false }
   ];
 
   choices.sort(() => Math.random() - 0.5);
@@ -340,7 +347,8 @@ function startMatchGame() {
   choices.forEach(choice => {
     const btn = document.createElement("button");
     btn.classList.add("option-btn");
-    btn.textContent = choice.text;
+    btn.innerHTML = choice.text;
+    btn.dataset.rawText = choice.rawText;
     btn.addEventListener("click", () => handleMatchClick(btn, choice.isCorrect));
     optionsContainer.appendChild(btn);
   });
@@ -352,7 +360,7 @@ function handleMatchClick(clickedBtn, isCorrect) {
 
   const allButtons = optionsContainer.querySelectorAll(".option-btn");
   const isEnToCh = subTabEnCh.classList.contains("active");
-  const targetText = isEnToCh ? currentWord.ch : currentWord.en;
+  const targetRawText = isEnToCh ? currentWord.ch : currentWord.en;
 
   if (isCorrect) {
     clickedBtn.classList.add("correct");
@@ -365,6 +373,7 @@ function handleMatchClick(clickedBtn, isCorrect) {
     
     wrongList.push({
       en: currentWord.en,
+      pos: currentWord.pos || "",
       ch: currentWord.ch,
       userAnswer: "選擇錯誤選項",
       mode: "選擇"
@@ -374,7 +383,7 @@ function handleMatchClick(clickedBtn, isCorrect) {
     matchFeedback.style.color = "#dc2626";
 
     allButtons.forEach(btn => {
-      if (btn.textContent === targetText) {
+      if (btn.dataset.rawText === targetRawText) {
         btn.classList.add("correct");
       }
     });
@@ -406,7 +415,7 @@ function showQuizResult(modeName) {
     wrongList.forEach((item, idx) => {
       resultHtml += `
         <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed #fca5a5; font-size: 14px; color: #334155;">
-          <b>${idx + 1}. 中文意思：</b><span style="color: #1e293b; font-weight: bold;">${item.ch}</span> <br>
+          <b>${idx + 1}. 中文意思：</b>${getPosTagHtml(item.pos)}<span style="color: #1e293b; font-weight: bold;">${item.ch}</span> <br>
           ❌ 你的回答：<span style="color: #ef4444; text-decoration: line-through;">${item.userAnswer}</span> <br>
           ✅ 正確英文：<span style="color: #2563eb; font-weight: bold; font-size: 15px;">${item.en}</span>
         </div>
