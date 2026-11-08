@@ -14,6 +14,23 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+const PLACEHOLDER = "___placeholder___";
+
+// HTML 跳脫（避免單字內容破壞版面 / XSS）
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+}[c]));
+
+// Fisher–Yates 洗牌
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 let allWordsList = [];
 
 // DOM 元素
@@ -34,11 +51,18 @@ const matchQuestion = document.getElementById("match-question");
 const optionsContainer = document.getElementById("options-container");
 const matchFeedback = document.getElementById("match-feedback");
 
+// 結算畫面使用獨立容器，避免蓋掉選擇配對的 DOM 元素
+const resultBox = document.createElement("div");
+resultBox.id = "quiz-result";
+resultBox.classList.add("hidden");
+document.querySelector(".study-container").appendChild(resultBox);
+
 // 測驗狀態控制
-let quizQueue = [];     
-let wrongList = [];     
-let currentIndex = 0;   
-let currentWord = null; 
+let quizPool = [];
+let quizQueue = [];
+let wrongList = [];
+let currentIndex = 0;
+let currentWord = null;
 let isAnswerLocked = false;
 
 auth.onAuthStateChanged((user) => {
@@ -57,18 +81,15 @@ function fetchAllUserData(uid) {
 
       snapshot.forEach(doc => {
         const data = doc.data();
-        allWordsList.push(data);
-        if (data.folder) {
-          let mainName = data.folder;
-          if (data.folder.includes("/")) {
-            mainName = data.folder.split("/")[0];
-          } else if (data.folder.includes("_")) {
-            mainName = data.folder.split("_")[0];
-          } else if (data.folder.includes(" ")) {
-            mainName = data.folder.split(" ")[0];
-          }
-          parentFoldersSet.add(mainName);
-        }
+        if (!data.en || data.en === PLACEHOLDER) return; // 略過佔位單字
+        allWordsList.push({
+          en: data.en,
+          pos: data.pos || "",
+          ch: data.ch || "",
+          folder: data.folder || "未分類"
+        });
+        // 階層只由 "/" 決定（與背單字頁一致）
+        parentFoldersSet.add((data.folder || "未分類").split("/")[0]);
       });
 
       quizFolderSelect.innerHTML = `<option value="ALL">全部資料夾 (綜合測驗)</option>`;
@@ -89,8 +110,12 @@ function fetchAllUserData(uid) {
       initCurrentMode();
     })
     .catch((err) => {
-      modeFill.innerHTML = `<p style="text-align:center; padding:20px; color:red;">資料載入失敗：${err.message}</p>`;
+      modeFill.innerHTML = `<p style="text-align:center; padding:20px; color:red;">資料載入失敗：${esc(err.message)}</p>`;
     });
+}
+
+function inFolder(folder, name) {
+  return folder === name || folder.startsWith(name + "/");
 }
 
 function updateSubFolderDropdown() {
@@ -103,14 +128,14 @@ function updateSubFolderDropdown() {
   }
 
   const subFolders = Array.from(new Set(allWordsList.map(w => w.folder)))
-    .filter(f => f !== selectedMain && f.startsWith(selectedMain));
+    .filter(f => f && f.startsWith(selectedMain + "/"));
 
   if (subFolders.length > 0) {
     subFolders.sort();
     subFolders.forEach(subFull => {
       const opt = document.createElement("option");
       opt.value = subFull;
-      opt.textContent = subFull.includes("/") ? subFull.split("/")[1] : subFull;
+      opt.textContent = subFull.slice(selectedMain.length + 1);
       subFolderSelect.appendChild(opt);
     });
     subFolderContainer.classList.remove("hidden");
@@ -119,17 +144,28 @@ function updateSubFolderDropdown() {
   }
 }
 
+// 取得本次測驗範圍：過濾佔位單字、依「英文+中文」去重
 function getFilteredWords() {
-  const selectedMain = quizFolderSelect.value;
-  if (selectedMain === "ALL") return allWordsList;
+  const main = quizFolderSelect.value;
+  const sub = subFolderSelect ? subFolderSelect.value : "ALL_SUB";
 
-  const selectedSub = subFolderSelect ? subFolderSelect.value : "ALL_SUB";
+  let list = allWordsList.filter(w => w.en !== PLACEHOLDER);
 
-  if (!selectedSub || selectedSub === "ALL_SUB") {
-    return allWordsList.filter(item => item.folder === selectedMain || item.folder.startsWith(selectedMain));
-  } else {
-    return allWordsList.filter(item => item.folder === selectedSub);
+  if (main !== "ALL") {
+    if (!sub || sub === "ALL_SUB") {
+      list = list.filter(w => inFolder(w.folder, main));
+    } else {
+      list = list.filter(w => w.folder === sub);
+    }
   }
+
+  const seen = new Set();
+  return list.filter(w => {
+    const key = w.en.toLowerCase() + "|" + w.ch;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 quizFolderSelect.addEventListener("change", () => {
@@ -146,8 +182,6 @@ mainTabFill.addEventListener("click", () => {
   mainTabFill.classList.add("active");
   mainTabMatch.classList.remove("active");
   subModeBox.classList.add("hidden");
-  modeFill.classList.remove("hidden");
-  modeMatch.classList.add("hidden");
   initCurrentMode();
 });
 
@@ -155,8 +189,6 @@ mainTabMatch.addEventListener("click", () => {
   mainTabMatch.classList.add("active");
   mainTabFill.classList.remove("active");
   subModeBox.classList.remove("hidden");
-  modeMatch.classList.remove("hidden");
-  modeFill.classList.add("hidden");
   initCurrentMode();
 });
 
@@ -172,23 +204,30 @@ subTabChEn.addEventListener("click", () => {
   initCurrentMode();
 });
 
-window.initCurrentMode = function() {
-  const currentList = getFilteredWords();
-  
-  if (currentList.length === 0) {
-    if (mainTabFill.classList.contains("active")) {
+window.initCurrentMode = function () {
+  resultBox.classList.add("hidden");
+  const isFill = mainTabFill.classList.contains("active");
+  modeFill.classList.toggle("hidden", !isFill);
+  modeMatch.classList.toggle("hidden", isFill);
+
+  quizPool = getFilteredWords();
+
+  if (quizPool.length === 0) {
+    if (isFill) {
       modeFill.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">此資料夾中沒有單字！</p>`;
     } else {
       matchQuestion.textContent = "此資料夾中沒有單字！";
+      optionsContainer.innerHTML = "";
+      matchFeedback.textContent = "";
     }
     return;
   }
 
-  quizQueue = [...currentList].sort(() => Math.random() - 0.5);
+  quizQueue = shuffle(quizPool);
   wrongList = [];
   currentIndex = 0;
 
-  if (mainTabFill.classList.contains("active")) {
+  if (isFill) {
     startFillGame();
   } else {
     startMatchGame();
@@ -197,8 +236,8 @@ window.initCurrentMode = function() {
 
 // 輔助函式：產生詞性標籤 HTML
 function getPosTagHtml(pos) {
-  if (!pos) return '';
-  return `<span style="font-size: 14px; color: #0284c7; background: #e0f2fe; padding: 2px 7px; border-radius: 4px; margin-right: 8px; font-weight: bold; vertical-align: middle;">${pos}</span>`;
+  if (!pos) return "";
+  return `<span style="font-size: 14px; color: #0284c7; background: #e0f2fe; padding: 2px 7px; border-radius: 4px; margin-right: 8px; font-weight: bold; vertical-align: middle;">${esc(pos)}</span>`;
 }
 
 // ==================== 模式一：填空測驗邏輯 ====================
@@ -216,7 +255,7 @@ function startFillGame() {
         進度: ${currentIndex + 1} / ${quizQueue.length}
       </div>
       <div id="fill-question" style="font-size: 28px; font-weight: bold; color: #1e293b; margin-bottom: 20px;">
-        ${getPosTagHtml(currentWord.pos)}${currentWord.ch}
+        ${getPosTagHtml(currentWord.pos)}${esc(currentWord.ch)}
       </div>
       <div style="margin-bottom: 16px;">
         <input type="text" id="fill-answer" placeholder="請輸入英文單字..." autocomplete="off" style="width: 80%; max-width: 350px; padding: 12px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 8px; outline: none; text-align: center;">
@@ -245,14 +284,14 @@ function checkFillAnswer() {
   const btnCheck = document.getElementById("btn-check-fill");
 
   if (!fillAnswerInput || fillAnswerInput.disabled) return;
-  
+
   const userInput = fillAnswerInput.value.trim().toLowerCase();
   if (!userInput) return;
 
   fillAnswerInput.disabled = true;
   btnCheck.disabled = true;
 
-  const isCorrect = (userInput === currentWord.en.toLowerCase());
+  const isCorrect = (userInput === currentWord.en.trim().toLowerCase());
 
   if (!isCorrect) {
     wrongList.push({
@@ -271,14 +310,14 @@ function checkFillAnswer() {
         進度: ${currentIndex + 1} / ${quizQueue.length}
       </div>
       <div style="font-size: 24px; font-weight: bold; color: #1e293b; margin-bottom: 10px;">
-        ${getPosTagHtml(currentWord.pos)}${currentWord.ch}
+        ${getPosTagHtml(currentWord.pos)}${esc(currentWord.ch)}
       </div>
       <div style="background: ${isCorrect ? '#f0fdf4' : '#fef2f2'}; border: 1px solid ${isCorrect ? '#bbf7d0' : '#fecaca'}; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: inline-block; width: 100%; max-width: 400px; box-sizing: border-box; text-align: left;">
         <div style="color: ${isCorrect ? '#16a34a' : '#dc2626'}; font-weight: bold; margin-bottom: 6px; font-size: 16px;">
           ${isCorrect ? '✅ 答對了！' : '❌ 答錯囉！'}
         </div>
-        <div style="font-size: 14px; color: #334155; margin-bottom: 4px;">你的回答：<span style="color: ${isCorrect ? '#16a34a' : '#ef4444'}; font-weight: bold; ${isCorrect ? '' : 'text-decoration: line-through;'}">${userInput}</span></div>
-        <div style="font-size: 15px; color: #1e293b;">正確答案：<strong style="color: #2563eb; font-size: 18px;">${currentWord.en}</strong></div>
+        <div style="font-size: 14px; color: #334155; margin-bottom: 4px;">你的回答：<span style="color: ${isCorrect ? '#16a34a' : '#ef4444'}; font-weight: bold; ${isCorrect ? '' : 'text-decoration: line-through;'}">${esc(userInput)}</span></div>
+        <div style="font-size: 15px; color: #1e293b;">正確答案：<strong style="color: #2563eb; font-size: 18px;">${esc(currentWord.en)}</strong></div>
       </div>
       <div>
         <button id="btn-next-fill" style="padding: 12px 30px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(79,70,229,0.25);">
@@ -290,24 +329,16 @@ function checkFillAnswer() {
 
   currentIndex++;
 
+  // 按鈕取得焦點後，按 Enter 本來就會觸發 click，不需要另外掛 document 監聽
   const btnNext = document.getElementById("btn-next-fill");
   if (btnNext) {
     btnNext.focus();
     btnNext.addEventListener("click", startFillGame);
-    
-    document.addEventListener("keydown", function handleEnterNext(e) {
-      if (e.key === "Enter") {
-        document.removeEventListener("keydown", handleEnterNext);
-        startFillGame();
-      }
-    }, { once: true });
   }
 }
 
 // ==================== 模式二：選擇配對測驗邏輯 ====================
 function startMatchGame() {
-  const currentList = getFilteredWords();
-
   if (currentIndex >= quizQueue.length) {
     showQuizResult("選擇測驗");
     return;
@@ -318,7 +349,7 @@ function startMatchGame() {
   matchFeedback.style.color = "#475569";
   optionsContainer.innerHTML = "";
 
-  if (currentList.length < 3) {
+  if (quizPool.length < 3) {
     matchQuestion.textContent = "⚠️ 該資料夾單字少於 3 個，請至少新增 3 個單字才能進行選擇測驗！";
     return;
   }
@@ -329,26 +360,36 @@ function startMatchGame() {
   if (isEnToCh) {
     matchQuestion.textContent = `英文：${currentWord.en}`;
   } else {
-    matchQuestion.innerHTML = `中文：${getPosTagHtml(currentWord.pos)}${currentWord.ch}`;
+    matchQuestion.innerHTML = `中文：${getPosTagHtml(currentWord.pos)}${esc(currentWord.ch)}`;
   }
 
-  let wrongOptions = currentList.filter(item => item.en !== currentWord.en);
-  wrongOptions.sort(() => Math.random() - 0.5);
-  const selectedWrong = wrongOptions.slice(0, 2);
+  // 優先挑「英文與中文都不同」的干擾選項，避免同義詞造成兩個答案
+  let wrongOptions = shuffle(quizPool.filter(item =>
+    item.en.toLowerCase() !== currentWord.en.toLowerCase() && item.ch !== currentWord.ch));
+  if (wrongOptions.length < 2) {
+    wrongOptions = shuffle(quizPool.filter(item => item.en.toLowerCase() !== currentWord.en.toLowerCase()));
+  }
+  if (wrongOptions.length < 2) {
+    matchQuestion.textContent = "⚠️ 可用的干擾選項不足，請再新增一些單字！";
+    return;
+  }
 
-  let choices = [
-    { text: isEnToCh ? `${getPosTagHtml(currentWord.pos)}${currentWord.ch}` : currentWord.en, rawText: isEnToCh ? currentWord.ch : currentWord.en, isCorrect: true },
-    { text: isEnToCh ? `${getPosTagHtml(selectedWrong[0].pos)}${selectedWrong[0].ch}` : selectedWrong[0].en, rawText: isEnToCh ? selectedWrong[0].ch : selectedWrong[0].en, isCorrect: false },
-    { text: isEnToCh ? `${getPosTagHtml(selectedWrong[1].pos)}${selectedWrong[1].ch}` : selectedWrong[1].en, rawText: isEnToCh ? selectedWrong[1].ch : selectedWrong[1].en, isCorrect: false }
-  ];
+  const makeChoice = (w, isCorrect) => ({
+    html: isEnToCh ? `${getPosTagHtml(w.pos)}${esc(w.ch)}` : esc(w.en),
+    isCorrect
+  });
 
-  choices.sort(() => Math.random() - 0.5);
+  const choices = shuffle([
+    makeChoice(currentWord, true),
+    makeChoice(wrongOptions[0], false),
+    makeChoice(wrongOptions[1], false)
+  ]);
 
   choices.forEach(choice => {
     const btn = document.createElement("button");
     btn.classList.add("option-btn");
-    btn.innerHTML = choice.text;
-    btn.dataset.rawText = choice.rawText;
+    btn.innerHTML = choice.html;
+    btn.dataset.correct = choice.isCorrect ? "1" : "0";
     btn.addEventListener("click", () => handleMatchClick(btn, choice.isCorrect));
     optionsContainer.appendChild(btn);
   });
@@ -359,8 +400,6 @@ function handleMatchClick(clickedBtn, isCorrect) {
   isAnswerLocked = true;
 
   const allButtons = optionsContainer.querySelectorAll(".option-btn");
-  const isEnToCh = subTabEnCh.classList.contains("active");
-  const targetRawText = isEnToCh ? currentWord.ch : currentWord.en;
 
   if (isCorrect) {
     clickedBtn.classList.add("correct");
@@ -370,7 +409,7 @@ function handleMatchClick(clickedBtn, isCorrect) {
     setTimeout(startMatchGame, 800);
   } else {
     clickedBtn.classList.add("wrong");
-    
+
     wrongList.push({
       en: currentWord.en,
       pos: currentWord.pos || "",
@@ -383,7 +422,7 @@ function handleMatchClick(clickedBtn, isCorrect) {
     matchFeedback.style.color = "#dc2626";
 
     allButtons.forEach(btn => {
-      if (btn.dataset.rawText === targetRawText) {
+      if (btn.dataset.correct === "1") {
         btn.classList.add("correct");
       }
     });
@@ -415,9 +454,9 @@ function showQuizResult(modeName) {
     wrongList.forEach((item, idx) => {
       resultHtml += `
         <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed #fca5a5; font-size: 14px; color: #334155;">
-          <b>${idx + 1}. 中文意思：</b>${getPosTagHtml(item.pos)}<span style="color: #1e293b; font-weight: bold;">${item.ch}</span> <br>
-          ❌ 你的回答：<span style="color: #ef4444; text-decoration: line-through;">${item.userAnswer}</span> <br>
-          ✅ 正確英文：<span style="color: #2563eb; font-weight: bold; font-size: 15px;">${item.en}</span>
+          <b>${idx + 1}. 中文意思：</b>${getPosTagHtml(item.pos)}<span style="color: #1e293b; font-weight: bold;">${esc(item.ch)}</span> <br>
+          ❌ 你的回答：<span style="color: #ef4444; text-decoration: line-through;">${esc(item.userAnswer)}</span> <br>
+          ✅ 正確英文：<span style="color: #2563eb; font-weight: bold; font-size: 15px;">${esc(item.en)}</span>
         </div>
       `;
     });
@@ -437,11 +476,11 @@ function showQuizResult(modeName) {
     </div>
   `;
 
-  if (mainTabFill.classList.contains("active")) {
-    modeFill.innerHTML = resultHtml;
-  } else {
-    modeMatch.innerHTML = resultHtml;
-  }
+  // 結果放進獨立容器，隱藏兩個測驗畫面（不破壞它們的 DOM）
+  modeFill.classList.add("hidden");
+  modeMatch.classList.add("hidden");
+  resultBox.innerHTML = resultHtml;
+  resultBox.classList.remove("hidden");
 
   const restartBtn = document.getElementById("btn-restart-quiz");
   if (restartBtn) {
