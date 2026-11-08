@@ -1,19 +1,4 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyA4bbUoXHi29YAjCgYrnuYRhZJ8_JEtalc",
-  authDomain: "englishhero-d58c6.firebaseapp.com",
-  projectId: "englishhero-d58c6",
-  storageBucket: "englishhero-d58c6.firebasestorage.app",
-  messagingSenderId: "437927020009",
-  appId: "1:437927020009:web:30e18c99cfeec8ef4ef778",
-  measurementId: "G-TZTCS02SK6"
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const db = firebase.firestore();
-
+const db = EH.db;
 let currentUser = null;
 
 const folderSelect = document.getElementById("folder-select");
@@ -22,10 +7,22 @@ const newFolderInput = document.getElementById("new-folder-input");
 const btnToggleNewFolder = document.getElementById("btn-toggle-new-folder");
 const btnCancelNewFolder = document.getElementById("btn-cancel-new-folder");
 const addForm = document.getElementById("add-word-form");
-const msgEl = document.getElementById("add-msg");
+const bulkForm = document.getElementById("bulk-form");
+const bulkText = document.getElementById("bulk-text");
+const bulkPreview = document.getElementById("bulk-preview");
+const bulkSubmit = document.getElementById("bulk-submit");
+const tabSingle = document.getElementById("tab-single");
+const tabBulk = document.getElementById("tab-bulk");
 const btnAutoTranslate = document.getElementById("btn-auto-translate");
+const enInput = document.getElementById("word-en");
+const chInput = document.getElementById("word-ch");
+const posSelect = document.getElementById("word-pos");
 
-// 內建常用單字快查庫（100% 成功、0秒秒查，你隨時可以在這裡自由新增更多單字！）
+// 每個資料夾已存在的單字（用來提醒重複）
+let existingKeys = new Set();
+const dupKey = (folder, en) => `${folder}|${en.trim().toLowerCase()}`;
+
+// 內建常用單字快查庫（可自行新增）
 const localDictionary = {
   "apple": { ch: "蘋果", pos: "n." },
   "banana": { ch: "香蕉", pos: "n." },
@@ -56,48 +53,37 @@ const localDictionary = {
   "slowly": { ch: "緩慢地", pos: "adv." }
 };
 
-// 驗證登入並載入現有資料夾
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    currentUser = user;
-    loadUserFolders(user.uid);
-  } else {
-    window.location.replace("login.html?v=2026");
-  }
+EH.requireUser((user) => {
+  currentUser = user;
+  loadUserFolders(user.uid);
 });
 
-// 從 Firestore 抓取現有的資料夾清單
-function loadUserFolders(uid) {
-  db.collection("users").doc(uid).collection("words").get()
+// 讀取現有資料夾與已存在的單字
+function loadUserFolders(uid, selectFolder) {
+  return db.collection("users").doc(uid).collection("words").get()
     .then((snapshot) => {
       const foldersSet = new Set();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.folder) {
-          foldersSet.add(data.folder);
-        }
+      existingKeys = new Set();
+      snapshot.forEach((doc) => {
+        const d = doc.data();
+        if (d.folder) foldersSet.add(d.folder);
+        if (d.folder && d.en && d.en !== EH.PLACEHOLDER) existingKeys.add(dupKey(d.folder, d.en));
       });
 
       folderSelect.innerHTML = "";
       if (foldersSet.size === 0) {
         folderSelect.innerHTML = `<option value="預設分類">預設分類</option>`;
       } else {
-        foldersSet.forEach(folderName => {
+        Array.from(foldersSet).sort((a, b) => a.localeCompare(b)).forEach((name) => {
           const opt = document.createElement("option");
-          opt.value = folderName;
-          opt.textContent = folderName;
+          opt.value = name;
+          opt.textContent = name;
           folderSelect.appendChild(opt);
         });
-
-        // 🌟 自動記憶功能：嘗試讀取使用者上次選擇的資料夾
-        let lastSelectedFolder = null;
-        try {
-          lastSelectedFolder = localStorage.getItem("english_hero_last_folder");
-        } catch (e) { /* 隱私模式下 localStorage 可能不可用 */ }
-        if (lastSelectedFolder && foldersSet.has(lastSelectedFolder)) {
-          folderSelect.value = lastSelectedFolder;
-        }
+        const last = selectFolder || EH.store.get("eh_last_add_folder");
+        if (last && foldersSet.has(last)) folderSelect.value = last;
       }
+      updateBulkPreview();
     })
     .catch((err) => {
       console.error("載入資料夾失敗：", err);
@@ -105,132 +91,266 @@ function loadUserFolders(uid) {
     });
 }
 
-// 切換至「新增資料夾」模式
+function getFolder() {
+  if (!newFolderGroup.classList.contains("hidden")) return newFolderInput.value.trim();
+  return folderSelect.value;
+}
+
+// ---------- 資料夾：新增 / 取消 ----------
 btnToggleNewFolder.addEventListener("click", () => {
-  folderSelect.value = "";
   folderSelect.disabled = true;
   newFolderGroup.classList.remove("hidden");
-  newFolderInput.required = true;
   newFolderInput.focus();
   btnToggleNewFolder.classList.add("hidden");
+  updateBulkPreview();
 });
 
-// 取消新增資料夾，回到下拉選單
 btnCancelNewFolder.addEventListener("click", () => {
   newFolderGroup.classList.add("hidden");
-  newFolderInput.required = false;
   newFolderInput.value = "";
   folderSelect.disabled = false;
   btnToggleNewFolder.classList.remove("hidden");
+  updateBulkPreview();
 });
 
-// 秒查且 100% 成功的本地智慧查詢
-if (btnAutoTranslate) {
-  btnAutoTranslate.addEventListener("click", async () => {
-    const enInput = document.getElementById("word-en");
-    const chInput = document.getElementById("word-ch");
-    const posSelect = document.getElementById("word-pos");
-    const wordKey = enInput.value.trim().toLowerCase();
+newFolderInput.addEventListener("input", updateBulkPreview);
+folderSelect.addEventListener("change", updateBulkPreview);
 
-    if (!wordKey) {
-      alert("請先輸入英文單字！");
-      enInput.focus();
-      return;
+// ---------- 單筆 / 批次切換 ----------
+function switchTab(bulk) {
+  tabSingle.classList.toggle("active", !bulk);
+  tabBulk.classList.toggle("active", bulk);
+  addForm.classList.toggle("hidden", bulk);
+  bulkForm.classList.toggle("hidden", !bulk);
+  (bulk ? bulkText : enInput).focus();
+}
+tabSingle.addEventListener("click", () => switchTab(false));
+tabBulk.addEventListener("click", () => switchTab(true));
+
+// ---------- 自動查中文 ----------
+async function autoTranslate() {
+  const wordKey = enInput.value.trim().toLowerCase();
+  if (!wordKey) {
+    EH.toast("請先輸入英文單字！", "error");
+    enInput.focus();
+    return;
+  }
+
+  if (localDictionary[wordKey]) {
+    chInput.value = localDictionary[wordKey].ch;
+    posSelect.value = localDictionary[wordKey].pos;
+    return;
+  }
+
+  btnAutoTranslate.disabled = true;
+  btnAutoTranslate.textContent = "查詢中...";
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(wordKey)}&langpair=en|zh-TW`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const translated = data && data.responseData && data.responseData.translatedText;
+
+    // MyMemory 額度用完時，會把警告文字放在 translatedText，必須排除
+    if (Number(data && data.responseStatus) === 200 && translated && !/MYMEMORY WARNING/i.test(translated)) {
+      chInput.value = translated;
+    } else {
+      EH.toast("找不到對應的中文（或查詢額度已用完），請手動輸入", "error");
+    }
+  } catch (e) {
+    EH.toast("查詢失敗，請手動輸入中文", "error");
+  } finally {
+    btnAutoTranslate.disabled = false;
+    btnAutoTranslate.textContent = "✨ 自動查中文";
+  }
+}
+
+btnAutoTranslate.addEventListener("click", autoTranslate);
+
+// 英文欄按 Enter：中文還是空的就先自動查，查完再按一次 Enter 就儲存
+enInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !chInput.value.trim() && enInput.value.trim()) {
+    e.preventDefault();
+    autoTranslate().then(() => {
+      if (!chInput.value.trim()) chInput.focus();
+    });
+  }
+});
+
+// ---------- 單筆儲存 ----------
+addForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) return;
+
+  const folder = getFolder();
+  if (!folder) {
+    EH.toast("請選擇或輸入資料夾名稱！", "error");
+    return;
+  }
+
+  const en = enInput.value.trim();
+  const ch = chInput.value.trim();
+  const pos = posSelect.value;
+
+  if (existingKeys.has(dupKey(folder, en))) {
+    const ok = await EH.confirm(`「${en}」在「${folder}」裡已經有了，還要再新增一次嗎？`);
+    if (!ok) return;
+  }
+
+  try {
+    await db.collection("users").doc(currentUser.uid).collection("words").add({
+      folder, en, pos, ch,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    EH.store.set("eh_last_add_folder", folder);
+    existingKeys.add(dupKey(folder, en));
+    EH.toast(`✅ 已新增「${en}」`, "success");
+
+    enInput.value = "";
+    chInput.value = "";
+    posSelect.value = "";
+    enInput.focus();
+
+    // 若剛剛是新增資料夾，切回下拉選單並選到它
+    if (!newFolderGroup.classList.contains("hidden")) {
+      btnCancelNewFolder.click();
+      await loadUserFolders(currentUser.uid, folder);
+    }
+  } catch (err) {
+    EH.toast(`❌ 儲存失敗：${err.message}`, "error", 4000);
+  }
+});
+
+// ---------- 批次解析 ----------
+// 支援：apple, 蘋果 ｜ apple, n., 蘋果 ｜ apple = 蘋果 ｜ apple[Tab]蘋果 ｜ apple[Tab]n.[Tab]蘋果
+function parseLine(line) {
+  // 1) 有明確分隔符號：逗號、等號、冒號、Tab、「 - 」
+  let m = line.match(/^(.+?)(?:\t+|\s*[,，=:：]\s*|\s+[-–—]\s+)(.+)$/);
+  let en, rest;
+  if (m) {
+    en = m[1].trim();
+    rest = m[2].trim();
+  } else {
+    // 2) 手機常見：英文後面直接空白再接中文（可夾詞性），例如「apple 蘋果」「apple n. 蘋果」
+    m = line.match(/^([A-Za-z][A-Za-z\s'’.\-]*?)\s+((?:(?:n|v|adj|adv|prep|conj|phr)\.?\s+)?[^\x00-\x7F].*)$/);
+    if (!m) return null;
+    en = m[1].trim();
+    rest = m[2].trim();
+  }
+
+  let pos = "";
+  const pm = rest.match(/^(n|v|adj|adv|prep|conj|phr)\.?\s*(?:[,，:：]\s*|\s+)(.+)$/i);
+  if (pm) {
+    pos = pm[1].toLowerCase() + ".";
+    rest = pm[2].trim();
+  }
+  if (!en || !rest) return null;
+  return { en, pos, ch: rest };
+}
+
+function analyzeBulk() {
+  const folder = getFolder();
+  const lines = bulkText.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const valid = [];
+  const invalid = [];
+  let dupCount = 0;
+  const seen = new Set();
+
+  lines.forEach((line) => {
+    const item = parseLine(line);
+    if (!item) { invalid.push(line); return; }
+    const key = dupKey(folder || "", item.en);
+    if (seen.has(key) || (folder && existingKeys.has(key))) { dupCount++; return; }
+    seen.add(key);
+    valid.push(item);
+  });
+  return { folder, valid, invalid, dupCount, total: lines.length };
+}
+
+function updateBulkPreview() {
+  if (!bulkText) return;
+  const { valid, invalid, dupCount, total } = analyzeBulk();
+  if (total === 0) {
+    bulkPreview.textContent = "貼上內容後會顯示解析結果";
+    return;
+  }
+  let html = `將新增 <b>${valid.length}</b> 筆`;
+  if (dupCount) html += `，重複略過 <b>${dupCount}</b> 筆`;
+  if (invalid.length) {
+    html += `，無法辨識 <b style="color:var(--danger)">${invalid.length}</b> 筆（例：${EH.esc(invalid[0])}）`;
+  }
+  bulkPreview.innerHTML = html;
+}
+bulkText.addEventListener("input", updateBulkPreview);
+
+// ---------- 批次儲存 ----------
+bulkForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) return;
+
+  const { folder, valid } = analyzeBulk();
+  if (!folder) {
+    EH.toast("請選擇或輸入資料夾名稱！", "error");
+    return;
+  }
+  if (valid.length === 0) {
+    EH.toast("沒有可新增的單字，請檢查格式（例如：apple, 蘋果）或是否都已重複", "error", 3500);
+    return;
+  }
+
+  bulkSubmit.disabled = true;
+  bulkSubmit.textContent = "儲存中...";
+
+  try {
+    const ref = db.collection("users").doc(currentUser.uid).collection("words");
+    const BATCH_SIZE = 400;
+    for (let i = 0; i < valid.length; i += BATCH_SIZE) {
+      const batch = db.batch();
+      valid.slice(i, i + BATCH_SIZE).forEach((w) => {
+        batch.set(ref.doc(), {
+          folder, en: w.en, pos: w.pos, ch: w.ch,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+      await batch.commit();
     }
 
-    btnAutoTranslate.textContent = "查詢中...";
+    EH.store.set("eh_last_add_folder", folder);
+    valid.forEach((w) => existingKeys.add(dupKey(folder, w.en)));
+    EH.toast(`✅ 已新增 ${valid.length} 個單字到「${folder}」，可到「背單字」查看`, "success", 4000);
+    bulkText.value = "";
 
-    setTimeout(async () => {
-      if (localDictionary[wordKey]) {
-        chInput.value = localDictionary[wordKey].ch;
-        if (posSelect) posSelect.value = localDictionary[wordKey].pos;
-        btnAutoTranslate.textContent = "✨ 自動查中文";
+    if (!newFolderGroup.classList.contains("hidden")) {
+      btnCancelNewFolder.click();
+      await loadUserFolders(currentUser.uid, folder);
+    }
+  } catch (err) {
+    EH.toast(`❌ 批次儲存失敗：${err.message}`, "error", 4000);
+  } finally {
+    bulkSubmit.disabled = false;
+    bulkSubmit.textContent = "批次儲存";
+    updateBulkPreview();
+  }
+});
+
+// ---------- 從剪貼簿貼上（手機方便） ----------
+const btnPaste = document.getElementById("btn-paste");
+if (btnPaste) {
+  btnPaste.addEventListener("click", async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        EH.toast("剪貼簿是空的", "error");
         return;
       }
-
-      try {
-        const translateUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(wordKey)}&langpair=en|zh-TW`;
-        const transRes = await fetch(translateUrl);
-        const transData = await transRes.json();
-
-        const translated = transData && transData.responseData && transData.responseData.translatedText;
-
-        // MyMemory 額度用完時，會把警告文字放在 translatedText，必須排除
-        if (Number(transData && transData.responseStatus) === 200 &&
-            translated &&
-            !/MYMEMORY WARNING/i.test(translated)) {
-          chInput.value = translated;
-        } else {
-          alert("找不到對應的中文（或查詢額度已用完），請手動輸入。");
-        }
-      } catch (error) {
-        alert("查詢失敗，請手動輸入中文。");
-      } finally {
-        btnAutoTranslate.textContent = "✨ 自動查中文";
-      }
-    }, 100);
+      bulkText.value = bulkText.value ? bulkText.value.replace(/\s+$/, "") + "\n" + text : text;
+      updateBulkPreview();
+    } catch (e) {
+      EH.toast("無法讀取剪貼簿，請長按輸入框手動貼上", "error", 3500);
+      bulkText.focus();
+    }
   });
 }
 
-// 表單送出儲存
-if (addForm) {
-  addForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    let folder = "";
-    if (!newFolderGroup.classList.contains("hidden")) {
-      folder = newFolderInput.value.trim();
-    } else {
-      folder = folderSelect.value;
-    }
-
-    if (!folder) {
-      alert("請選擇或輸入資料夾名稱！");
-      return;
-    }
-
-    // 🌟 自動記憶功能：當使用者成功儲存單字時，把這次選的資料夾記錄到瀏覽器中
-    try {
-      localStorage.setItem("english_hero_last_folder", folder);
-    } catch (err) { /* 忽略 */ }
-
-    const en = document.getElementById("word-en").value.trim();
-    const pos = document.getElementById("word-pos") ? document.getElementById("word-pos").value : "";
-    const ch = document.getElementById("word-ch").value.trim();
-
-    msgEl.textContent = "儲存中...";
-    msgEl.className = "msg";
-
-    db.collection("users").doc(currentUser.uid).collection("words").add({
-      folder: folder,
-      en: en,
-      pos: pos,
-      ch: ch,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    })
-    .then(() => {
-      msgEl.textContent = "✅ 新增成功！";
-      msgEl.className = "msg success";
-
-      document.getElementById("word-en").value = "";
-      if (document.getElementById("word-pos")) {
-        document.getElementById("word-pos").value = "";
-      }
-      document.getElementById("word-ch").value = "";
-      document.getElementById("word-en").focus();
-
-      // 若剛剛是新增資料夾，先切回下拉選單；loadUserFolders 會依 localStorage 自動選回這個資料夾
-      if (!newFolderGroup.classList.contains("hidden")) {
-        btnCancelNewFolder.click();
-      }
-      loadUserFolders(currentUser.uid);
-
-      setTimeout(() => { msgEl.textContent = ""; }, 2500);
-    })
-    .catch((err) => {
-      msgEl.textContent = `❌ 儲存失敗：${err.message}`;
-      msgEl.className = "msg error";
-    });
-  });
-}
+// 讓 add.html 知道這支程式已完整載入（診斷用）
+window.__EH_ADD_READY = "3001";
