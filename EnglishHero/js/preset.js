@@ -24,6 +24,7 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
+// 注意：fileUrl 的資料夾名稱 JSON 在 GitHub Pages 等區分大小寫的主機上必須與實際資料夾完全一致
 const PRESET_CONFIGS = {
   lungting_grade1_l4: {
     folderName: "📁 龍騰版高一第四課",
@@ -52,6 +53,11 @@ const PRESET_CONFIGS = {
 };
 
 window.importPreset = async function(presetKey) {
+  if (!currentUser) {
+    alert("登入狀態還在確認中，請稍後再試（或請先登入）。");
+    return;
+  }
+
   const config = PRESET_CONFIGS[presetKey];
   if (!config) {
     alert("找不到對應的題庫設定！");
@@ -65,8 +71,8 @@ window.importPreset = async function(presetKey) {
     }
     const words = await response.json();
 
-    if (!words || words.length === 0) {
-      alert("此題庫檔案內容為空！");
+    if (!Array.isArray(words) || words.length === 0) {
+      alert("此題庫檔案內容為空或格式不正確！");
       return;
     }
 
@@ -76,27 +82,36 @@ window.importPreset = async function(presetKey) {
 
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
 
+    // 檢查是否已經匯入過同名題庫，避免重複堆積
+    const dup = await userWordsRef.where("folder", "==", config.folderName).limit(1).get();
+    if (!dup.empty && !confirm("這個題庫已經加入過了，確定要再加一次嗎？（會產生重複單字）")) {
+      return;
+    }
+
     // 分批寫入 (每 400 筆為一個 Batch)，避免觸發 Firestore 500 筆上限限制
     const BATCH_SIZE = 400;
+    let added = 0;
     for (let i = 0; i < words.length; i += BATCH_SIZE) {
       const chunk = words.slice(i, i + BATCH_SIZE);
       const batch = db.batch();
 
       chunk.forEach(w => {
+        if (!w || !w.en || !w.ch) return; // 略過不完整的資料
         const newDocRef = userWordsRef.doc();
         batch.set(newDocRef, {
           en: w.en,
-          pos: w.pos || "n.",
+          pos: w.pos || "",
           ch: w.ch,
           folder: config.folderName,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        added++;
       });
 
       await batch.commit();
     }
 
-    alert(`🎉 成功加入「${config.folderName}」共 ${words.length} 個單字！`);
+    alert(`🎉 成功加入「${config.folderName}」共 ${added} 個單字！`);
   } catch (err) {
     console.error("載入 JSON 失敗：", err);
     alert(`加入題庫失敗：${err.message}\n(請確認專案根目錄是否有 JSON 資料夾以及對應的檔案)`);
