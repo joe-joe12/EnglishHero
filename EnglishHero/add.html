@@ -83,14 +83,15 @@
     <form id="bulk-form" class="hidden">
       <div class="bulk-help">
         一行一個單字，格式擇一即可：<br>
-        <b>apple, 蘋果</b>　｜　<b>apple, n., 蘋果</b>　｜　<b>apple = 蘋果</b>　｜　<b>apple [Tab] 蘋果</b><br>
+        <b>apple 蘋果</b>　｜　<b>apple, 蘋果</b>　｜　<b>apple, n., 蘋果</b>　｜　<b>apple = 蘋果</b>　｜　<b>apple [Tab] 蘋果</b><br>
         （可直接從 Excel / Google 試算表複製兩欄貼上；沒寫詞性就留空）
       </div>
       <div class="form-group">
+        <button type="button" id="btn-paste" class="btn btn-secondary btn-sm" style="margin-bottom:8px;">📋 從剪貼簿貼上</button>
         <textarea id="bulk-text" placeholder="apple, n., 蘋果&#10;run, v., 跑步&#10;quickly, adv., 快速地"></textarea>
         <div id="bulk-preview" class="bulk-preview">貼上內容後會顯示解析結果</div>
       </div>
-      <button type="submit" id="bulk-submit" class="btn btn-submit" disabled>批次儲存</button>
+      <button type="submit" id="bulk-submit" class="btn btn-submit">批次儲存</button>
     </form>
 
     <div id="add-msg" class="msg"></div>
@@ -101,6 +102,27 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="js/common.js?v=3000"></script>
-<script src="js/add.js?v=3000"></script>
+<script>
+  // 分頁切換不依賴 add.js：即使其他程式出錯，單筆 / 批次也能切換
+  (function () {
+    function sw(bulk) {
+      document.getElementById("tab-single").classList.toggle("active", !bulk);
+      document.getElementById("tab-bulk").classList.toggle("active", bulk);
+      document.getElementById("add-word-form").classList.toggle("hidden", bulk);
+      document.getElementById("bulk-form").classList.toggle("hidden", !bulk);
+    }
+    document.getElementById("tab-single").onclick = function () { sw(false); };
+    document.getElementById("tab-bulk").onclick = function () { sw(true); };
+
+    // 診斷：common.js 沒載入時直接在頁面上提示
+    if (!window.EH) {
+      var box = document.createElement("div");
+      box.className = "auth-msg error";
+      box.textContent = "⚠️ 找不到 js/common.js，請確認它放在 js 資料夾內並重新整理（其餘功能需要它才能運作）。";
+      document.querySelector(".card").insertBefore(box, document.querySelector(".card").firstChild);
+    }
+  })();
+</script>
+<script src="js/add.js?v=3001"></script>
 </body>
 </html>
