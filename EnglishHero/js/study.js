@@ -14,11 +14,22 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+const LEARNED = "📦 已經背過的單字";
+const PLACEHOLDER = "___placeholder___";
+
+// HTML 跳脫（顯示在畫面上的文字、input value 用）
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+}[c]));
+// 給 inline onclick 的參數用（可安全包含單引號、雙引號）
+const jsArg = (v) => esc(JSON.stringify(v));
+const wordKey = (w) => String(w.en).toLowerCase() + "|" + w.ch;
+
 let currentUser = null;
-let allWords = []; 
-let currentFolderWords = []; 
+let allWords = [];
+let currentFolderWords = [];
 let currentIndex = 0;
-let currentFolderForManagement = ""; 
+let currentFolderForManagement = "";
 
 const containerEl = document.getElementById("flashcard-container");
 const pageTitleEl = document.getElementById("page-title");
@@ -58,7 +69,7 @@ function fetchAllWords(uid) {
       });
 
       allWords.sort((a, b) => a.createdAt - b.createdAt);
-      
+
       if (pageTitleEl.textContent.startsWith("📁 我的單字資料夾")) {
         renderFolderList();
       }
@@ -74,28 +85,29 @@ function renderFolderList() {
   btnBackFolders.style.display = "none";
   currentFolderForManagement = "";
 
+  // folderMap：資料夾存在與否看 key；單字數量不含佔位單字
   const folderMap = {};
-  folderMap["📦 已經背過的單字"] = [];
+  folderMap[LEARNED] = [];
 
   allWords.forEach(w => {
-    let fName = w.folder || "未分類";
+    const fName = w.folder || "未分類";
     if (!folderMap[fName]) folderMap[fName] = [];
-    folderMap[fName].push(w);
+    if (w.en !== PLACEHOLDER) folderMap[fName].push(w);
   });
 
-  const specialFolders = ["📦 已經背過的單字"];
+  const specialFolders = [LEARNED];
   let topBadgesHtml = `<div style="margin-bottom: 20px;">`;
 
   specialFolders.forEach((fName) => {
     const count = folderMap[fName] ? folderMap[fName].length : 0;
     topBadgesHtml += `
       <div style="background: #d1fae5; border: 1px solid #05966940; padding: 14px; border-radius: 10px; text-align: center; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center;">
-        <div onclick="startStudy('${fName}')" style="cursor: pointer; text-align: left; flex-grow: 1;">
-          <div style="font-size: 14px; font-weight: bold; color: #059669;">📦 ${fName}</div>
+        <div onclick="startStudy(${jsArg(fName)})" style="cursor: pointer; text-align: left; flex-grow: 1;">
+          <div style="font-size: 14px; font-weight: bold; color: #059669;">${esc(fName)}</div>
           <div style="font-size: 12px; color: #047857; margin-top: 2px;">共 ${count} 個字 (點擊開始複習)</div>
         </div>
         <div>
-          <button class="dots-btn" onclick="toggleFolderDropdown(event, '${fName}', 'special-learned')" style="padding: 6px 12px; font-size: 14px; background: #fff; border-radius: 6px; border: 1px solid #a7f3d0; cursor: pointer; color: #059669; font-weight: bold;">⚙️ 管理</button>
+          <button class="dots-btn" onclick="toggleFolderDropdown(event, ${jsArg(fName)}, 'special-learned')" style="padding: 6px 12px; font-size: 14px; background: #fff; border-radius: 6px; border: 1px solid #a7f3d0; cursor: pointer; color: #059669; font-weight: bold;">⚙️ 管理</button>
         </div>
       </div>
     `;
@@ -103,14 +115,13 @@ function renderFolderList() {
   topBadgesHtml += `</div>`;
 
   const rootFoldersMap = {};
-  const subFoldersMap = {}; 
+  const subFoldersMap = {};
 
   Object.keys(folderMap).forEach(fName => {
     if (specialFolders.includes(fName)) return;
 
     if (fName.includes("/")) {
-      const parts = fName.split("/");
-      const parent = parts[0];
+      const parent = fName.split("/")[0];
       if (!subFoldersMap[parent]) subFoldersMap[parent] = new Set();
       subFoldersMap[parent].add(fName);
     } else {
@@ -136,7 +147,7 @@ function renderFolderList() {
 
   allMainFolderNames.forEach((folderName, index) => {
     const hasSub = subFoldersMap[folderName] && subFoldersMap[folderName].size > 0;
-    
+
     let totalCount = 0;
     if (rootFoldersMap[folderName]) {
       totalCount += rootFoldersMap[folderName].length;
@@ -147,19 +158,19 @@ function renderFolderList() {
       });
     }
 
-    const clickAction = hasSub ? `openSubFolderView('${folderName}')` : `startStudy('${folderName}')`;
+    const clickAction = hasSub ? `openSubFolderView(${jsArg(folderName)})` : `startStudy(${jsArg(folderName)})`;
     const subText = hasSub ? `包含 ${subFoldersMap[folderName].size} 個小資料夾 (共 ${totalCount} 個單字)` : `共 ${totalCount} 個單字 (點擊開始背單字)`;
 
     html += `
       <div class="folder-wrapper" style="margin-bottom: 10px;">
         <div class="folder-item" onclick="${clickAction}">
           <div class="folder-info">
-            <h3>📁 ${folderName}${hasSub ? '<span style="font-size: 12px; background: #e0e7ff; color: #4f46e5; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">階層資料夾</span>' : ''}</h3>
+            <h3>📁 ${esc(folderName)}${hasSub ? '<span style="font-size: 12px; background: #e0e7ff; color: #4f46e5; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">階層資料夾</span>' : ''}</h3>
             <p>${subText}</p>
           </div>
-          
+
           <div class="dots-container" onclick="event.stopPropagation()">
-            <button class="dots-btn" id="dots-btn-${index}" onclick="toggleFolderDropdown(event, '${folderName}', '${index}')">⚙️</button>
+            <button class="dots-btn" id="dots-btn-${index}" onclick="toggleFolderDropdown(event, ${jsArg(folderName)}, ${jsArg(String(index))})">⚙️</button>
           </div>
         </div>
       </div>
@@ -181,7 +192,7 @@ window.createNewEmptyFolder = function() {
   if (!folderName || !folderName.trim()) return;
 
   const cleanName = folderName.trim();
-  
+
   const exists = allWords.some(w => w.folder === cleanName || w.folder.startsWith(`${cleanName}/`));
   if (exists) {
     alert("此資料夾名稱已存在！");
@@ -190,8 +201,8 @@ window.createNewEmptyFolder = function() {
 
   const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
   userWordsRef.add({
-    en: "___placeholder___",
-    pos: "other",
+    en: PLACEHOLDER,
+    pos: "",
     ch: "（空白資料夾佔位用）",
     folder: cleanName,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -222,18 +233,18 @@ window.openSubFolderView = function(parentFolderName) {
   `;
 
   subFolders.forEach((subFolderFullName, index) => {
-    const subName = subFolderFullName.split("/")[1];
-    const count = allWords.filter(w => w.folder === subFolderFullName).length;
+    const subName = subFolderFullName.slice(parentFolderName.length + 1);
+    const count = allWords.filter(w => w.folder === subFolderFullName && w.en !== PLACEHOLDER).length;
 
     html += `
       <div class="folder-wrapper" style="margin-bottom: 0;">
-        <div class="folder-item" onclick="startStudy('${subFolderFullName}')">
+        <div class="folder-item" onclick="startStudy(${jsArg(subFolderFullName)})">
           <div class="folder-info">
-            <h3>📂 ${subName}</h3>
+            <h3>📂 ${esc(subName)}</h3>
             <p>共 ${count} 個單字 (點擊開始背單字)</p>
           </div>
           <div class="dots-container" onclick="event.stopPropagation()">
-            <button class="dots-btn" id="sub-dots-${index}" onclick="toggleFolderDropdown(event, '${subFolderFullName}', 'sub-${index}')">⚙️</button>
+            <button class="dots-btn" id="sub-dots-${index}" onclick="toggleFolderDropdown(event, ${jsArg(subFolderFullName)}, ${jsArg('sub-' + index)})">⚙️</button>
           </div>
         </div>
       </div>
@@ -251,7 +262,7 @@ window.openSubFolderView = function(parentFolderName) {
 };
 
 window.copyToTargetFolder = async function(sourceFolderName) {
-  const targetWords = allWords.filter(w => (w.folder === sourceFolderName || w.folder.startsWith(`${sourceFolderName}/`)) && w.en !== "___placeholder___");
+  const targetWords = allWords.filter(w => (w.folder === sourceFolderName || w.folder.startsWith(`${sourceFolderName}/`)) && w.en !== PLACEHOLDER);
 
   if (targetWords.length === 0) {
     alert("這個資料夾中沒有任何單字可以複製！");
@@ -287,7 +298,7 @@ window.copyToTargetFolder = async function(sourceFolderName) {
         const newDocRef = userWordsRef.doc();
         batch.set(newDocRef, {
           en: w.en,
-          pos: w.pos || "n.",
+          pos: w.pos || "",
           ch: w.ch,
           folder: cleanDest,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -305,7 +316,7 @@ window.copyToTargetFolder = async function(sourceFolderName) {
 };
 
 window.viewFolderWords = function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`)).filter(w => w.en !== "___placeholder___");
+  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`)).filter(w => w.en !== PLACEHOLDER);
 
   pageTitleEl.textContent = `📖 檢視單字：${folderName}`;
   btnBackFolders.style.display = "block";
@@ -332,12 +343,12 @@ window.viewFolderWords = function(folderName) {
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
         <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
           <span style="font-size: 12px; color: #94a3b8; font-weight: bold; min-width: 24px;">${idx + 1}.</span>
-          <span style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${w.en}</span>
-          <span style="font-size: 12px; background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${w.pos || '無詞性'}</span>
-          <span style="font-size: 15px; color: #334155; margin-left: 5px;">${w.ch}</span>
+          <span style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${esc(w.en)}</span>
+          <span style="font-size: 12px; background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${esc(w.pos || '無詞性')}</span>
+          <span style="font-size: 15px; color: #334155; margin-left: 5px;">${esc(w.ch)}</span>
         </div>
         <div style="font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">
-          ${w.folder}
+          ${esc(w.folder)}
         </div>
       </div>
     `;
@@ -354,7 +365,7 @@ window.viewFolderWords = function(folderName) {
 };
 
 window.exportFolderData = function(folderName) {
-  const targetWords = allWords.filter(w => (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== "___placeholder___");
+  const targetWords = allWords.filter(w => (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== PLACEHOLDER);
   if (targetWords.length === 0) {
     alert("這個資料夾沒有單字可以匯出！");
     return;
@@ -370,7 +381,7 @@ window.exportFolderData = function(folderName) {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportDataObj, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `english_hero_${folderName.replace('/', '_')}_backup.json`);
+  downloadAnchor.setAttribute("download", `english_hero_${folderName.replace(/\//g, '_')}_backup.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
@@ -406,7 +417,7 @@ window.importData = function(event) {
             const newDocRef = userWordsRef.doc();
             batch.set(newDocRef, {
               en: w.en,
-              pos: w.pos || "n.",
+              pos: w.pos || "",
               ch: w.ch,
               folder: w.folder || "匯入分類",
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -428,14 +439,30 @@ window.importData = function(event) {
 };
 
 window.addAllToLearned = async function(folderName) {
-  const targetWords = allWords.filter(w => (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== "___placeholder___");
-  
+  const targetWords = allWords.filter(w => (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== PLACEHOLDER);
+
   if (targetWords.length === 0) {
     alert("這個資料夾中沒有任何單字！");
     return;
   }
 
-  if (!confirm(`確定要將「${folderName}」中的 ${targetWords.length} 個單字全部加入「📦 已經背過的單字」嗎？`)) {
+  // 去除已經在「已經背過」裡的單字，以及自己內部重複的單字
+  const learnedKeys = new Set(allWords.filter(w => w.folder === LEARNED).map(wordKey));
+  const toAdd = [];
+  targetWords.forEach(w => {
+    const k = wordKey(w);
+    if (!learnedKeys.has(k)) {
+      learnedKeys.add(k);
+      toAdd.push(w);
+    }
+  });
+
+  if (toAdd.length === 0) {
+    alert("這些單字都已經在「已經背過」裡了！");
+    return;
+  }
+
+  if (!confirm(`確定要將「${folderName}」中的 ${toAdd.length} 個單字加入「${LEARNED}」嗎？（已存在的單字會自動略過）`)) {
     return;
   }
 
@@ -443,17 +470,17 @@ window.addAllToLearned = async function(folderName) {
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
     const BATCH_SIZE = 400;
 
-    for (let i = 0; i < targetWords.length; i += BATCH_SIZE) {
-      const chunk = targetWords.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < toAdd.length; i += BATCH_SIZE) {
+      const chunk = toAdd.slice(i, i + BATCH_SIZE);
       const batch = db.batch();
 
       chunk.forEach(w => {
         const newDocRef = userWordsRef.doc();
         batch.set(newDocRef, {
           en: w.en,
-          pos: w.pos || "n.",
+          pos: w.pos || "",
           ch: w.ch,
-          folder: "📦 已經背過的單字",
+          folder: LEARNED,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       });
@@ -461,15 +488,16 @@ window.addAllToLearned = async function(folderName) {
       await batch.commit();
     }
 
-    alert(`🎉 成功將 ${targetWords.length} 個單字加入「📦 已經背過的單字」！`);
+    alert(`🎉 成功將 ${toAdd.length} 個單字加入「${LEARNED}」！`);
     fetchAllWords(currentUser.uid);
   } catch (err) {
     alert("操作失敗：" + err.message);
   }
 };
 
-window.splitFolder = function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName && w.en !== "___placeholder___");
+// 拆分資料夾：分批寫入，避免超過 Firestore 單一 batch 500 筆上限
+window.splitFolder = async function(folderName) {
+  const targetWords = allWords.filter(w => w.folder === folderName && w.en !== PLACEHOLDER);
   if (targetWords.length === 0) {
     alert("這個資料夾沒有單字可以拆分！");
     return;
@@ -488,34 +516,30 @@ window.splitFolder = function(folderName) {
     return;
   }
 
-  const batch = db.batch();
   const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+  const BATCH_SIZE = 400;
 
-  let partCount = 1;
-  for (let i = 0; i < targetWords.length; i += size) {
-    const chunk = targetWords.slice(i, i + size);
-    const newFolderName = `${folderName}/Part${partCount}`;
-    
-    chunk.forEach(w => {
-      const docRef = userWordsRef.doc(w.id);
-      batch.update(docRef, { folder: newFolderName });
-    });
-    partCount++;
+  try {
+    for (let i = 0; i < targetWords.length; i += BATCH_SIZE) {
+      const batch = db.batch();
+      targetWords.slice(i, i + BATCH_SIZE).forEach((w, j) => {
+        const part = Math.floor((i + j) / size) + 1;
+        batch.update(userWordsRef.doc(w.id), { folder: `${folderName}/Part${part}` });
+      });
+      await batch.commit();
+    }
+
+    const partCount = Math.ceil(targetWords.length / size);
+    alert(`🎉 成功將大資料夾拆分為 ${partCount} 個小資料夾！`);
+    fetchAllWords(currentUser.uid);
+  } catch (err) {
+    alert("拆分失敗：" + err.message);
   }
-
-  batch.commit()
-    .then(() => {
-      alert(`🎉 成功將大資料夾拆分為 ${partCount - 1} 個小資料夾！`);
-      fetchAllWords(currentUser.uid);
-    })
-    .catch(err => {
-      alert("拆分失敗：" + err.message);
-    });
 };
 
 window.toggleFolderDropdown = function(event, folderName, index) {
   event.stopPropagation();
-  
+
   const existingMenu = document.getElementById("global-dropdown-menu");
   if (existingMenu) {
     existingMenu.remove();
@@ -549,30 +573,33 @@ window.toggleFolderDropdown = function(event, folderName, index) {
   menu.style.maxHeight = "260px";
   menu.style.overflowY = "auto";
 
-  const deleteText = folderName.includes("已經背過") ? `🗑️ 清空已背過單字` : `🗑️ 刪除資料夾`;
+  const fArg = jsArg(folderName);
+  const isLearned = folderName.includes("已經背過");
+  const deleteText = isLearned ? `🗑️ 清空已背過單字` : `🗑️ 刪除資料夾`;
+  const btnStyle = (color) => `display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: ${color}; font-weight: bold;`;
 
   let splitBtnHtml = "";
-  if (!folderName.includes("已經背過") && !folderName.includes("/")) {
-    splitBtnHtml = `<button onclick="splitFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #4f46e5; font-weight: bold;">📦 拆分為多個子資料夾</button>`;
+  if (!isLearned && !folderName.includes("/")) {
+    splitBtnHtml = `<button onclick="splitFolder(${fArg}); closeGlobalDropdown();" style="${btnStyle('#4f46e5')}">📦 拆分為多個子資料夾</button>`;
   }
 
   let markLearnedBtnHtml = "";
-  if (!folderName.includes("已經背過")) {
-    markLearnedBtnHtml = `<button onclick="addAllToLearned('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #059669; font-weight: bold;">✅ 整夾加入已背過</button>`;
+  if (!isLearned) {
+    markLearnedBtnHtml = `<button onclick="addAllToLearned(${fArg}); closeGlobalDropdown();" style="${btnStyle('#059669')}">✅ 整夾加入已背過</button>`;
   }
 
   let copyToFolderBtnHtml = "";
-  if (!folderName.includes("已經背過")) {
-    copyToFolderBtnHtml = `<button onclick="copyToTargetFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #d97706; font-weight: bold;">📁 複製至…資料夾</button>`;
+  if (!isLearned) {
+    copyToFolderBtnHtml = `<button onclick="copyToTargetFolder(${fArg}); closeGlobalDropdown();" style="${btnStyle('#d97706')}">📁 複製至…資料夾</button>`;
   }
 
   menu.innerHTML = `
-    <button onclick="viewFolderWords('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #2563eb; font-weight: bold;">📖 檢視單字</button>
-    <button onclick="openFolderEditModal('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #334155; font-weight: bold;">✏️ 管理單字</button>
+    <button onclick="viewFolderWords(${fArg}); closeGlobalDropdown();" style="${btnStyle('#2563eb')}">📖 檢視單字</button>
+    <button onclick="openFolderEditModal(${fArg}); closeGlobalDropdown();" style="${btnStyle('#334155')}">✏️ 管理單字</button>
     ${copyToFolderBtnHtml}
     ${markLearnedBtnHtml}${splitBtnHtml}
-    <button onclick="exportFolderData('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #10b981; font-weight: bold;">📤 匯出此資料夾</button>
-    <button onclick="confirmDeleteFolder('${folderName}'); closeGlobalDropdown();" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: #ef4444; font-weight: bold;">${deleteText}</button>
+    <button onclick="exportFolderData(${fArg}); closeGlobalDropdown();" style="${btnStyle('#10b981')}">📤 匯出此資料夾</button>
+    <button onclick="confirmDeleteFolder(${fArg}); closeGlobalDropdown();" style="${btnStyle('#ef4444')}">${deleteText}</button>
   `;
 
   document.body.appendChild(menu);
@@ -592,7 +619,7 @@ window.startStudy = function(folderName) {
   pageTitleEl.textContent = `🎯 背單字：${folderName}`;
   btnBackFolders.style.display = "block";
 
-  currentFolderWords = allWords.filter(w => w.folder === folderName && w.en !== "___placeholder___");
+  currentFolderWords = allWords.filter(w => w.folder === folderName && w.en !== PLACEHOLDER);
   currentIndex = 0;
 
   renderFlashcard();
@@ -626,20 +653,29 @@ function renderFlashcard() {
 
   const word = currentFolderWords[currentIndex];
 
+  // 在「已經背過」資料夾裡不需要再顯示「我已經會了」
+  const learnedBtnHtml = currentFolderForManagement === LEARNED ? "" : `
+    <div style="margin-top: 12px; text-align: center;">
+      <button onclick="markAsLearned()" style="width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; box-shadow: 0 4px 10px rgba(16,185,129,0.2);">
+        ✅ 我已經會了 (加入「${LEARNED}」)
+      </button>
+    </div>
+  `;
+
   containerEl.innerHTML = `
     <div class="word-card" style="cursor: default;">
       <span style="position: absolute; top: 16px; right: 20px; font-size: 14px; font-weight: bold; color: #0284c7; background: #e0f2fe; padding: 3px 10px; border-radius: 6px;">
-        ${word.pos || '未分類'}
+        ${esc(word.pos || '未分類')}
       </span>
 
       <div style="margin-top: 5px;">
         <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 8px;">
-          <div style="font-size: 34px; font-weight: bold; color: #1d4ed8;">${word.en}</div>
-          <button onclick="speakWord('${word.en}', event)" style="background: #e0f2fe; color: #0284c7; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">🔊 唸</button>
+          <div style="font-size: 34px; font-weight: bold; color: #1d4ed8;">${esc(word.en)}</div>
+          <button onclick="speakWord(${jsArg(word.en)}, event)" style="background: #e0f2fe; color: #0284c7; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">🔊 唸</button>
         </div>
 
         <div style="font-size: 24px; font-weight: bold; color: #1f2937; margin-top: 12px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
-          ${word.ch}
+          ${esc(word.ch)}
         </div>
       </div>
     </div>
@@ -650,11 +686,7 @@ function renderFlashcard() {
       <button onclick="nextCard()" style="padding: 10px 20px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">下一張 ➡️</button>
     </div>
 
-    <div style="margin-top: 12px; text-align: center;">
-      <button onclick="markAsLearned()" style="width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; box-shadow: 0 4px 10px rgba(16,185,129,0.2);">
-        ✅ 我已經會了 (加入「📦 已經背過的單字」)
-      </button>
-    </div>
+    ${learnedBtnHtml}
   `;
 }
 
@@ -676,16 +708,29 @@ window.markAsLearned = async function() {
 
   try {
     const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-    
-    await userWordsRef.add({
-      en: word.en,
-      pos: word.pos || "n.",
-      ch: word.ch,
-      folder: "📦 已經背過的單字",
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
 
-    alert(`太棒了！「${word.en}」已成功加入「📦 已經背過的單字」！`);
+    const exists = allWords.some(w => w.folder === LEARNED && wordKey(w) === wordKey(word));
+    if (!exists) {
+      const ref = await userWordsRef.add({
+        en: word.en,
+        pos: word.pos || "",
+        ch: word.ch,
+        folder: LEARNED,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      // 同步更新本機資料，列表數量才會正確
+      allWords.push({
+        id: ref.id,
+        en: word.en,
+        pos: word.pos || "",
+        ch: word.ch,
+        folder: LEARNED,
+        createdAt: Date.now()
+      });
+      alert(`太棒了！「${word.en}」已成功加入「${LEARNED}」！`);
+    } else {
+      alert(`「${word.en}」已經在「${LEARNED}」裡了，這次直接略過。`);
+    }
 
     currentFolderWords.splice(currentIndex, 1);
     if (currentIndex >= currentFolderWords.length) {
@@ -705,7 +750,7 @@ if (btnBackFolders) {
 
 window.openFolderEditModal = function(folderName) {
   currentFolderForManagement = folderName;
-  const targetWords = allWords.filter(w => w.folder === folderName && w.en !== "___placeholder___");
+  const targetWords = allWords.filter(w => w.folder === folderName && w.en !== PLACEHOLDER);
 
   pageTitleEl.textContent = `✏️ 管理資料夾：${folderName}`;
   btnBackFolders.style.display = "block";
@@ -724,7 +769,7 @@ window.openFolderEditModal = function(folderName) {
   if (folderName.includes("已經背過")) {
     html += `
       <div style="margin-bottom: 15px; text-align: right;">
-        <button onclick="confirmDeleteFolder('${folderName}')" style="padding: 8px 14px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">🗑️ 清空所有已背過單字</button>
+        <button onclick="confirmDeleteFolder(${jsArg(folderName)})" style="padding: 8px 14px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">🗑️ 清空所有已背過單字</button>
       </div>
     `;
   }
@@ -734,13 +779,13 @@ window.openFolderEditModal = function(folderName) {
     html += `
       <div class="word-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; background: #fff; margin-top: 6px; border-radius: 6px;">
         <div>
-          <span style="font-size: 16px; font-weight: bold; color: #1d4ed8;">${w.en}</span>
-          <span style="font-size: 12px; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${w.pos || '無詞性'}</span>
-          <div style="font-size: 14px; color: #4b5563; margin-top: 2px;">${w.ch}</div>
+          <span style="font-size: 16px; font-weight: bold; color: #1d4ed8;">${esc(w.en)}</span>
+          <span style="font-size: 12px; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${esc(w.pos || '無詞性')}</span>
+          <div style="font-size: 14px; color: #4b5563; margin-top: 2px;">${esc(w.ch)}</div>
         </div>
         <div style="display: flex; gap: 6px;">
-          <button onclick="openSingleEditModal('${w.id}')" style="background: #e0e7ff; color: #4f46e5; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">修改</button>
-          <button onclick="deleteSingleWord('${w.id}')" style="background: #fee2e2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">刪除</button>
+          <button onclick="openSingleEditModal(${jsArg(w.id)})" style="background: #e0e7ff; color: #4f46e5; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">修改</button>
+          <button onclick="deleteSingleWord(${jsArg(w.id)})" style="background: #fee2e2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">刪除</button>
         </div>
       </div>
     `;
@@ -759,14 +804,16 @@ window.openSingleEditModal = function(wordId) {
   const target = allWords.find(w => w.id === wordId);
   if (!target) return;
 
+  const knownPos = ['n.', 'v.', 'adj.', 'adv.', 'prep.', 'conj.', 'phr.'];
+
   editModalContainer.innerHTML = `
     <div class="edit-modal-backdrop">
       <div class="edit-card">
         <h3 style="margin-top: 0; color: #1e293b; margin-bottom: 16px;">✏️ 修改單字資料</h3>
-        
+
         <div class="form-group">
           <label>英文單字 (English)</label>
-          <input type="text" id="edit-en" value="${target.en}">
+          <input type="text" id="edit-en" value="${esc(target.en)}">
         </div>
 
         <div class="form-group">
@@ -779,18 +826,18 @@ window.openSingleEditModal = function(wordId) {
             <option value="prep." ${target.pos === 'prep.' ? 'selected' : ''}>prep. (介系詞)</option>
             <option value="conj." ${target.pos === 'conj.' ? 'selected' : ''}>conj. (連接詞)</option>
             <option value="phr." ${target.pos === 'phr.' ? 'selected' : ''}>phr. (片語)</option>
-            <option value="other" ${!['n.','v.','adj.','adv.','prep.','conj.','phr.'].includes(target.pos) ? 'selected' : ''}>其他</option>
+            <option value="" ${!knownPos.includes(target.pos) ? 'selected' : ''}>(無/其他)</option>
           </select>
         </div>
 
         <div class="form-group">
           <label>中文意思 (Chinese)</label>
-          <input type="text" id="edit-ch" value="${target.ch}">
+          <input type="text" id="edit-ch" value="${esc(target.ch)}">
         </div>
 
         <div class="modal-btns">
           <button class="btn-cancel" onclick="closeEditModal()">取消</button>
-          <button class="btn-save" onclick="saveEditedWord('${target.id}')">儲存修改</button>
+          <button class="btn-save" onclick="saveEditedWord(${jsArg(target.id)})">儲存修改</button>
         </div>
       </div>
     </div>
@@ -845,7 +892,14 @@ window.deleteSingleWord = function(wordId) {
 };
 
 window.confirmDeleteFolder = function(folderName) {
-  const msg = folderName.includes("/") ? `確定要刪除小資料夾「${folderName}」以及裡面的所有單字嗎？` : `確定要刪除大資料夾「${folderName}」以及底下所有的子資料夾與單字嗎？`;
+  let msg;
+  if (folderName === LEARNED) {
+    msg = `確定要清空「${LEARNED}」裡的所有單字嗎？`;
+  } else if (folderName.includes("/")) {
+    msg = `確定要刪除小資料夾「${folderName}」以及裡面的所有單字嗎？`;
+  } else {
+    msg = `確定要刪除大資料夾「${folderName}」以及底下所有的子資料夾與單字嗎？`;
+  }
   if (confirm(msg)) {
     deleteFolder(folderName);
   }
