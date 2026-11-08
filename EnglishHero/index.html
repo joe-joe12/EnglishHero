@@ -4,9 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>English Hero</title>
-  <link rel="stylesheet" href="css/style.css?v=2026">
+  <script>
+    try {
+      var t = JSON.parse(localStorage.getItem("eh_theme") || "null");
+      document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css?v=3000">
 </head>
-<body class="dashboard-body">
+<body>
 
 <header class="main-header">
   <div class="logo">📚 English Hero</div>
@@ -16,54 +22,66 @@
   </div>
 </header>
 
-<div class="main-container">
-  <div class="welcome-box">
-    <h1>準備好提升英文實力了嗎？</h1>
+<main class="page page-wide">
+  <div class="hero">
+    <h1 id="greeting">準備好提升英文實力了嗎？</h1>
     <p>自訂專屬單字庫，高效率背誦與自選測驗！</p>
   </div>
 
-  <div class="hero-actions-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
-    <!-- 按鈕 1：新增單字 -->
-    <a href="add.html?v=2026" class="action-hero-card primary-card">
-      <div class="card-badge">擴充詞彙</div>
-      <div class="action-icon">➕</div>
+  <div class="stats">
+    <div class="stat"><b id="stat-total">—</b><span>單字庫總數</span></div>
+    <div class="stat"><b id="stat-learned">—</b><span>已經背過</span></div>
+    <div class="stat"><b id="stat-folders">—</b><span>資料夾</span></div>
+  </div>
+
+  <!-- 有背過的紀錄才會顯示 -->
+  <a id="continue-card" class="continue-card hidden" href="study.html">
+    <div>
+      <small>繼續上次的進度</small>
+      <strong id="continue-name"></strong>
+    </div>
+    <span class="btn btn-primary btn-sm">繼續背 ➔</span>
+  </a>
+
+  <div class="actions-grid">
+    <a href="add.html?v=3000" class="action-card">
+      <span class="badge tag">擴充詞彙</span>
+      <div class="icon">➕</div>
       <h2>新增單字</h2>
-      <p>建立自訂分類，收錄新單字與中文釋義到雲端資料庫</p>
-      <span class="btn-action">前往新增 ➔</span>
+      <p>單筆或一次貼上多筆，自動查中文、重複單字提醒</p>
+      <span class="go">前往新增 ➔</span>
     </a>
-  
-    <!-- 按鈕 2：背單字 -->
-    <a href="study.html?v=2026" class="action-hero-card primary-card">
-      <div class="card-badge">自主學習</div>
-      <div class="action-icon">📖</div>
+
+    <a href="study.html?v=3000" class="action-card">
+      <span class="badge tag">自主學習</span>
+      <div class="icon">📖</div>
       <h2>背單字</h2>
-      <p>瀏覽雲端單字卡，翻卡查看中文無壓力記憶</p>
-      <span class="btn-action">進入單字庫 ➔</span>
+      <p>翻牌卡片、鍵盤快捷鍵、隨機順序、全庫搜尋</p>
+      <span class="go">進入單字庫 ➔</span>
     </a>
-    
-    <!-- 按鈕 3：精選題庫專區 -->
-    <a href="preset_library.html?v=2077" class="action-hero-card primary-card">
-      <div class="card-badge">官方題庫</div>
-      <div class="action-icon">📚</div>
+
+    <a href="preset_library.html?v=3000" class="action-card">
+      <span class="badge tag">官方題庫</span>
+      <div class="icon">🗂️</div>
       <h2>精選題庫專區</h2>
-      <p>一鍵匯入 2000 單與會考高頻單字，迅速擴充您的字庫</p>
-      <span class="btn-action">選擇題庫 ➔</span>
+      <p>一鍵匯入 2000 單與會考高頻單字，迅速擴充字庫</p>
+      <span class="go">選擇題庫 ➔</span>
     </a>
-    
-    <!-- 按鈕 4：考單字 -->
-    <a href="quiz.html?v=2026" class="action-hero-card secondary-card">
-      <div class="card-badge">實力測驗</div>
-      <div class="action-icon">✏️</div>
+
+    <a href="quiz.html?v=3000" class="action-card warm">
+      <span class="badge tag">實力測驗</span>
+      <div class="icon">✏️</div>
       <h2>考單字</h2>
-      <p>支援「填空拼寫」與「連線配對」兩種互動測驗模式</p>
-      <span class="btn-action">開始測驗 ➔</span>
+      <p>自選題數、答錯存進錯題本、只重考錯題</p>
+      <span class="go">開始測驗 ➔</span>
     </a>
   </div>
-</div>
+</main>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/index.js?v=2026"></script>
+<script src="js/common.js?v=3000"></script>
+<script src="js/index.js?v=3000"></script>
 </body>
 </html>
