@@ -48,7 +48,7 @@
     </div>
 
     <!-- 單筆 -->
-    <form id="add-word-form">
+    <form id="add-word-form" onsubmit="return false;">
       <div class="form-group">
         <label for="word-en">🔤 英文單字</label>
         <div class="folder-input-group">
@@ -80,7 +80,7 @@
     </form>
 
     <!-- 批次 -->
-    <form id="bulk-form" class="hidden">
+    <form id="bulk-form" class="hidden" onsubmit="return false;">
       <div class="bulk-help">
         一行一個單字，格式擇一即可：<br>
         <b>apple 蘋果</b>　｜　<b>apple, 蘋果</b>　｜　<b>apple, n., 蘋果</b>　｜　<b>apple = 蘋果</b>　｜　<b>apple [Tab] 蘋果</b><br>
@@ -124,5 +124,14 @@
   })();
 </script>
 <script src="js/add.js?v=3001"></script>
+<script>
+  if (window.EH && !window.__EH_ADD_READY) {
+    var b = document.createElement("div");
+    b.className = "auth-msg error";
+    b.textContent = "⚠️ js/add.js 沒有正確載入（可能是舊版或檔案有誤），目前按儲存不會有作用。請確認已用最新的 add.js 覆蓋 js/add.js，並清除瀏覽器快取後重新整理。";
+    var c = document.querySelector(".card");
+    c.insertBefore(b, c.firstChild);
+  }
+</script>
 </body>
 </html>
