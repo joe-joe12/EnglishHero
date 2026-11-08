@@ -90,7 +90,10 @@ function loadUserFolders(uid) {
         });
 
         // 🌟 自動記憶功能：嘗試讀取使用者上次選擇的資料夾
-        const lastSelectedFolder = localStorage.getItem("english_hero_last_folder");
+        let lastSelectedFolder = null;
+        try {
+          lastSelectedFolder = localStorage.getItem("english_hero_last_folder");
+        } catch (e) { /* 隱私模式下 localStorage 可能不可用 */ }
         if (lastSelectedFolder && foldersSet.has(lastSelectedFolder)) {
           folderSelect.value = lastSelectedFolder;
         }
@@ -150,10 +153,15 @@ if (btnAutoTranslate) {
         const transRes = await fetch(translateUrl);
         const transData = await transRes.json();
 
-        if (transData && transData.responseData && transData.responseData.translatedText) {
-          chInput.value = transData.responseData.translatedText;
+        const translated = transData && transData.responseData && transData.responseData.translatedText;
+
+        // MyMemory 額度用完時，會把警告文字放在 translatedText，必須排除
+        if (Number(transData && transData.responseStatus) === 200 &&
+            translated &&
+            !/MYMEMORY WARNING/i.test(translated)) {
+          chInput.value = translated;
         } else {
-          alert("找不到對應的中文，請手動輸入。");
+          alert("找不到對應的中文（或查詢額度已用完），請手動輸入。");
         }
       } catch (error) {
         alert("查詢失敗，請手動輸入中文。");
@@ -183,7 +191,9 @@ if (addForm) {
     }
 
     // 🌟 自動記憶功能：當使用者成功儲存單字時，把這次選的資料夾記錄到瀏覽器中
-    localStorage.setItem("english_hero_last_folder", folder);
+    try {
+      localStorage.setItem("english_hero_last_folder", folder);
+    } catch (err) { /* 忽略 */ }
 
     const en = document.getElementById("word-en").value.trim();
     const pos = document.getElementById("word-pos") ? document.getElementById("word-pos").value : "";
@@ -202,20 +212,19 @@ if (addForm) {
     .then(() => {
       msgEl.textContent = "✅ 新增成功！";
       msgEl.className = "msg success";
-      
+
       document.getElementById("word-en").value = "";
       if (document.getElementById("word-pos")) {
         document.getElementById("word-pos").value = "";
       }
       document.getElementById("word-ch").value = "";
       document.getElementById("word-en").focus();
-      
-      loadUserFolders(currentUser.uid);
-      
+
+      // 若剛剛是新增資料夾，先切回下拉選單；loadUserFolders 會依 localStorage 自動選回這個資料夾
       if (!newFolderGroup.classList.contains("hidden")) {
         btnCancelNewFolder.click();
-        folderSelect.value = folder;
       }
+      loadUserFolders(currentUser.uid);
 
       setTimeout(() => { msgEl.textContent = ""; }, 2500);
     })
