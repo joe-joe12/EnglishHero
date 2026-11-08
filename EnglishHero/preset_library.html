@@ -30,8 +30,8 @@
   <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">點擊「加入題庫」即可將該分類的所有單字一鍵匯入您的個人資料夾中！</p>
 
   <div id="preset-list-container">
-    
-    <!-- 🌟 新增：龍騰版高一第四課題庫項目 -->
+
+    <!-- 龍騰版高一第四課 -->
     <div class="preset-card">
       <div class="preset-info">
         <h3>📁 龍騰版高一第四課</h3>
@@ -40,7 +40,7 @@
       <button class="btn-add-preset" onclick="importPreset('lungting_grade1_l4')">➕ 加入題庫</button>
     </div>
 
-    <!-- 🌟 新增：龍騰版高一第五課題庫項目 -->
+    <!-- 龍騰版高一第五課 -->
     <div class="preset-card">
       <div class="preset-info">
         <h3>📁 龍騰版高一第五課</h3>
@@ -49,17 +49,16 @@
       <button class="btn-add-preset" onclick="importPreset('lungting_grade1_l5')">➕ 加入題庫</button>
     </div>
 
-
-     <!-- 🌟 新增：龍騰版高一第六課題庫項目 -->
+    <!-- 龍騰版高一第六課（說明文字已由「第四課」修正為「第六課」） -->
     <div class="preset-card">
       <div class="preset-info">
         <h3>📁 龍騰版高一第六課</h3>
-        <p>收錄高一第四課精選核心單字共 17 個。</p>
+        <p>收錄高一第六課精選核心單字共 17 個。</p>
       </div>
       <button class="btn-add-preset" onclick="importPreset('lungting_grade1_l6')">➕ 加入題庫</button>
     </div>
 
-    <!-- 題庫項目 1：國中 2000 單字精選 -->
+    <!-- 國中 2000 單字精選 -->
     <div class="preset-card">
       <div class="preset-info">
         <h3>📖 國中基礎 2000 單字精選</h3>
@@ -68,7 +67,16 @@
       <button class="btn-add-preset" onclick="importPreset('junior_2000')">➕ 加入題庫</button>
     </div>
 
-    <!-- LiveABC 9月份題庫按鈕 -->
+    <!-- 🌟 補上：國中會考高頻單（preset.js 已有 cap_exam 設定，原本頁面缺少按鈕） -->
+    <div class="preset-card">
+      <div class="preset-info">
+        <h3>🔥 國中會考高頻單</h3>
+        <p>整理國中會考最常出現的高頻單字。</p>
+      </div>
+      <button class="btn-add-preset" onclick="importPreset('cap_exam')">➕ 加入題庫</button>
+    </div>
+
+    <!-- LiveABC 9月份 -->
     <div class="preset-card">
       <div class="preset-info">
         <h3>📚 LiveABC 9月份</h3>
@@ -80,11 +88,11 @@
   </div>
 </div>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-<!-- 引入 JS 邏輯 -->
-<script src="js/preset.js"></script>
+<!-- Firebase SDK（版本與其他頁面統一為 9.22.0） -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<!-- 引入 JS 邏輯（改了 preset.js，所以加上版本參數避免瀏覽器吃舊快取） -->
+<script src="js/preset.js?v=2102"></script>
 </body>
 </html>
