@@ -4,77 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>English Hero - 單字學習與管理</title>
-  <link rel="stylesheet" href="css/style.css?v=2074">
-  <style>
-    body { background: #f8fafc; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
-    
-    /* 模仿其他頁面的乾淨頂部標題列 */
-    .main-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: #fff; border-bottom: 1px solid #e2e8f0; margin-bottom: 30px; }
-    .main-header .logo a { font-size: 22px; font-weight: bold; color: #16a34a; text-decoration: none; }
-    .btn-back-home { padding: 8px 18px; background: #fff; border: 1px solid #cbd5e1; color: #475569; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; text-decoration: none; }
-    .btn-back-home:hover { background: #f1f5f9; }
-
-    .study-container { max-width: 650px; margin: 0 auto 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); padding: 24px; }
-    
-    .folder-wrapper { position: relative; margin-bottom: 10px; border-radius: 8px; background: #f9fafb; border: 1px solid #e5e7eb; transition: 0.2s; }
-    .folder-wrapper:hover { border-color: #3b82f6; background: #f8fafc; }
-    
-    .folder-item { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; cursor: pointer; }
-    .folder-info h3 { margin: 0 0 2px 0; color: #1e293b; font-size: 17px; }
-    .folder-info p { margin: 0; color: #64748b; font-size: 13px; }
-    
-    .dots-container { position: relative; }
-    .dots-btn { background: #e2e8f0; border: none; font-size: 18px; cursor: pointer; color: #334155; padding: 6px 12px; border-radius: 6px; font-weight: bold; }
-    .dots-btn:hover { background: #cbd5e1; }
-
-    /* 單字卡背誦介面樣式 */
-    .word-card { border: 2px solid #e5e7eb; background: #f9fafb; padding: 32px 24px; border-radius: 12px; margin-bottom: 16px; cursor: pointer; transition: 0.2s; position: relative; text-align: center; }
-    .word-card:hover { border-color: #3b82f6; background: #fff; }
-    
-    /* 編輯單字彈窗樣式 */
-    .edit-modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .edit-card { background: #fff; padding: 24px; border-radius: 12px; width: 90%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); text-align: left; }
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-weight: bold; margin-bottom: 6px; color: #334155; font-size: 14px; }
-    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; box-sizing: border-box; }
-    .modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-    .btn-save { background: #10b981; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-    .btn-cancel { background: #94a3b8; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-  </style>
+  <script>
+    try {
+      var t = JSON.parse(localStorage.getItem("eh_theme") || "null");
+      document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css?v=3000">
 </head>
 <body>
 
-<!-- 與其他頁面一致的標準頂部標題列 -->
 <header class="main-header">
-  <div class="logo">
-    <a href="index.html">📚 English Hero - 背單字</a>
-  </div>
-  <div>
-    <a href="index.html" class="btn-back-home">回首頁</a>
+  <div class="logo"><a href="index.html?v=3000">📚 背單字</a></div>
+  <div class="user-panel">
+    <a href="index.html?v=3000" class="btn-back">回首頁</a>
   </div>
 </header>
 
-<div class="study-container">
-  
-  <!-- 內部功能標題列與返回按鈕 -->
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-    <h2 id="page-title" style="margin: 0; color: #1e293b; font-size: 20px;">📁 我的單字資料夾</h2>
-    <button id="btn-back-folders" onclick="fetchAllWords(currentUser.uid)" style="display: none; padding: 6px 12px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">⬅️ 返回列表</button>
+<main class="page">
+  <div class="page-title-row">
+    <h2 id="page-title">📁 我的單字資料夾</h2>
+    <button id="btn-back-folders" class="btn btn-ghost btn-sm hidden">⬅️ 返回列表</button>
   </div>
 
-  <!-- 主要內容動態容器 -->
   <div id="flashcard-container">
-    <p style="color:#666; text-align: center; padding: 30px;">載入中...</p>
+    <p class="muted" style="text-align:center; padding:30px;">載入中...</p>
   </div>
-
-</div>
+</main>
 
 <div id="edit-modal-container"></div>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/study.js?v=2098"></script>
+<script src="js/common.js?v=3000"></script>
+<script src="js/study.js?v=3000"></script>
 </body>
 </html>
