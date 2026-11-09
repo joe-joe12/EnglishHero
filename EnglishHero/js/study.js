@@ -1,62 +1,43 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyA4bbUoXHi29YAjCgYrnuYRhZJ8_JEtalc",
-  authDomain: "englishhero-d58c6.firebaseapp.com",
-  projectId: "englishhero-d58c6",
-  storageBucket: "englishhero-d58c6.firebasestorage.app",
-  messagingSenderId: "437927020009",
-  appId: "1:437927020009:web:30e18c99cfeec8ef4ef778",
-  measurementId: "G-TZTCS02SK6"
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-const LEARNED = "📦 已經背過的單字";
-const PLACEHOLDER = "___placeholder___";
-
-// HTML 跳脫（顯示在畫面上的文字、input value 用）
-const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-}[c]));
-// 給 inline onclick 的參數用（可安全包含單引號、雙引號）
-const jsArg = (v) => esc(JSON.stringify(v));
-const wordKey = (w) => String(w.en).toLowerCase() + "|" + w.ch;
+const { esc, jsArg, shuffle, wordKey, PLACEHOLDER, LEARNED } = EH;
+const db = EH.db;
+const $ = (id) => document.getElementById(id);
 
 let currentUser = null;
 let allWords = [];
-let currentFolderWords = [];
-let currentIndex = 0;
 let currentFolderForManagement = "";
+let folderQuery = "";
+let autoOpened = false;
 
-const containerEl = document.getElementById("flashcard-container");
-const pageTitleEl = document.getElementById("page-title");
-const btnBackFolders = document.getElementById("btn-back-folders");
-const editModalContainer = document.getElementById("edit-modal-container");
+// 翻牌學習狀態
+let studyActive = false;
+let studyState = { words: [], index: 0, flipped: false };
+const settings = {
+  reverse: EH.store.get("eh_reverse", false), // 先看中文
+  auto: EH.store.get("eh_auto", false)        // 自動發音
+};
 
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    currentUser = user;
-    fetchAllWords(user.uid);
-  } else {
-    window.location.replace("login.html?v=2074");
-  }
+const containerEl = $("flashcard-container");
+const pageTitleEl = $("page-title");
+const btnBackFolders = $("btn-back-folders");
+const editModalContainer = $("edit-modal-container");
+
+function setBack(show) { btnBackFolders.classList.toggle("hidden", !show); }
+function leaveStudy() { studyActive = false; }
+
+EH.requireUser((user) => {
+  currentUser = user;
+  fetchAllWords(user.uid);
 });
 
 function fetchAllWords(uid) {
-  db.collection("users").doc(uid).collection("words").get()
+  return db.collection("users").doc(uid).collection("words").get()
     .then((snapshot) => {
       allWords = [];
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc) => {
         const data = doc.data();
         let timeVal = 0;
-        if (data.createdAt && typeof data.createdAt.toMillis === 'function') {
-          timeVal = data.createdAt.toMillis();
-        } else if (data.createdAt && typeof data.createdAt === 'number') {
-          timeVal = data.createdAt;
-        }
+        if (data.createdAt && typeof data.createdAt.toMillis === "function") timeVal = data.createdAt.toMillis();
+        else if (typeof data.createdAt === "number") timeVal = data.createdAt;
 
         allWords.push({
           id: doc.id,
@@ -67,871 +48,868 @@ function fetchAllWords(uid) {
           createdAt: timeVal
         });
       });
-
       allWords.sort((a, b) => a.createdAt - b.createdAt);
+      EH.saveStats(allWords);
 
-      if (pageTitleEl.textContent.startsWith("📁 我的單字資料夾")) {
-        renderFolderList();
+      // 從首頁「繼續上次進度」帶 ?folder=xxx 進來時，直接開始背
+      if (!autoOpened) {
+        autoOpened = true;
+        const wanted = new URLSearchParams(location.search).get("folder");
+        if (wanted && allWords.some((w) => w.folder === wanted && w.en !== PLACEHOLDER)) {
+          startStudy(wanted);
+          return;
+        }
       }
+      if (pageTitleEl.textContent.startsWith("📁 我的單字資料夾")) renderFolderList();
     })
     .catch((err) => {
       console.error("載入失敗：", err);
-      containerEl.innerHTML = `<p style="color:red; text-align:center;">載入單字失敗</p>`;
+      containerEl.innerHTML = `<p style="color:var(--danger); text-align:center;">載入單字失敗：${esc(err.message)}</p>`;
     });
 }
 
-function renderFolderList() {
-  pageTitleEl.textContent = "📁 我的單字資料夾";
-  btnBackFolders.style.display = "none";
-  currentFolderForManagement = "";
+/* ============================== 資料夾列表 ============================== */
 
-  // folderMap：資料夾存在與否看 key；單字數量不含佔位單字
+function buildFolderData() {
   const folderMap = {};
   folderMap[LEARNED] = [];
-
-  allWords.forEach(w => {
-    const fName = w.folder || "未分類";
-    if (!folderMap[fName]) folderMap[fName] = [];
-    if (w.en !== PLACEHOLDER) folderMap[fName].push(w);
+  allWords.forEach((w) => {
+    const f = w.folder || "未分類";
+    if (!folderMap[f]) folderMap[f] = [];
+    if (w.en !== PLACEHOLDER) folderMap[f].push(w);
   });
-
-  const specialFolders = [LEARNED];
-  let topBadgesHtml = `<div style="margin-bottom: 20px;">`;
-
-  specialFolders.forEach((fName) => {
-    const count = folderMap[fName] ? folderMap[fName].length : 0;
-    topBadgesHtml += `
-      <div style="background: #d1fae5; border: 1px solid #05966940; padding: 14px; border-radius: 10px; text-align: center; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center;">
-        <div onclick="startStudy(${jsArg(fName)})" style="cursor: pointer; text-align: left; flex-grow: 1;">
-          <div style="font-size: 14px; font-weight: bold; color: #059669;">${esc(fName)}</div>
-          <div style="font-size: 12px; color: #047857; margin-top: 2px;">共 ${count} 個字 (點擊開始複習)</div>
-        </div>
-        <div>
-          <button class="dots-btn" onclick="toggleFolderDropdown(event, ${jsArg(fName)}, 'special-learned')" style="padding: 6px 12px; font-size: 14px; background: #fff; border-radius: 6px; border: 1px solid #a7f3d0; cursor: pointer; color: #059669; font-weight: bold;">⚙️ 管理</button>
-        </div>
-      </div>
-    `;
-  });
-  topBadgesHtml += `</div>`;
 
   const rootFoldersMap = {};
   const subFoldersMap = {};
-
-  Object.keys(folderMap).forEach(fName => {
-    if (specialFolders.includes(fName)) return;
-
-    if (fName.includes("/")) {
-      const parent = fName.split("/")[0];
+  Object.keys(folderMap).forEach((f) => {
+    if (f === LEARNED) return;
+    if (f.includes("/")) {
+      const parent = f.split("/")[0];
       if (!subFoldersMap[parent]) subFoldersMap[parent] = new Set();
-      subFoldersMap[parent].add(fName);
+      subFoldersMap[parent].add(f);
     } else {
-      rootFoldersMap[fName] = folderMap[fName];
+      rootFoldersMap[f] = folderMap[f];
     }
   });
+  return { folderMap, rootFoldersMap, subFoldersMap };
+}
 
-  let normalFolders = Object.keys(rootFoldersMap);
-  normalFolders.sort((a, b) => a.localeCompare(b));
+function wordRowHtml(w, withFolder) {
+  return `
+    <div class="word-row">
+      <div class="word-main">
+        <span class="word-en">${esc(w.en)}</span>
+        ${w.pos ? `<span class="tag tag-pos">${esc(w.pos)}</span>` : ""}
+        <span class="word-ch">${esc(w.ch)}</span>
+      </div>
+      <div class="word-actions">
+        ${withFolder ? `<span class="tag">${esc(w.folder)}</span>` : ""}
+        <button class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(w.en)})">🔊</button>
+      </div>
+    </div>`;
+}
 
-  let html = topBadgesHtml;
-  html += `<div style="font-size: 16px; font-weight: bold; color: #334155; margin-bottom: 10px; border-left: 4px solid #4f46e5; padding-left: 8px; display: flex; justify-content: space-between; align-items: center;">
-    <span>📚 您的題庫資料夾</span>
-    <button onclick="createNewEmptyFolder()" style="padding: 6px 12px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(79,70,229,0.2);">➕ 新增資料夾</button>
-  </div>`;
+function renderFolderList() {
+  leaveStudy();
+  pageTitleEl.textContent = "📁 我的單字資料夾";
+  setBack(false);
+  currentFolderForManagement = "";
 
-  if (normalFolders.length === 0 && Object.keys(subFoldersMap).length === 0) {
-    html += `<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 10px;">目前沒有其他自訂資料夾</p>`;
+  containerEl.innerHTML = `
+    <div id="special-area"></div>
+    <div class="section-bar">
+      <span class="section-title">📚 您的題庫資料夾</span>
+      <button class="btn btn-primary btn-sm" onclick="createNewEmptyFolder()">➕ 新增資料夾</button>
+    </div>
+    <input type="search" id="folder-search" class="search-input" placeholder="🔍 搜尋資料夾，或直接搜尋單字（英文 / 中文）…" value="${esc(folderQuery)}">
+    <div id="folder-list-area"></div>
+    <div class="import-bar">
+      <button class="btn btn-accent" onclick="document.getElementById('import-file-input').click()">📥 匯入單字資料 (JSON)</button>
+      <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="importData(event)">
+    </div>`;
+
+  $("folder-search").addEventListener("input", (e) => {
+    folderQuery = e.target.value;
+    renderFolderItems();
+  });
+  renderFolderItems();
+}
+
+function renderFolderItems() {
+  const area = $("folder-list-area");
+  const special = $("special-area");
+  if (!area || !special) return;
+
+  const q = folderQuery.trim().toLowerCase();
+  const { folderMap, rootFoldersMap, subFoldersMap } = buildFolderData();
+
+  const learnedCount = folderMap[LEARNED] ? folderMap[LEARNED].length : 0;
+  special.innerHTML = `
+    <div class="learned-card">
+      <div class="folder-info" onclick="startStudy(${jsArg(LEARNED)})">
+        <h3>${esc(LEARNED)}</h3>
+        <p>共 ${learnedCount} 個字（點擊開始複習）</p>
+      </div>
+      <button class="dots-btn" onclick="toggleFolderDropdown(event, ${jsArg(LEARNED)}, 'special-learned')">⚙️ 管理</button>
+    </div>`;
+
+  let mains = Array.from(new Set([...Object.keys(rootFoldersMap), ...Object.keys(subFoldersMap)]))
+    .sort((a, b) => a.localeCompare(b));
+  if (q) {
+    mains = mains.filter((m) =>
+      m.toLowerCase().includes(q) ||
+      Array.from(subFoldersMap[m] || []).some((s) => s.toLowerCase().includes(q)));
   }
 
-  const allMainFolderNames = Array.from(new Set([...normalFolders, ...Object.keys(subFoldersMap)]));
-  allMainFolderNames.sort((a, b) => a.localeCompare(b));
+  let html = "";
+  if (mains.length === 0) {
+    html += `<p class="muted" style="text-align:center; padding:14px;">${q ? "沒有符合的資料夾" : "目前沒有其他自訂資料夾"}</p>`;
+  }
 
-  allMainFolderNames.forEach((folderName, index) => {
+  mains.forEach((folderName, index) => {
     const hasSub = subFoldersMap[folderName] && subFoldersMap[folderName].size > 0;
-
     let totalCount = 0;
-    if (rootFoldersMap[folderName]) {
-      totalCount += rootFoldersMap[folderName].length;
-    }
-    if (hasSub) {
-      subFoldersMap[folderName].forEach(sub => {
-        totalCount += folderMap[sub].length;
-      });
-    }
+    if (rootFoldersMap[folderName]) totalCount += rootFoldersMap[folderName].length;
+    if (hasSub) subFoldersMap[folderName].forEach((sub) => { totalCount += folderMap[sub].length; });
 
     const clickAction = hasSub ? `openSubFolderView(${jsArg(folderName)})` : `startStudy(${jsArg(folderName)})`;
-    const subText = hasSub ? `包含 ${subFoldersMap[folderName].size} 個小資料夾 (共 ${totalCount} 個單字)` : `共 ${totalCount} 個單字 (點擊開始背單字)`;
+    const subText = hasSub
+      ? `包含 ${subFoldersMap[folderName].size} 個小資料夾（共 ${totalCount} 個單字）`
+      : `共 ${totalCount} 個單字（點擊開始背單字）`;
 
     html += `
-      <div class="folder-wrapper" style="margin-bottom: 10px;">
+      <div class="folder-wrapper">
         <div class="folder-item" onclick="${clickAction}">
           <div class="folder-info">
-            <h3>📁 ${esc(folderName)}${hasSub ? '<span style="font-size: 12px; background: #e0e7ff; color: #4f46e5; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">階層資料夾</span>' : ''}</h3>
+            <h3>📁 ${esc(folderName)} ${hasSub ? '<span class="tag tag-accent">階層資料夾</span>' : ""}</h3>
             <p>${subText}</p>
           </div>
-
-          <div class="dots-container" onclick="event.stopPropagation()">
+          <div onclick="event.stopPropagation()">
             <button class="dots-btn" id="dots-btn-${index}" onclick="toggleFolderDropdown(event, ${jsArg(folderName)}, ${jsArg(String(index))})">⚙️</button>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
   });
 
-  html += `
-    <div style="margin-top: 30px; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 20px;">
-      <button onclick="document.getElementById('import-file-input').click()" style="padding: 10px 20px; background: #6366f1; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; box-shadow: 0 4px 10px rgba(99,102,241,0.2);">📥 匯入單字資料 (JSON)</button>
-      <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="importData(event)">
-    </div>
-  `;
+  // 全庫單字搜尋
+  if (q) {
+    const matches = allWords.filter((w) =>
+      w.en !== PLACEHOLDER && (w.en.toLowerCase().includes(q) || w.ch.toLowerCase().includes(q)));
+    html += `<div class="section-bar"><span class="section-title">🔎 單字搜尋結果（${matches.length}）</span></div>`;
+    html += `<div class="word-list">${matches.slice(0, 30).map((w) => wordRowHtml(w, true)).join("")}</div>`;
+    if (matches.length > 30) html += `<p class="muted" style="text-align:center; margin-top:8px;">只顯示前 30 筆，請輸入更精確的關鍵字</p>`;
+  }
 
-  containerEl.innerHTML = html;
+  area.innerHTML = html;
 }
 
-window.createNewEmptyFolder = function() {
-  const folderName = prompt("請輸入新資料夾名稱：");
-  if (!folderName || !folderName.trim()) return;
+window.createNewEmptyFolder = async function () {
+  const name = await EH.prompt("請輸入新資料夾名稱：");
+  if (!name || !name.trim()) return;
+  const cleanName = name.trim();
 
-  const cleanName = folderName.trim();
-
-  const exists = allWords.some(w => w.folder === cleanName || w.folder.startsWith(`${cleanName}/`));
-  if (exists) {
-    alert("此資料夾名稱已存在！");
-    return;
-  }
-
-  const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-  userWordsRef.add({
-    en: PLACEHOLDER,
-    pos: "",
-    ch: "（空白資料夾佔位用）",
-    folder: cleanName,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(() => {
-    alert(`📁 成功建立資料夾「${cleanName}」！`);
-    fetchAllWords(currentUser.uid);
-  })
-  .catch(err => {
-    alert("建立失敗：" + err.message);
-  });
-};
-
-window.openSubFolderView = function(parentFolderName) {
-  pageTitleEl.textContent = `📁 ${parentFolderName} - 小資料夾列表`;
-  btnBackFolders.style.display = "block";
-
-  const subFolders = Array.from(new Set(allWords.map(w => w.folder)))
-    .filter(f => f.startsWith(`${parentFolderName}/`));
-
-  subFolders.sort((a, b) => a.localeCompare(b));
-
-  let html = `
-    <div style="margin-bottom: 15px; font-size: 14px; color: #64748b;">
-      點擊下方的小資料夾即可開始背單字或管理：
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-  `;
-
-  subFolders.forEach((subFolderFullName, index) => {
-    const subName = subFolderFullName.slice(parentFolderName.length + 1);
-    const count = allWords.filter(w => w.folder === subFolderFullName && w.en !== PLACEHOLDER).length;
-
-    html += `
-      <div class="folder-wrapper" style="margin-bottom: 0;">
-        <div class="folder-item" onclick="startStudy(${jsArg(subFolderFullName)})">
-          <div class="folder-info">
-            <h3>📂 ${esc(subName)}</h3>
-            <p>共 ${count} 個單字 (點擊開始背單字)</p>
-          </div>
-          <div class="dots-container" onclick="event.stopPropagation()">
-            <button class="dots-btn" id="sub-dots-${index}" onclick="toggleFolderDropdown(event, ${jsArg(subFolderFullName)}, ${jsArg('sub-' + index)})">⚙️</button>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-
-  html += `</div>`;
-  html += `
-    <div style="margin-top: 25px; text-align: center;">
-      <button onclick="renderFolderList()" style="padding: 8px 16px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">⬅️ 返回根目錄資料夾</button>
-    </div>
-  `;
-
-  containerEl.innerHTML = html;
-};
-
-window.copyToTargetFolder = async function(sourceFolderName) {
-  const targetWords = allWords.filter(w => (w.folder === sourceFolderName || w.folder.startsWith(`${sourceFolderName}/`)) && w.en !== PLACEHOLDER);
-
-  if (targetWords.length === 0) {
-    alert("這個資料夾中沒有任何單字可以複製！");
-    return;
-  }
-
-  const existingFolders = Array.from(new Set(allWords.map(w => w.folder.includes("/") ? w.folder.split("/")[0] : w.folder)))
-    .filter(f => f !== sourceFolderName && !f.includes("已經背過"));
-
-  let promptMsg = `請輸入要將「${sourceFolderName}」的 ${targetWords.length} 個單字複製到哪一個目標資料夾名稱？\n`;
-  if (existingFolders.length > 0) {
-    promptMsg += `現有資料夾參考：${existingFolders.join(", ")}`;
-  }
-
-  const destFolder = prompt(promptMsg, "");
-  if (!destFolder || !destFolder.trim()) return;
-
-  const cleanDest = destFolder.trim();
-
-  if (!confirm(`確定要將「${sourceFolderName}」的所有單字複製一份到「${cleanDest}」嗎？（原本的單字會保留）`)) {
+  if (allWords.some((w) => w.folder === cleanName || w.folder.startsWith(`${cleanName}/`))) {
+    EH.toast("此資料夾名稱已存在！", "error");
     return;
   }
 
   try {
-    const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-    const BATCH_SIZE = 400;
-
-    for (let i = 0; i < targetWords.length; i += BATCH_SIZE) {
-      const chunk = targetWords.slice(i, i + BATCH_SIZE);
-      const batch = db.batch();
-
-      chunk.forEach(w => {
-        const newDocRef = userWordsRef.doc();
-        batch.set(newDocRef, {
-          en: w.en,
-          pos: w.pos || "",
-          ch: w.ch,
-          folder: cleanDest,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      });
-
-      await batch.commit();
-    }
-
-    alert(`🎉 成功將 ${targetWords.length} 個單字複製並放入「${cleanDest}」！`);
+    await db.collection("users").doc(currentUser.uid).collection("words").add({
+      en: PLACEHOLDER,
+      pos: "",
+      ch: "（空白資料夾佔位用）",
+      folder: cleanName,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    EH.toast(`📁 已建立資料夾「${cleanName}」`, "success");
     fetchAllWords(currentUser.uid);
   } catch (err) {
-    alert("複製失敗：" + err.message);
+    EH.toast("建立失敗：" + err.message, "error", 4000);
   }
 };
 
-window.viewFolderWords = function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`)).filter(w => w.en !== PLACEHOLDER);
+window.openSubFolderView = function (parentFolderName) {
+  leaveStudy();
+  pageTitleEl.textContent = `📁 ${parentFolderName}`;
+  setBack(true);
 
-  pageTitleEl.textContent = `📖 檢視單字：${folderName}`;
-  btnBackFolders.style.display = "block";
+  const subFolders = Array.from(new Set(allWords.map((w) => w.folder)))
+    .filter((f) => f.startsWith(`${parentFolderName}/`))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-  if (targetWords.length === 0) {
-    containerEl.innerHTML = `
-      <div style="text-align: center; color: #666; padding: 30px;">
-        <p>這個資料夾中沒有任何單字。</p>
-        <button onclick="renderFolderList()" style="margin-top: 10px; padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">返回資料夾列表</button>
-      </div>
-    `;
-    return;
-  }
-
-  let html = `
-    <div style="margin-bottom: 15px; font-size: 14px; color: #64748b; font-weight: bold;">
-      共 ${targetWords.length} 個單字清單：
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 8px;">
-  `;
-
-  targetWords.forEach((w, idx) => {
+  let html = `<p class="muted" style="margin-bottom:12px;">點擊小資料夾即可開始背單字，或按右側 ⚙️ 管理：</p>`;
+  subFolders.forEach((full, index) => {
+    const subName = full.slice(parentFolderName.length + 1);
+    const count = allWords.filter((w) => w.folder === full && w.en !== PLACEHOLDER).length;
     html += `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
-        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
-          <span style="font-size: 12px; color: #94a3b8; font-weight: bold; min-width: 24px;">${idx + 1}.</span>
-          <span style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${esc(w.en)}</span>
-          <span style="font-size: 12px; background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${esc(w.pos || '無詞性')}</span>
-          <span style="font-size: 15px; color: #334155; margin-left: 5px;">${esc(w.ch)}</span>
+      <div class="folder-wrapper">
+        <div class="folder-item" onclick="startStudy(${jsArg(full)})">
+          <div class="folder-info">
+            <h3>📂 ${esc(subName)}</h3>
+            <p>共 ${count} 個單字</p>
+          </div>
+          <div onclick="event.stopPropagation()">
+            <button class="dots-btn" id="sub-dots-${index}" onclick="toggleFolderDropdown(event, ${jsArg(full)}, ${jsArg("sub-" + index)})">⚙️</button>
+          </div>
         </div>
-        <div style="font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">
-          ${esc(w.folder)}
-        </div>
-      </div>
-    `;
+      </div>`;
   });
-
-  html += `</div>`;
-  html += `
-    <div style="margin-top: 25px; text-align: center;">
-      <button onclick="renderFolderList()" style="padding: 10px 20px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(79,70,229,0.25);">⬅️ 返回資料夾列表</button>
-    </div>
-  `;
-
   containerEl.innerHTML = html;
 };
 
-window.exportFolderData = function(folderName) {
-  const targetWords = allWords.filter(w => (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== PLACEHOLDER);
+/* ============================== 資料夾操作 ============================== */
+
+window.copyToTargetFolder = async function (sourceFolderName) {
+  const targetWords = allWords.filter((w) =>
+    (w.folder === sourceFolderName || w.folder.startsWith(`${sourceFolderName}/`)) && w.en !== PLACEHOLDER);
   if (targetWords.length === 0) {
-    alert("這個資料夾沒有單字可以匯出！");
+    EH.toast("這個資料夾中沒有任何單字可以複製！", "error");
     return;
   }
 
-  const exportDataObj = targetWords.map(w => ({
-    en: w.en,
-    pos: w.pos,
-    ch: w.ch,
-    folder: w.folder
-  }));
+  const existing = Array.from(new Set(allWords.map((w) => (w.folder.includes("/") ? w.folder.split("/")[0] : w.folder))))
+    .filter((f) => f !== sourceFolderName && f !== LEARNED);
+  let msg = `請輸入要將「${sourceFolderName}」的 ${targetWords.length} 個單字複製到哪一個資料夾？`;
+  if (existing.length) msg += `\n現有資料夾：${existing.join("、")}`;
 
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportDataObj, null, 2));
-  const downloadAnchor = document.createElement('a');
-  downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `english_hero_${folderName.replace(/\//g, '_')}_backup.json`);
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
+  const dest = await EH.prompt(msg);
+  if (!dest || !dest.trim()) return;
+  const cleanDest = dest.trim();
+
+  if (!(await EH.confirm(`確定要複製一份到「${cleanDest}」嗎？（原本的單字會保留）`))) return;
+
+  try {
+    const ref = db.collection("users").doc(currentUser.uid).collection("words");
+    for (let i = 0; i < targetWords.length; i += 400) {
+      const batch = db.batch();
+      targetWords.slice(i, i + 400).forEach((w) => {
+        batch.set(ref.doc(), {
+          en: w.en, pos: w.pos || "", ch: w.ch, folder: cleanDest,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+      await batch.commit();
+    }
+    EH.toast(`🎉 已複製 ${targetWords.length} 個單字到「${cleanDest}」`, "success");
+    fetchAllWords(currentUser.uid);
+  } catch (err) {
+    EH.toast("複製失敗：" + err.message, "error", 4000);
+  }
 };
 
-window.importData = function(event) {
+window.viewFolderWords = function (folderName) {
+  leaveStudy();
+  const targetWords = allWords.filter((w) =>
+    (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== PLACEHOLDER);
+
+  pageTitleEl.textContent = `📖 檢視單字：${folderName}`;
+  setBack(true);
+
+  if (targetWords.length === 0) {
+    containerEl.innerHTML = `<p class="muted" style="text-align:center; padding:30px;">這個資料夾中沒有任何單字。</p>`;
+    return;
+  }
+
+  containerEl.innerHTML = `
+    <input type="search" id="view-search" class="search-input" placeholder="🔍 搜尋這個資料夾的單字…">
+    <p class="muted" id="view-count" style="margin-bottom:8px;"></p>
+    <div class="word-list" id="view-list"></div>`;
+
+  const draw = (q) => {
+    const k = q.trim().toLowerCase();
+    const list = k ? targetWords.filter((w) => w.en.toLowerCase().includes(k) || w.ch.toLowerCase().includes(k)) : targetWords;
+    $("view-count").textContent = `共 ${list.length} 個單字`;
+    $("view-list").innerHTML = list.map((w) => wordRowHtml(w, w.folder !== folderName)).join("");
+  };
+  $("view-search").addEventListener("input", (e) => draw(e.target.value));
+  draw("");
+};
+
+window.exportFolderData = function (folderName) {
+  const targetWords = allWords.filter((w) =>
+    (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== PLACEHOLDER);
+  if (targetWords.length === 0) {
+    EH.toast("這個資料夾沒有單字可以匯出！", "error");
+    return;
+  }
+
+  const data = targetWords.map((w) => ({ en: w.en, pos: w.pos, ch: w.ch, folder: w.folder }));
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+  const a = document.createElement("a");
+  a.setAttribute("href", dataStr);
+  a.setAttribute("download", `english_hero_${folderName.replace(/\//g, "_")}_backup.json`);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  EH.toast(`📤 已匯出 ${data.length} 個單字`, "success");
+};
+
+window.importData = function (event) {
   const file = event.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = async function(e) {
+  reader.onload = async (e) => {
     try {
-      const importedWords = JSON.parse(e.target.result);
-      if (!Array.isArray(importedWords)) {
-        alert("檔案格式錯誤！");
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) {
+        EH.toast("檔案格式錯誤！", "error");
         return;
       }
-
-      if (!confirm(`確定要匯入這 ${importedWords.length} 個單字嗎？`)) {
+      if (!(await EH.confirm(`確定要匯入這 ${imported.length} 個單字嗎？`))) {
         event.target.value = "";
         return;
       }
 
-      const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-      const BATCH_SIZE = 400;
-
-      for (let i = 0; i < importedWords.length; i += BATCH_SIZE) {
-        const chunk = importedWords.slice(i, i + BATCH_SIZE);
+      const ref = db.collection("users").doc(currentUser.uid).collection("words");
+      for (let i = 0; i < imported.length; i += 400) {
         const batch = db.batch();
-
-        chunk.forEach(w => {
+        imported.slice(i, i + 400).forEach((w) => {
           if (w.en && w.ch) {
-            const newDocRef = userWordsRef.doc();
-            batch.set(newDocRef, {
-              en: w.en,
-              pos: w.pos || "",
-              ch: w.ch,
-              folder: w.folder || "匯入分類",
+            batch.set(ref.doc(), {
+              en: w.en, pos: w.pos || "", ch: w.ch, folder: w.folder || "匯入分類",
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
           }
         });
-
         await batch.commit();
       }
-
-      alert("資料匯入成功！");
+      EH.toast("資料匯入成功！", "success");
       event.target.value = "";
       fetchAllWords(currentUser.uid);
     } catch (err) {
-      alert("解析或匯入失敗：" + err.message);
+      EH.toast("解析或匯入失敗：" + err.message, "error", 4000);
     }
   };
   reader.readAsText(file);
 };
 
-window.addAllToLearned = async function(folderName) {
-  const targetWords = allWords.filter(w => (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== PLACEHOLDER);
-
+window.addAllToLearned = async function (folderName) {
+  const targetWords = allWords.filter((w) =>
+    (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== PLACEHOLDER);
   if (targetWords.length === 0) {
-    alert("這個資料夾中沒有任何單字！");
+    EH.toast("這個資料夾中沒有任何單字！", "error");
     return;
   }
 
-  // 去除已經在「已經背過」裡的單字，以及自己內部重複的單字
-  const learnedKeys = new Set(allWords.filter(w => w.folder === LEARNED).map(wordKey));
+  const learnedKeys = new Set(allWords.filter((w) => w.folder === LEARNED).map(wordKey));
   const toAdd = [];
-  targetWords.forEach(w => {
+  targetWords.forEach((w) => {
     const k = wordKey(w);
-    if (!learnedKeys.has(k)) {
-      learnedKeys.add(k);
-      toAdd.push(w);
-    }
+    if (!learnedKeys.has(k)) { learnedKeys.add(k); toAdd.push(w); }
   });
-
   if (toAdd.length === 0) {
-    alert("這些單字都已經在「已經背過」裡了！");
+    EH.toast("這些單字都已經在「已經背過」裡了！", "info");
     return;
   }
 
-  if (!confirm(`確定要將「${folderName}」中的 ${toAdd.length} 個單字加入「${LEARNED}」嗎？（已存在的單字會自動略過）`)) {
-    return;
-  }
+  if (!(await EH.confirm(`確定要將「${folderName}」中的 ${toAdd.length} 個單字加入「${LEARNED}」嗎？\n（已存在的單字會自動略過）`))) return;
 
   try {
-    const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-    const BATCH_SIZE = 400;
-
-    for (let i = 0; i < toAdd.length; i += BATCH_SIZE) {
-      const chunk = toAdd.slice(i, i + BATCH_SIZE);
+    const ref = db.collection("users").doc(currentUser.uid).collection("words");
+    for (let i = 0; i < toAdd.length; i += 400) {
       const batch = db.batch();
-
-      chunk.forEach(w => {
-        const newDocRef = userWordsRef.doc();
-        batch.set(newDocRef, {
-          en: w.en,
-          pos: w.pos || "",
-          ch: w.ch,
-          folder: LEARNED,
+      toAdd.slice(i, i + 400).forEach((w) => {
+        batch.set(ref.doc(), {
+          en: w.en, pos: w.pos || "", ch: w.ch, folder: LEARNED,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       });
-
       await batch.commit();
     }
-
-    alert(`🎉 成功將 ${toAdd.length} 個單字加入「${LEARNED}」！`);
+    EH.toast(`🎉 已將 ${toAdd.length} 個單字加入「已經背過」`, "success");
     fetchAllWords(currentUser.uid);
   } catch (err) {
-    alert("操作失敗：" + err.message);
+    EH.toast("操作失敗：" + err.message, "error", 4000);
   }
 };
 
 // 拆分資料夾：分批寫入，避免超過 Firestore 單一 batch 500 筆上限
-window.splitFolder = async function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName && w.en !== PLACEHOLDER);
+window.splitFolder = async function (folderName) {
+  const targetWords = allWords.filter((w) => w.folder === folderName && w.en !== PLACEHOLDER);
   if (targetWords.length === 0) {
-    alert("這個資料夾沒有單字可以拆分！");
+    EH.toast("這個資料夾沒有單字可以拆分！", "error");
     return;
   }
 
-  const input = prompt(`請輸入每個小資料夾要包含幾個單字？（目前總共有 ${targetWords.length} 個單字）`, "10");
+  const input = await EH.prompt(`請輸入每個小資料夾要包含幾個單字？（目前總共有 ${targetWords.length} 個單字）`, "10");
   if (!input) return;
-
-  const size = parseInt(input);
+  const size = parseInt(input, 10);
   if (isNaN(size) || size <= 0) {
-    alert("請輸入有效的數字！");
+    EH.toast("請輸入有效的數字！", "error");
     return;
   }
+  if (!(await EH.confirm(`確定要將「${folderName}」以每 ${size} 個單字為一組，拆分為階層式小資料夾嗎？`))) return;
 
-  if (!confirm(`確定要將「${folderName}」以每 ${size} 個單字為一組，拆分為階層式小資料夾嗎？`)) {
-    return;
-  }
-
-  const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-  const BATCH_SIZE = 400;
-
+  const ref = db.collection("users").doc(currentUser.uid).collection("words");
   try {
-    for (let i = 0; i < targetWords.length; i += BATCH_SIZE) {
+    for (let i = 0; i < targetWords.length; i += 400) {
       const batch = db.batch();
-      targetWords.slice(i, i + BATCH_SIZE).forEach((w, j) => {
+      targetWords.slice(i, i + 400).forEach((w, j) => {
         const part = Math.floor((i + j) / size) + 1;
-        batch.update(userWordsRef.doc(w.id), { folder: `${folderName}/Part${part}` });
+        batch.update(ref.doc(w.id), { folder: `${folderName}/Part${part}` });
       });
       await batch.commit();
     }
-
-    const partCount = Math.ceil(targetWords.length / size);
-    alert(`🎉 成功將大資料夾拆分為 ${partCount} 個小資料夾！`);
+    EH.toast(`🎉 已拆分為 ${Math.ceil(targetWords.length / size)} 個小資料夾`, "success");
     fetchAllWords(currentUser.uid);
   } catch (err) {
-    alert("拆分失敗：" + err.message);
+    EH.toast("拆分失敗：" + err.message, "error", 4000);
   }
 };
 
-window.toggleFolderDropdown = function(event, folderName, index) {
+/* ============================== 下拉選單 ============================== */
+
+window.toggleFolderDropdown = function (event, folderName, index) {
   event.stopPropagation();
 
-  const existingMenu = document.getElementById("global-dropdown-menu");
-  if (existingMenu) {
-    existingMenu.remove();
-    return;
-  }
+  const existing = $("global-dropdown-menu");
+  if (existing) { existing.remove(); return; }
 
   let btn;
-  if (index === 'special-learned') {
-    btn = event.currentTarget;
-  } else if (String(index).startsWith('sub-')) {
-    btn = document.getElementById(`sub-dots-${index.replace('sub-', '')}`);
-  } else {
-    btn = document.getElementById(`dots-btn-${index}`);
-  }
+  if (index === "special-learned") btn = event.currentTarget;
+  else if (String(index).startsWith("sub-")) btn = $(`sub-dots-${index.replace("sub-", "")}`);
+  else btn = $(`dots-btn-${index}`);
   if (!btn) return;
 
   const rect = btn.getBoundingClientRect();
-
   const menu = document.createElement("div");
   menu.id = "global-dropdown-menu";
-  menu.style.position = "fixed";
+  menu.className = "dropdown-menu";
   menu.style.top = `${rect.bottom + 4}px`;
   menu.style.right = `${window.innerWidth - rect.right}px`;
-  menu.style.background = "#fff";
-  menu.style.border = "1px solid #cbd5e1";
-  menu.style.borderRadius = "8px";
-  menu.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)";
-  menu.style.zIndex = "999999";
-  menu.style.minWidth = "200px";
-  menu.style.padding = "4px 0";
-  menu.style.maxHeight = "260px";
-  menu.style.overflowY = "auto";
 
-  const fArg = jsArg(folderName);
-  const isLearned = folderName.includes("已經背過");
-  const deleteText = isLearned ? `🗑️ 清空已背過單字` : `🗑️ 刪除資料夾`;
-  const btnStyle = (color) => `display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; font-size: 14px; color: ${color}; font-weight: bold;`;
+  const f = jsArg(folderName);
+  const isLearned = folderName === LEARNED;
+  const item = (cls, fn, label) =>
+    `<button class="dropdown-item ${cls}" onclick="${fn}(${f}); closeGlobalDropdown();">${label}</button>`;
 
-  let splitBtnHtml = "";
-  if (!isLearned && !folderName.includes("/")) {
-    splitBtnHtml = `<button onclick="splitFolder(${fArg}); closeGlobalDropdown();" style="${btnStyle('#4f46e5')}">📦 拆分為多個子資料夾</button>`;
-  }
-
-  let markLearnedBtnHtml = "";
-  if (!isLearned) {
-    markLearnedBtnHtml = `<button onclick="addAllToLearned(${fArg}); closeGlobalDropdown();" style="${btnStyle('#059669')}">✅ 整夾加入已背過</button>`;
-  }
-
-  let copyToFolderBtnHtml = "";
-  if (!isLearned) {
-    copyToFolderBtnHtml = `<button onclick="copyToTargetFolder(${fArg}); closeGlobalDropdown();" style="${btnStyle('#d97706')}">📁 複製至…資料夾</button>`;
-  }
-
-  menu.innerHTML = `
-    <button onclick="viewFolderWords(${fArg}); closeGlobalDropdown();" style="${btnStyle('#2563eb')}">📖 檢視單字</button>
-    <button onclick="openFolderEditModal(${fArg}); closeGlobalDropdown();" style="${btnStyle('#334155')}">✏️ 管理單字</button>
-    ${copyToFolderBtnHtml}
-    ${markLearnedBtnHtml}${splitBtnHtml}
-    <button onclick="exportFolderData(${fArg}); closeGlobalDropdown();" style="${btnStyle('#10b981')}">📤 匯出此資料夾</button>
-    <button onclick="confirmDeleteFolder(${fArg}); closeGlobalDropdown();" style="${btnStyle('#ef4444')}">${deleteText}</button>
-  `;
+  menu.innerHTML = [
+    item("is-info", "viewFolderWords", "📖 檢視單字"),
+    item("", "openFolderEditModal", "✏️ 管理單字"),
+    !isLearned ? item("is-warn", "copyToTargetFolder", "📁 複製至…資料夾") : "",
+    !isLearned ? item("is-success", "addAllToLearned", "✅ 整夾加入已背過") : "",
+    !isLearned && !folderName.includes("/") ? item("is-accent", "splitFolder", "📦 拆分為多個子資料夾") : "",
+    item("is-success", "exportFolderData", "📤 匯出此資料夾"),
+    item("is-danger", "confirmDeleteFolder", isLearned ? "🗑️ 清空已背過單字" : "🗑️ 刪除資料夾")
+  ].join("");
 
   document.body.appendChild(menu);
-};
 
-window.closeGlobalDropdown = function() {
-  const menu = document.getElementById("global-dropdown-menu");
-  if (menu) menu.remove();
-};
-
-document.addEventListener('click', () => {
-  closeGlobalDropdown();
-});
-
-window.startStudy = function(folderName) {
-  currentFolderForManagement = folderName;
-  pageTitleEl.textContent = `🎯 背單字：${folderName}`;
-  btnBackFolders.style.display = "block";
-
-  currentFolderWords = allWords.filter(w => w.folder === folderName && w.en !== PLACEHOLDER);
-  currentIndex = 0;
-
-  renderFlashcard();
-};
-
-window.speakWord = function(text, event) {
-  if (event) event.stopPropagation();
-  if (!text) return;
-
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
+  // 依畫面空間決定往下或往上展開，避免最下面的資料夾選單被切掉（看不到「刪除」）
+  const margin = 8;
+  menu.style.maxHeight = Math.min(360, window.innerHeight - margin * 2) + "px";
+  const h = menu.offsetHeight;
+  const spaceBelow = window.innerHeight - rect.bottom - margin;
+  const spaceAbove = rect.top - margin;
+  if (h <= spaceBelow) {
+    menu.style.top = `${rect.bottom + 4}px`;
+  } else if (h <= spaceAbove) {
+    menu.style.top = `${rect.top - h - 4}px`;
   } else {
-    alert("您的瀏覽器不支援語音朗讀功能！");
+    // 上下都放不下：貼齊畫面頂端，選單內部可以捲動
+    menu.style.top = `${margin}px`;
   }
 };
 
-function renderFlashcard() {
-  if (currentFolderWords.length === 0) {
+window.closeGlobalDropdown = function () {
+  const menu = $("global-dropdown-menu");
+  if (menu) menu.remove();
+};
+document.addEventListener("click", closeGlobalDropdown);
+window.addEventListener("scroll", closeGlobalDropdown, { passive: true });
+window.addEventListener("resize", closeGlobalDropdown);
+
+/* ============================== 翻牌學習 ============================== */
+
+window.startStudy = function (folderName) {
+  currentFolderForManagement = folderName;
+  EH.store.set("eh_last_study", folderName);
+  pageTitleEl.textContent = `🎯 背單字：${folderName}`;
+  setBack(true);
+
+  studyState = {
+    words: allWords.filter((w) => w.folder === folderName && w.en !== PLACEHOLDER),
+    index: 0,
+    flipped: false
+  };
+  renderStudyShell();
+};
+
+function renderStudyShell() {
+  const s = studyState;
+  if (s.words.length === 0) {
+    studyActive = false;
     containerEl.innerHTML = `
-      <div style="text-align: center; color: #666; padding: 30px;">
+      <div class="done-box">
+        <div class="big">📭</div>
         <p>這個資料夾目前沒有任何單字。</p>
-        <button onclick="renderFolderList()" style="margin-top: 10px; padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">返回資料夾列表</button>
-      </div>
-    `;
+        <button class="btn btn-primary" style="margin-top:14px" onclick="renderFolderList()">返回資料夾列表</button>
+      </div>`;
     return;
   }
 
-  const word = currentFolderWords[currentIndex];
-
-  // 在「已經背過」資料夾裡不需要再顯示「我已經會了」
-  const learnedBtnHtml = currentFolderForManagement === LEARNED ? "" : `
-    <div style="margin-top: 12px; text-align: center;">
-      <button onclick="markAsLearned()" style="width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; box-shadow: 0 4px 10px rgba(16,185,129,0.2);">
-        ✅ 我已經會了 (加入「${LEARNED}」)
-      </button>
-    </div>
-  `;
+  const learnedBtn = currentFolderForManagement === LEARNED
+    ? ""
+    : `<button class="btn btn-success btn-sm" onclick="markAsLearned()">✅ 我已經會了</button>`;
 
   containerEl.innerHTML = `
-    <div class="word-card" style="cursor: default;">
-      <span style="position: absolute; top: 16px; right: 20px; font-size: 14px; font-weight: bold; color: #0284c7; background: #e0f2fe; padding: 3px 10px; border-radius: 6px;">
-        ${esc(word.pos || '未分類')}
-      </span>
+    <div class="progress"><span id="study-progress"></span></div>
+    <div class="study-meta">
+      <span id="study-count"></span>
+      <span class="tag tag-accent">${esc(currentFolderForManagement)}</span>
+    </div>
 
-      <div style="margin-top: 5px;">
-        <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 8px;">
-          <div style="font-size: 34px; font-weight: bold; color: #1d4ed8;">${esc(word.en)}</div>
-          <button onclick="speakWord(${jsArg(word.en)}, event)" style="background: #e0f2fe; color: #0284c7; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">🔊 唸</button>
+    <div class="flip-scene" id="flip-scene">
+      <div class="flip-card" id="flip-card" onclick="flipCard()">
+        <div class="flip-face flip-front">
+          <span class="tag tag-pos" id="front-pos"></span>
+          <div class="face-word" id="front-main"></div>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); speakCurrent()">🔊 唸</button>
+          <div class="face-hint">點擊卡片或按空白鍵翻面</div>
         </div>
-
-        <div style="font-size: 24px; font-weight: bold; color: #1f2937; margin-top: 12px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
-          ${esc(word.ch)}
+        <div class="flip-face flip-back">
+          <span class="tag tag-pos" id="back-pos"></span>
+          <div class="face-word" id="back-main"></div>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); speakCurrent()">🔊 唸</button>
         </div>
       </div>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-      <button onclick="prevCard()" style="padding: 10px 20px; background: #f3f4f6; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">⬅️ 上一張</button>
-      <span style="font-size: 15px; font-weight: bold; color: #475569;">${currentIndex + 1} / ${currentFolderWords.length}</span>
-      <button onclick="nextCard()" style="padding: 10px 20px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">下一張 ➡️</button>
+    <div class="study-controls">
+      <button class="btn btn-secondary" onclick="prevCard()">⬅️ 上一張</button>
+      <button class="btn btn-primary" onclick="flipCard()">🔄 翻面</button>
+      <button class="btn btn-secondary" onclick="nextCard()">下一張 ➡️</button>
     </div>
 
-    ${learnedBtnHtml}
-  `;
+    <div class="study-tools">
+      <button class="btn btn-ghost btn-sm" onclick="shuffleStudy()">🔀 隨機排序</button>
+      <button class="btn btn-ghost btn-sm" id="tool-reverse" onclick="toggleSetting('reverse')">🔁 先看中文</button>
+      <button class="btn btn-ghost btn-sm" id="tool-auto" onclick="toggleSetting('auto')">🔈 自動唸</button>
+      ${learnedBtn}
+    </div>
+
+    <div class="kbd-hint">
+      <span class="kbd">←</span> <span class="kbd">→</span> 換卡　
+      <span class="kbd">空白</span> 翻面　
+      <span class="kbd">S</span> 發音　
+      <span class="kbd">L</span> 已會
+    </div>`;
+
+  // 手機左右滑動換卡
+  const scene = $("flip-scene");
+  let x0 = null;
+  scene.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  scene.addEventListener("touchend", (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) > 60) (dx < 0 ? nextCard : prevCard)();
+  });
+
+  studyActive = true;
+  refreshToolButtons();
+  updateCard();
 }
 
-window.prevCard = function() {
-  if (currentFolderWords.length === 0) return;
-  currentIndex = (currentIndex - 1 + currentFolderWords.length) % currentFolderWords.length;
-  renderFlashcard();
+function refreshToolButtons() {
+  const r = $("tool-reverse");
+  const a = $("tool-auto");
+  if (r) r.classList.toggle("is-on", settings.reverse);
+  if (a) a.classList.toggle("is-on", settings.auto);
+}
+
+function updateCard() {
+  const s = studyState;
+  const w = s.words[s.index];
+  if (!w) return;
+  const total = s.words.length;
+
+  $("study-count").textContent = `${s.index + 1} / ${total}`;
+  $("study-progress").style.width = `${((s.index + 1) / total) * 100}%`;
+
+  const frontMain = settings.reverse ? w.ch : w.en;
+  const backMain = settings.reverse ? w.en : w.ch;
+  $("front-main").textContent = frontMain;
+  $("back-main").textContent = backMain;
+
+  ["front-pos", "back-pos"].forEach((id) => {
+    const el = $(id);
+    el.textContent = w.pos || "";
+    el.classList.toggle("hidden", !w.pos);
+  });
+
+  s.flipped = false;
+  $("flip-card").classList.remove("is-flipped");
+
+  if (settings.auto && !settings.reverse) EH.speak(w.en);
+}
+
+// 已翻面時，先翻回正面再換內容，避免答案在翻轉動畫中露餡
+function swapCard(applyFn) {
+  const s = studyState;
+  const card = $("flip-card");
+  if (s.flipped && card) {
+    card.classList.remove("is-flipped");
+    s.flipped = false;
+    setTimeout(applyFn, 170);
+  } else {
+    applyFn();
+  }
+}
+
+window.flipCard = function () {
+  const s = studyState;
+  const card = $("flip-card");
+  if (!card) return;
+  s.flipped = !s.flipped;
+  card.classList.toggle("is-flipped", s.flipped);
+  if (settings.auto && settings.reverse && s.flipped) speakCurrent();
 };
 
-window.nextCard = function() {
-  if (currentFolderWords.length === 0) return;
-  currentIndex = (currentIndex + 1) % currentFolderWords.length;
-  renderFlashcard();
+window.prevCard = function () {
+  const s = studyState;
+  if (!s.words.length) return;
+  const next = (s.index - 1 + s.words.length) % s.words.length;
+  swapCard(() => { s.index = next; updateCard(); });
 };
 
-window.markAsLearned = async function() {
-  const word = currentFolderWords[currentIndex];
+window.nextCard = function () {
+  const s = studyState;
+  if (!s.words.length) return;
+  const next = (s.index + 1) % s.words.length;
+  swapCard(() => { s.index = next; updateCard(); });
+};
+
+window.speakCurrent = function () {
+  const w = studyState.words[studyState.index];
+  if (w) EH.speak(w.en);
+};
+
+window.shuffleStudy = function () {
+  studyState.words = shuffle(studyState.words);
+  studyState.index = 0;
+  updateCard();
+  EH.toast("🔀 已隨機排序", "info", 1500);
+};
+
+window.toggleSetting = function (name) {
+  settings[name] = !settings[name];
+  EH.store.set("eh_" + name, settings[name]);
+  refreshToolButtons();
+  if (name === "reverse") updateCard();
+};
+
+function renderStudyDone() {
+  studyActive = false;
+  containerEl.innerHTML = `
+    <div class="done-box">
+      <div class="big">🎉</div>
+      <h3>這個資料夾都背完了！</h3>
+      <p class="muted" style="margin-top:6px;">去測驗看看記得多少吧</p>
+      <div class="result-actions">
+        <a class="btn btn-primary" href="quiz.html?v=3000">✏️ 去考單字</a>
+        <button class="btn btn-ghost" onclick="renderFolderList()">返回列表</button>
+      </div>
+    </div>`;
+}
+
+window.markAsLearned = async function () {
+  const s = studyState;
+  const word = s.words[s.index];
   if (!word) return;
 
   try {
-    const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-
-    const exists = allWords.some(w => w.folder === LEARNED && wordKey(w) === wordKey(word));
+    const exists = allWords.some((w) => w.folder === LEARNED && wordKey(w) === wordKey(word));
     if (!exists) {
-      const ref = await userWordsRef.add({
-        en: word.en,
-        pos: word.pos || "",
-        ch: word.ch,
-        folder: LEARNED,
+      const ref = await db.collection("users").doc(currentUser.uid).collection("words").add({
+        en: word.en, pos: word.pos || "", ch: word.ch, folder: LEARNED,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      // 同步更新本機資料，列表數量才會正確
-      allWords.push({
-        id: ref.id,
-        en: word.en,
-        pos: word.pos || "",
-        ch: word.ch,
-        folder: LEARNED,
-        createdAt: Date.now()
-      });
-      alert(`太棒了！「${word.en}」已成功加入「${LEARNED}」！`);
+      allWords.push({ id: ref.id, en: word.en, pos: word.pos || "", ch: word.ch, folder: LEARNED, createdAt: Date.now() });
+      EH.toast(`✅ 「${word.en}」已加入已經背過`, "success", 1600);
     } else {
-      alert(`「${word.en}」已經在「${LEARNED}」裡了，這次直接略過。`);
+      EH.toast(`「${word.en}」已經在已經背過裡了`, "info", 1600);
     }
+    EH.saveStats(allWords);
 
-    currentFolderWords.splice(currentIndex, 1);
-    if (currentIndex >= currentFolderWords.length) {
-      currentIndex = 0;
-    }
-    renderFlashcard();
+    s.words.splice(s.index, 1);
+    if (s.words.length === 0) { renderStudyDone(); return; }
+    swapCard(() => {
+      if (s.index >= s.words.length) s.index = 0;
+      updateCard();
+    });
   } catch (err) {
-    alert("操作失敗：" + err.message);
+    EH.toast("操作失敗：" + err.message, "error", 4000);
   }
 };
 
-if (btnBackFolders) {
-  btnBackFolders.addEventListener("click", () => {
-    renderFolderList();
-  });
-}
+// 鍵盤快捷鍵
+document.addEventListener("keydown", (e) => {
+  if (!studyActive || EH.modalOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (["input", "textarea", "select"].includes(tag)) return;
+  const onButton = tag === "button";
 
-window.openFolderEditModal = function(folderName) {
+  switch (e.key) {
+    case "ArrowLeft": e.preventDefault(); prevCard(); break;
+    case "ArrowRight": e.preventDefault(); nextCard(); break;
+    case " ":
+    case "Enter":
+      if (onButton) return; // 避免和按鈕本身的點擊重複觸發
+      e.preventDefault();
+      flipCard();
+      break;
+    case "s": case "S": speakCurrent(); break;
+    case "l": case "L":
+      if (currentFolderForManagement !== LEARNED) markAsLearned();
+      break;
+  }
+});
+
+btnBackFolders.addEventListener("click", () => renderFolderList());
+
+/* ============================== 管理 / 編輯 ============================== */
+
+window.openFolderEditModal = function (folderName) {
+  leaveStudy();
   currentFolderForManagement = folderName;
-  const targetWords = allWords.filter(w => w.folder === folderName && w.en !== PLACEHOLDER);
+  const targetWords = allWords.filter((w) => w.folder === folderName && w.en !== PLACEHOLDER);
 
   pageTitleEl.textContent = `✏️ 管理資料夾：${folderName}`;
-  btnBackFolders.style.display = "block";
+  setBack(true);
 
   if (targetWords.length === 0) {
-    containerEl.innerHTML = `
-      <div style="text-align: center; color: #666; padding: 20px;">
-        <p>這個資料夾裡沒有直接的單字（可能包含子資料夾）。</p>
-        <button onclick="renderFolderList()" style="margin-top: 10px; padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">返回資料夾列表</button>
-      </div>
-    `;
+    containerEl.innerHTML = `<p class="muted" style="text-align:center; padding:30px;">這個資料夾裡沒有直接的單字（可能包含子資料夾）。</p>`;
     return;
   }
 
-  let html = ``;
-  if (folderName.includes("已經背過")) {
-    html += `
-      <div style="margin-bottom: 15px; text-align: right;">
-        <button onclick="confirmDeleteFolder(${jsArg(folderName)})" style="padding: 8px 14px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">🗑️ 清空所有已背過單字</button>
-      </div>
-    `;
-  }
-
-  html += `<div style="background: #f8fafc; padding: 10px; border-radius: 8px;">`;
-  targetWords.forEach(w => {
-    html += `
-      <div class="word-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; background: #fff; margin-top: 6px; border-radius: 6px;">
-        <div>
-          <span style="font-size: 16px; font-weight: bold; color: #1d4ed8;">${esc(w.en)}</span>
-          <span style="font-size: 12px; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${esc(w.pos || '無詞性')}</span>
-          <div style="font-size: 14px; color: #4b5563; margin-top: 2px;">${esc(w.ch)}</div>
-        </div>
-        <div style="display: flex; gap: 6px;">
-          <button onclick="openSingleEditModal(${jsArg(w.id)})" style="background: #e0e7ff; color: #4f46e5; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">修改</button>
-          <button onclick="deleteSingleWord(${jsArg(w.id)})" style="background: #fee2e2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">刪除</button>
-        </div>
-      </div>
-    `;
-  });
-  html += `</div>`;
-  html += `
-    <div style="margin-top: 15px; text-align: center;">
-      <button onclick="renderFolderList()" style="padding: 8px 16px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">⬅️ 返回資料夾列表</button>
-    </div>
-  `;
-
+  let html = `<input type="search" id="manage-search" class="search-input" placeholder="🔍 搜尋這個資料夾的單字…"><div class="word-list" id="manage-list"></div>`;
   containerEl.innerHTML = html;
+
+  const draw = (q) => {
+    const k = q.trim().toLowerCase();
+    const list = k ? targetWords.filter((w) => w.en.toLowerCase().includes(k) || w.ch.toLowerCase().includes(k)) : targetWords;
+    $("manage-list").innerHTML = list.map((w) => `
+      <div class="word-row">
+        <div class="word-main">
+          <span class="word-en">${esc(w.en)}</span>
+          ${w.pos ? `<span class="tag tag-pos">${esc(w.pos)}</span>` : ""}
+          <span class="word-ch">${esc(w.ch)}</span>
+        </div>
+        <div class="word-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openSingleEditModal(${jsArg(w.id)})">修改</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteSingleWord(${jsArg(w.id)})">刪除</button>
+        </div>
+      </div>`).join("") || `<p class="muted" style="text-align:center;">沒有符合的單字</p>`;
+  };
+  $("manage-search").addEventListener("input", (e) => draw(e.target.value));
+  draw("");
 };
 
-window.openSingleEditModal = function(wordId) {
-  const target = allWords.find(w => w.id === wordId);
+window.openSingleEditModal = function (wordId) {
+  const target = allWords.find((w) => w.id === wordId);
   if (!target) return;
+  const known = ["n.", "v.", "adj.", "adv.", "prep.", "conj.", "phr."];
+  const opts = [
+    ["n.", "n. (名詞)"], ["v.", "v. (動詞)"], ["adj.", "adj. (形容詞)"], ["adv.", "adv. (副詞)"],
+    ["prep.", "prep. (介系詞)"], ["conj.", "conj. (連接詞)"], ["phr.", "phr. (片語)"], ["", "(無/其他)"]
+  ].map(([v, label]) => {
+    const selected = v === "" ? !known.includes(target.pos) : target.pos === v;
+    return `<option value="${v}" ${selected ? "selected" : ""}>${label}</option>`;
+  }).join("");
 
-  const knownPos = ['n.', 'v.', 'adj.', 'adv.', 'prep.', 'conj.', 'phr.'];
-
+  const submit = `if(event.key==='Enter'){saveEditedWord(${jsArg(target.id)})}`;
   editModalContainer.innerHTML = `
-    <div class="edit-modal-backdrop">
-      <div class="edit-card">
-        <h3 style="margin-top: 0; color: #1e293b; margin-bottom: 16px;">✏️ 修改單字資料</h3>
-
+    <div class="eh-modal-backdrop" onclick="if(event.target===this) closeEditModal()">
+      <div class="eh-modal">
+        <h3>✏️ 修改單字資料</h3>
         <div class="form-group">
           <label>英文單字 (English)</label>
-          <input type="text" id="edit-en" value="${esc(target.en)}">
+          <input type="text" id="edit-en" value="${esc(target.en)}" onkeydown="${submit}">
         </div>
-
         <div class="form-group">
           <label>詞性 (Part of Speech)</label>
-          <select id="edit-pos">
-            <option value="n." ${target.pos === 'n.' ? 'selected' : ''}>n. (名詞)</option>
-            <option value="v." ${target.pos === 'v.' ? 'selected' : ''}>v. (動詞)</option>
-            <option value="adj." ${target.pos === 'adj.' ? 'selected' : ''}>adj. (形容詞)</option>
-            <option value="adv." ${target.pos === 'adv.' ? 'selected' : ''}>adv. (副詞)</option>
-            <option value="prep." ${target.pos === 'prep.' ? 'selected' : ''}>prep. (介系詞)</option>
-            <option value="conj." ${target.pos === 'conj.' ? 'selected' : ''}>conj. (連接詞)</option>
-            <option value="phr." ${target.pos === 'phr.' ? 'selected' : ''}>phr. (片語)</option>
-            <option value="" ${!knownPos.includes(target.pos) ? 'selected' : ''}>(無/其他)</option>
-          </select>
+          <select id="edit-pos">${opts}</select>
         </div>
-
         <div class="form-group">
           <label>中文意思 (Chinese)</label>
-          <input type="text" id="edit-ch" value="${esc(target.ch)}">
+          <input type="text" id="edit-ch" value="${esc(target.ch)}" onkeydown="${submit}">
         </div>
-
         <div class="modal-btns">
-          <button class="btn-cancel" onclick="closeEditModal()">取消</button>
-          <button class="btn-save" onclick="saveEditedWord(${jsArg(target.id)})">儲存修改</button>
+          <button class="btn btn-ghost" onclick="closeEditModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveEditedWord(${jsArg(target.id)})">儲存修改</button>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
+  $("edit-en").focus();
 };
 
-window.closeEditModal = function() {
-  editModalContainer.innerHTML = "";
-};
+window.closeEditModal = function () { editModalContainer.innerHTML = ""; };
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && editModalContainer.firstChild) closeEditModal();
+});
 
-window.saveEditedWord = function(wordId) {
-  const newEn = document.getElementById("edit-en").value.trim();
-  const newPos = document.getElementById("edit-pos").value;
-  const newCh = document.getElementById("edit-ch").value.trim();
-
+window.saveEditedWord = function (wordId) {
+  const newEn = $("edit-en").value.trim();
+  const newPos = $("edit-pos").value;
+  const newCh = $("edit-ch").value.trim();
   if (!newEn || !newCh) {
-    alert("英文與中文不能為空！");
+    EH.toast("英文與中文不能為空！", "error");
     return;
   }
 
-  db.collection("users").doc(currentUser.uid).collection("words").doc(wordId).update({
-    en: newEn,
-    pos: newPos,
-    ch: newCh
-  })
-  .then(() => {
-    const target = allWords.find(w => w.id === wordId);
-    if (target) {
-      target.en = newEn;
-      target.pos = newPos;
-      target.ch = newCh;
-    }
-    closeEditModal();
-    openFolderEditModal(currentFolderForManagement);
-  })
-  .catch(err => {
-    alert("修改失敗：" + err.message);
-  });
-};
-
-window.deleteSingleWord = function(wordId) {
-  if (!confirm("確定要刪除這個單字嗎？")) return;
-
-  db.collection("users").doc(currentUser.uid).collection("words").doc(wordId).delete()
+  db.collection("users").doc(currentUser.uid).collection("words").doc(wordId)
+    .update({ en: newEn, pos: newPos, ch: newCh })
     .then(() => {
-      allWords = allWords.filter(w => w.id !== wordId);
+      const t = allWords.find((w) => w.id === wordId);
+      if (t) { t.en = newEn; t.pos = newPos; t.ch = newCh; }
+      closeEditModal();
       openFolderEditModal(currentFolderForManagement);
+      EH.toast("✅ 已儲存修改", "success", 1500);
     })
-    .catch(err => {
-      alert("刪除失敗：" + err.message);
-    });
+    .catch((err) => EH.toast("修改失敗：" + err.message, "error", 4000));
 };
 
-window.confirmDeleteFolder = function(folderName) {
+window.deleteSingleWord = async function (wordId) {
+  if (!(await EH.confirm("確定要刪除這個單字嗎？", { danger: true, okText: "刪除" }))) return;
+  try {
+    await db.collection("users").doc(currentUser.uid).collection("words").doc(wordId).delete();
+    allWords = allWords.filter((w) => w.id !== wordId);
+    EH.saveStats(allWords);
+    openFolderEditModal(currentFolderForManagement);
+    EH.toast("🗑️ 已刪除", "success", 1500);
+  } catch (err) {
+    EH.toast("刪除失敗：" + err.message, "error", 4000);
+  }
+};
+
+window.confirmDeleteFolder = async function (folderName) {
   let msg;
-  if (folderName === LEARNED) {
-    msg = `確定要清空「${LEARNED}」裡的所有單字嗎？`;
-  } else if (folderName.includes("/")) {
-    msg = `確定要刪除小資料夾「${folderName}」以及裡面的所有單字嗎？`;
-  } else {
-    msg = `確定要刪除大資料夾「${folderName}」以及底下所有的子資料夾與單字嗎？`;
-  }
-  if (confirm(msg)) {
-    deleteFolder(folderName);
-  }
+  if (folderName === LEARNED) msg = `確定要清空「${LEARNED}」裡的所有單字嗎？`;
+  else if (folderName.includes("/")) msg = `確定要刪除小資料夾「${folderName}」以及裡面的所有單字嗎？`;
+  else msg = `確定要刪除大資料夾「${folderName}」以及底下所有的子資料夾與單字嗎？`;
+  if (await EH.confirm(msg, { danger: true, okText: "刪除" })) deleteFolder(folderName);
 };
 
-window.deleteFolder = function(folderName) {
-  const targetWords = allWords.filter(w => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
+window.deleteFolder = function (folderName) {
+  const targetWords = allWords.filter((w) => w.folder === folderName || w.folder.startsWith(`${folderName}/`));
   if (targetWords.length === 0) return;
 
-  const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
-  const BATCH_SIZE = 400;
-  const deletePromises = [];
-
-  for (let i = 0; i < targetWords.length; i += BATCH_SIZE) {
-    const chunk = targetWords.slice(i, i + BATCH_SIZE);
+  const ref = db.collection("users").doc(currentUser.uid).collection("words");
+  const jobs = [];
+  for (let i = 0; i < targetWords.length; i += 400) {
     const batch = db.batch();
-
-    chunk.forEach(w => {
-      const docRef = userWordsRef.doc(w.id);
-      batch.delete(docRef);
-    });
-
-    deletePromises.push(batch.commit());
+    targetWords.slice(i, i + 400).forEach((w) => batch.delete(ref.doc(w.id)));
+    jobs.push(batch.commit());
   }
 
-  Promise.all(deletePromises)
+  Promise.all(jobs)
     .then(() => {
-      alert(`🗑️ 成功刪除資料夾「${folderName}」！`);
-      allWords = allWords.filter(w => w.folder !== folderName && !w.folder.startsWith(`${folderName}/`));
+      EH.toast(`🗑️ 已刪除資料夾「${folderName}」`, "success");
+      allWords = allWords.filter((w) => w.folder !== folderName && !w.folder.startsWith(`${folderName}/`));
+      EH.saveStats(allWords);
       renderFolderList();
     })
-    .catch(err => {
-      alert("刪除資料夾失敗：" + err.message);
-    });
+    .catch((err) => EH.toast("刪除資料夾失敗：" + err.message, "error", 4000));
 };
