@@ -463,8 +463,8 @@ window.splitFolder = async function (folderName) {
 window.toggleFolderDropdown = function (event, folderName, index) {
   event.stopPropagation();
 
-  const existing = $("global-dropdown-menu");
-  if (existing) { existing.remove(); return; }
+  // 已經開著就關掉
+  if ($("global-dropdown-menu")) { closeGlobalDropdown(); return; }
 
   let btn;
   if (index === "special-learned") btn = event.currentTarget;
@@ -472,53 +472,61 @@ window.toggleFolderDropdown = function (event, folderName, index) {
   else btn = $(`dots-btn-${index}`);
   if (!btn) return;
 
-  const rect = btn.getBoundingClientRect();
-  const menu = document.createElement("div");
-  menu.id = "global-dropdown-menu";
-  menu.className = "dropdown-menu";
-  menu.style.top = `${rect.bottom + 4}px`;
-  menu.style.right = `${window.innerWidth - rect.right}px`;
+  // 手機（窄螢幕）：從畫面底部滑出，一定看得到所有選項；桌機：貼在按鈕旁
+  const isSheet = window.innerWidth <= 640;
 
   const f = jsArg(folderName);
   const isLearned = folderName === LEARNED;
   const item = (cls, fn, label) =>
     `<button class="dropdown-item ${cls}" onclick="${fn}(${f}); closeGlobalDropdown();">${label}</button>`;
 
-  menu.innerHTML = [
-    item("is-info", "viewFolderWords", "📖 檢視單字"),
-    item("", "openFolderEditModal", "✏️ 管理單字"),
-    !isLearned ? item("is-warn", "copyToTargetFolder", "📁 複製至…資料夾") : "",
-    !isLearned ? item("is-success", "addAllToLearned", "✅ 整夾加入已背過") : "",
-    !isLearned && !folderName.includes("/") ? item("is-accent", "splitFolder", "📦 拆分為多個子資料夾") : "",
-    item("is-success", "exportFolderData", "📤 匯出此資料夾"),
-    item("is-danger", "confirmDeleteFolder", isLearned ? "🗑️ 清空已背過單字" : "🗑️ 刪除資料夾")
-  ].join("");
+  const menu = document.createElement("div");
+  menu.id = "global-dropdown-menu";
+  menu.className = "dropdown-menu" + (isSheet ? " sheet" : "");
+  menu.innerHTML =
+    (isSheet ? `<div class="sheet-title">${esc(folderName)}</div>` : "") + [
+      item("is-info", "viewFolderWords", "📖 檢視單字"),
+      item("", "openFolderEditModal", "✏️ 管理單字"),
+      !isLearned ? item("is-warn", "copyToTargetFolder", "📁 複製至…資料夾") : "",
+      !isLearned ? item("is-success", "addAllToLearned", "✅ 整夾加入已背過") : "",
+      !isLearned && !folderName.includes("/") ? item("is-accent", "splitFolder", "📦 拆分為多個子資料夾") : "",
+      item("is-success", "exportFolderData", "📤 匯出此資料夾"),
+      item("is-danger", "confirmDeleteFolder", isLearned ? "🗑️ 清空已背過單字" : "🗑️ 刪除資料夾")
+    ].join("");
 
+  if (isSheet) {
+    const backdrop = document.createElement("div");
+    backdrop.id = "global-dropdown-backdrop";
+    backdrop.className = "sheet-backdrop";
+    document.body.appendChild(backdrop);
+    document.body.appendChild(menu);
+    return;
+  }
+
+  // 桌機：先放到按鈕下方，再依空間決定往下或往上
+  const rect = btn.getBoundingClientRect();
+  const margin = 8;
+  menu.style.right = `${window.innerWidth - rect.right}px`;
+  menu.style.top = `${rect.bottom + 4}px`;
+  menu.style.maxHeight = Math.min(360, window.innerHeight - margin * 2) + "px";
   document.body.appendChild(menu);
 
-  // 依畫面空間決定往下或往上展開，避免最下面的資料夾選單被切掉（看不到「刪除」）
-  const margin = 8;
-  menu.style.maxHeight = Math.min(360, window.innerHeight - margin * 2) + "px";
   const h = menu.offsetHeight;
   const spaceBelow = window.innerHeight - rect.bottom - margin;
   const spaceAbove = rect.top - margin;
-  if (h <= spaceBelow) {
-    menu.style.top = `${rect.bottom + 4}px`;
-  } else if (h <= spaceAbove) {
-    menu.style.top = `${rect.top - h - 4}px`;
-  } else {
-    // 上下都放不下：貼齊畫面頂端，選單內部可以捲動
-    menu.style.top = `${margin}px`;
-  }
+  if (h <= spaceBelow) menu.style.top = `${rect.bottom + 4}px`;
+  else if (h <= spaceAbove) menu.style.top = `${rect.top - h - 4}px`;
+  else menu.style.top = `${margin}px`;
 };
 
 window.closeGlobalDropdown = function () {
   const menu = $("global-dropdown-menu");
   if (menu) menu.remove();
+  const backdrop = $("global-dropdown-backdrop");
+  if (backdrop) backdrop.remove();
 };
+// 點任何地方（包含背景）都會關閉；手機網址列伸縮會觸發 scroll/resize，所以不再用它們關閉
 document.addEventListener("click", closeGlobalDropdown);
-window.addEventListener("scroll", closeGlobalDropdown, { passive: true });
-window.addEventListener("resize", closeGlobalDropdown);
 
 /* ============================== 翻牌學習 ============================== */
 
