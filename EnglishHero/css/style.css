@@ -234,6 +234,19 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .dropdown-item.is-warn { color: var(--warn); }
 .dropdown-item.is-danger { color: var(--danger); }
 
+/* 手機：從底部滑出的選單 */
+.sheet-backdrop { position: fixed; inset: 0; z-index: 9998; background: rgba(2, 6, 23, 0.45); }
+.dropdown-menu.sheet {
+  left: 0; right: 0; bottom: 0; top: auto; width: 100%; z-index: 9999;
+  max-height: 80vh; overflow-y: auto; min-width: 0;
+  padding: 6px 0 calc(10px + env(safe-area-inset-bottom));
+  border-radius: 18px 18px 0 0; border-width: 1px 0 0 0;
+  animation: sheetUp 0.2s ease-out;
+}
+.dropdown-menu.sheet .dropdown-item { padding: 16px 22px; font-size: 16px; }
+.sheet-title { padding: 12px 22px 8px; font-size: 13px; font-weight: 700; color: var(--muted); border-bottom: 1px solid var(--border); word-break: break-word; }
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
 /* ---------- Word list ---------- */
 .word-list { display: flex; flex-direction: column; gap: 8px; }
 .word-row {
