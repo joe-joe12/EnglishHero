@@ -39,9 +39,16 @@ let correctCount = 0;
 let streak = 0;
 let hintLevel = 0;
 
-// 還原上次選的題數
+// 還原上次選的題數；從首頁「開始複習」進來（?srs=1）時直接切到間隔複習
 const savedCount = EH.store.get("eh_quiz_count");
 if (savedCount !== null) countSelect.value = String(savedCount);
+if (new URLSearchParams(location.search).get("srs")) countSelect.value = "srs";
+
+// 間隔複習設定（想調整就改這兩個數字）
+const NEW_PER_DAY = 10; // 每天最多加入幾個「新單字」
+const MAX_SRS = 40;     // 每次複習最多幾題
+let srsStats = { dueAll: 0, due: 0, fresh: 0 };
+let recordCount = 0;
 
 EH.requireUser((user) => {
   currentUid = user.uid;
@@ -49,8 +56,8 @@ EH.requireUser((user) => {
 });
 
 function fetchAllUserData(uid) {
-  EH.cache.getWords(uid)
-    .then((words) => {
+  Promise.all([EH.cache.getWords(uid), EH.srs.load(uid)])
+    .then(([words]) => {
       allWordsList = [];
       words.forEach((d) => {
         if (!d.en || d.en === PLACEHOLDER) return;
@@ -173,6 +180,50 @@ function showActiveMode() {
   modeMatch.classList.toggle("hidden", fill);
 }
 
+// 記錄作答結果到複習進度，每 10 題順便上傳一次
+function srsRecord(word, isCorrect) {
+  EH.srs.record(word, isCorrect);
+  recordCount++;
+  if (recordCount % 10 === 0) EH.srs.flush();
+}
+window.addEventListener("pagehide", () => { EH.srs.flush(); });
+
+function showEmptyMessage(msg) {
+  if (isFillMode()) {
+    modeFill.innerHTML = `<p class="muted" style="text-align:center; padding:24px;">${esc(msg)}</p>`;
+  } else {
+    matchHud.innerHTML = "";
+    optionsContainer.innerHTML = "";
+    matchFeedback.textContent = "";
+    matchQuestion.textContent = msg;
+  }
+}
+
+// 今天的複習題 = 到期的單字（最逾期的優先）+ 今天還沒用完額度的新單字
+function buildSrsQueue() {
+  const learnedKeys = new Set(allWordsList.filter((w) => w.folder === EH.LEARNED).map(wordKey));
+  const dueAll = quizPool
+    .filter((w) => EH.srs.isDue(w))
+    .sort((a, b) => EH.srs.get(a).d - EH.srs.get(b).d);
+  const due = dueAll.slice(0, MAX_SRS);
+
+  const quota = Math.max(0, Math.min(NEW_PER_DAY - EH.srs.newToday(), MAX_SRS - due.length));
+  const fresh = shuffle(quizPool.filter((w) =>
+    EH.srs.isNew(w) && !learnedKeys.has(wordKey(w)) && w.folder !== EH.MISTAKES)).slice(0, quota);
+
+  srsStats = { dueAll: dueAll.length, due: due.length, fresh: fresh.length };
+  return shuffle([...due, ...fresh]);
+}
+
+function updateSrsInfo(show) {
+  const box = $("srs-info");
+  if (!box) return;
+  if (!show) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  box.innerHTML = `🧠 <b>間隔複習</b>：今天到期 <b>${srsStats.dueAll}</b> 個、新單字 <b>${srsStats.fresh}</b> 個` +
+    `（每天最多 ${NEW_PER_DAY} 個新單字）。答錯的明天再考，答對的會隔 2、4、8…天再出現。`;
+}
+
 // 開始（或重新開始）一輪完整測驗
 window.initCurrentMode = function () {
   showActiveMode();
@@ -190,9 +241,19 @@ window.initCurrentMode = function () {
     return;
   }
 
-  const limit = Number(countSelect.value) || 0;
-  quizQueue = shuffle(quizPool);
-  if (limit > 0) quizQueue = quizQueue.slice(0, limit);
+  if (countSelect.value === "srs") {
+    quizQueue = buildSrsQueue();
+    updateSrsInfo(true);
+    if (quizQueue.length === 0) {
+      showEmptyMessage("🎉 這個範圍今天沒有需要複習的單字了！明天再來，或改選「題數」繼續練習。");
+      return;
+    }
+  } else {
+    updateSrsInfo(false);
+    const limit = Number(countSelect.value) || 0;
+    quizQueue = shuffle(quizPool);
+    if (limit > 0) quizQueue = quizQueue.slice(0, limit);
+  }
   beginRound();
 };
 
@@ -279,6 +340,7 @@ function checkFillAnswer() {
   btnCheck.disabled = true;
 
   const isCorrect = userInput === currentWord.en.trim().toLowerCase().replace(/\s+/g, " ");
+  srsRecord(currentWord, isCorrect);
   if (isCorrect) {
     correctCount++;
     streak++;
@@ -366,6 +428,7 @@ function startMatchGame() {
 function handleMatchClick(clickedBtn, isCorrect) {
   if (isAnswerLocked) return;
   isAnswerLocked = true;
+  srsRecord(currentWord, isCorrect);
 
   if (isCorrect) {
     clickedBtn.classList.add("correct");
@@ -416,6 +479,7 @@ function uniqueWrongWords() {
 }
 
 function showQuizResult(modeName) {
+  EH.srs.flush();
   const total = quizQueue.length;
   const wrongCount = wrongList.length;
   const score = total ? Math.round(((total - wrongCount) / total) * 100) : 0;
@@ -507,4 +571,4 @@ window.saveMistakes = async function (btn) {
 };
 
 // 讓 quiz.html 知道這支程式已完整載入（診斷用）
-window.__EH_QUIZ_READY = "3100";
+window.__EH_QUIZ_READY = "3300";
