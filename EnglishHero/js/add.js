@@ -59,13 +59,14 @@ EH.requireUser((user) => {
 });
 
 // 讀取現有資料夾與已存在的單字
-function loadUserFolders(uid, selectFolder) {
-  return db.collection("users").doc(uid).collection("words").get()
-    .then((snapshot) => {
+// localOnly=true：只用本機快取，不連線（剛存完單字後使用）
+function loadUserFolders(uid, selectFolder, localOnly) {
+  const cached = localOnly ? EH.cache.peek(uid) : null;
+  return (cached ? Promise.resolve(cached) : EH.cache.getWords(uid))
+    .then((words) => {
       const foldersSet = new Set();
       existingKeys = new Set();
-      snapshot.forEach((doc) => {
-        const d = doc.data();
+      words.forEach((d) => {
         if (d.folder) foldersSet.add(d.folder);
         if (d.folder && d.en && d.en !== EH.PLACEHOLDER) existingKeys.add(dupKey(d.folder, d.en));
       });
@@ -197,10 +198,11 @@ addForm.addEventListener("submit", async (e) => {
   }
 
   try {
-    await db.collection("users").doc(currentUser.uid).collection("words").add({
+    const newRef = await db.collection("users").doc(currentUser.uid).collection("words").add({
       folder, en, pos, ch,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    EH.cache.append(currentUser.uid, [{ id: newRef.id, en, pos, ch, folder, createdAt: Date.now() }]);
 
     EH.store.set("eh_last_add_folder", folder);
     existingKeys.add(dupKey(folder, en));
@@ -214,7 +216,7 @@ addForm.addEventListener("submit", async (e) => {
     // 若剛剛是新增資料夾，切回下拉選單並選到它
     if (!newFolderGroup.classList.contains("hidden")) {
       btnCancelNewFolder.click();
-      await loadUserFolders(currentUser.uid, folder);
+      await loadUserFolders(currentUser.uid, folder, true);
     }
   } catch (err) {
     EH.toast(`❌ 儲存失敗：${err.message}`, "error", 4000);
@@ -304,16 +306,20 @@ bulkForm.addEventListener("submit", async (e) => {
   try {
     const ref = db.collection("users").doc(currentUser.uid).collection("words");
     const BATCH_SIZE = 400;
+    const created = [];
     for (let i = 0; i < valid.length; i += BATCH_SIZE) {
       const batch = db.batch();
       valid.slice(i, i + BATCH_SIZE).forEach((w) => {
-        batch.set(ref.doc(), {
+        const r = ref.doc();
+        created.push({ id: r.id, en: w.en, pos: w.pos, ch: w.ch, folder, createdAt: Date.now() });
+        batch.set(r, {
           folder, en: w.en, pos: w.pos, ch: w.ch,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       });
       await batch.commit();
     }
+    EH.cache.append(currentUser.uid, created);
 
     EH.store.set("eh_last_add_folder", folder);
     valid.forEach((w) => existingKeys.add(dupKey(folder, w.en)));
@@ -322,7 +328,7 @@ bulkForm.addEventListener("submit", async (e) => {
 
     if (!newFolderGroup.classList.contains("hidden")) {
       btnCancelNewFolder.click();
-      await loadUserFolders(currentUser.uid, folder);
+      await loadUserFolders(currentUser.uid, folder, true);
     }
   } catch (err) {
     EH.toast(`❌ 批次儲存失敗：${err.message}`, "error", 4000);
