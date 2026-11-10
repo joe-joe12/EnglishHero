@@ -49,15 +49,14 @@ EH.requireUser((user) => {
 });
 
 function fetchAllUserData(uid) {
-  db.collection("users").doc(uid).collection("words").get()
-    .then((snapshot) => {
+  EH.cache.getWords(uid)
+    .then((words) => {
       allWordsList = [];
-      snapshot.forEach((doc) => {
-        const d = doc.data();
+      words.forEach((d) => {
         if (!d.en || d.en === PLACEHOLDER) return;
         allWordsList.push({ en: d.en, pos: d.pos || "", ch: d.ch || "", folder: d.folder || "未分類" });
       });
-      EH.saveStats(allWordsList);
+      EH.saveStats(words);
 
       if (allWordsList.length === 0) {
         modeFill.innerHTML = `<p class="muted" style="text-align:center; padding:24px;">單字庫為空，請先至「新增單字」建立！</p>`;
@@ -484,13 +483,17 @@ window.saveMistakes = async function (btn) {
   try {
     const ref = db.collection("users").doc(currentUid).collection("words");
     const batch = db.batch();
+    const created = [];
     toAdd.forEach((w) => {
-      batch.set(ref.doc(), {
+      const r = ref.doc();
+      created.push({ id: r.id, en: w.en, pos: w.pos || "", ch: w.ch, folder: MISTAKES, createdAt: Date.now() });
+      batch.set(r, {
         en: w.en, pos: w.pos || "", ch: w.ch, folder: MISTAKES,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     });
     await batch.commit();
+    EH.cache.append(currentUid, created);
 
     toAdd.forEach((w) => allWordsList.push({ en: w.en, pos: w.pos || "", ch: w.ch, folder: MISTAKES }));
     buildFolderOptions();
