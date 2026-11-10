@@ -180,4 +180,99 @@
       folders: folders.size
     });
   };
+
+  // ---------- 單字本機快取（大幅減少 Firestore 讀取次數） ----------
+  // 第一次載入：讀取全部單字並存在本機。之後每次只查「新增的單字」；
+  // 本機的新增 / 修改 / 刪除會同步更新快取。超過 24 小時或按「重新同步」才會完整重讀。
+  const CACHE_PREFIX = "eh_words_v1_";
+  const FULL_REFRESH_MS = 24 * 60 * 60 * 1000;
+  const SYNC_MARGIN_MS = 5 * 60 * 1000; // 往前多抓 5 分鐘，避免裝置時間誤差漏掉新單字
+
+  function cacheRead(uid) {
+    try {
+      const raw = localStorage.getItem(CACHE_PREFIX + uid);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function cacheWrite(uid, data) {
+    try {
+      localStorage.setItem(CACHE_PREFIX + uid, JSON.stringify(data));
+    } catch (e) {
+      // 空間不足就放棄快取（之後每次完整讀取，功能不受影響）
+      try { localStorage.removeItem(CACHE_PREFIX + uid); } catch (e2) { /* 忽略 */ }
+    }
+  }
+  function normalizeDoc(doc) {
+    const d = doc.data();
+    let t = 0;
+    if (d.createdAt && typeof d.createdAt.toMillis === "function") t = d.createdAt.toMillis();
+    else if (typeof d.createdAt === "number") t = d.createdAt;
+    return { id: doc.id, en: d.en || "", pos: d.pos || "", ch: d.ch || "", folder: d.folder || "未分類", createdAt: t };
+  }
+
+  EH.cache = {
+    // 只看本機快取，不連線
+    peek(uid) {
+      const c = cacheRead(uid);
+      return c ? c.words : null;
+    },
+
+    // 取得全部單字：優先用快取，只向 Firestore 補抓新增的
+    async getWords(uid, opts = {}) {
+      const col = EH.db.collection("users").doc(uid).collection("words");
+      const now = Date.now();
+      const c = cacheRead(uid);
+      const needFull = !c || opts.force || !c.fullAt || now - c.fullAt > FULL_REFRESH_MS;
+
+      if (needFull) {
+        const snap = await col.get();
+        const words = [];
+        snap.forEach((doc) => words.push(normalizeDoc(doc)));
+        cacheWrite(uid, { words, syncedAt: now, fullAt: now });
+        return words;
+      }
+
+      try {
+        const since = firebase.firestore.Timestamp.fromMillis(Math.max(0, c.syncedAt - SYNC_MARGIN_MS));
+        const snap = await col.where("createdAt", ">", since).get();
+        const map = new Map(c.words.map((w) => [w.id, w]));
+        snap.forEach((doc) => map.set(doc.id, normalizeDoc(doc)));
+        const words = Array.from(map.values());
+        cacheWrite(uid, { words, syncedAt: now, fullAt: c.fullAt });
+        return words;
+      } catch (e) {
+        console.warn("增量同步失敗，改用本機快取：", e);
+        return c.words;
+      }
+    },
+
+    // 本機做了新增：把新單字加進快取
+    append(uid, newWords) {
+      const c = cacheRead(uid);
+      if (!c) return;
+      const map = new Map(c.words.map((w) => [w.id, w]));
+      newWords.forEach((w) => map.set(w.id, w));
+      cacheWrite(uid, { ...c, words: Array.from(map.values()) });
+    },
+
+    // 本機做了修改 / 刪除 / 搬移：用目前完整的單字清單覆蓋快取
+    replaceAll(uid, words) {
+      const c = cacheRead(uid);
+      const now = Date.now();
+      cacheWrite(uid, {
+        words,
+        syncedAt: c ? c.syncedAt : now,
+        fullAt: c ? c.fullAt : now
+      });
+    },
+
+    // 登出時清除（共用裝置的隱私）
+    clearAll() {
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith(CACHE_PREFIX))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch (e) { /* 忽略 */ }
+    }
+  };
 })();
