@@ -41,6 +41,7 @@
       <div class="form-group">
         <label for="quiz-count">🔢 題數</label>
         <select id="quiz-count">
+          <option value="srs">🧠 今日複習（間隔複習）</option>
           <option value="10">10 題</option>
           <option value="20">20 題</option>
           <option value="30">30 題</option>
@@ -55,6 +56,9 @@
         </select>
       </div>
     </div>
+
+    <!-- 間隔複習說明（選了「今日複習」才顯示） -->
+    <div id="srs-info" class="bulk-help hidden"></div>
 
     <!-- 第二層：配對方向（只有「選擇配對」才顯示） -->
     <div id="sub-mode-box" class="tabs hidden">
@@ -81,8 +85,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/common.js?v=3200"></script>
-<script src="js/quiz.js?v=3200"></script>
+<script src="js/common.js?v=3300"></script>
+<script src="js/quiz.js?v=3300"></script>
 <script>
   // 診斷：程式沒載入成功時，直接在頁面上提示
   if (!window.EH || !window.__EH_QUIZ_READY) {
