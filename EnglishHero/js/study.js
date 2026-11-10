@@ -24,30 +24,36 @@ const editModalContainer = $("edit-modal-container");
 function setBack(show) { btnBackFolders.classList.toggle("hidden", !show); }
 function leaveStudy() { studyActive = false; }
 
+// 本機資料有變動：同步寫回快取與統計
+function persistLocal() {
+  EH.cache.replaceAll(currentUser.uid, allWords);
+  EH.saveStats(allWords);
+}
+function refreshAfterChange() {
+  persistLocal();
+  renderFolderList();
+}
+
+window.forceSync = async function () {
+  EH.toast("同步中…", "info", 1200);
+  try {
+    await fetchAllWords(currentUser.uid, { force: true });
+    EH.toast("✅ 已重新同步", "success", 1600);
+  } catch (err) {
+    EH.toast("同步失敗：" + err.message, "error", 4000);
+  }
+};
+
 EH.requireUser((user) => {
   currentUser = user;
   fetchAllWords(user.uid);
 });
 
-function fetchAllWords(uid) {
-  return db.collection("users").doc(uid).collection("words").get()
-    .then((snapshot) => {
-      allWords = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        let timeVal = 0;
-        if (data.createdAt && typeof data.createdAt.toMillis === "function") timeVal = data.createdAt.toMillis();
-        else if (typeof data.createdAt === "number") timeVal = data.createdAt;
-
-        allWords.push({
-          id: doc.id,
-          en: data.en || "",
-          pos: data.pos || "",
-          ch: data.ch || "",
-          folder: data.folder || "未分類",
-          createdAt: timeVal
-        });
-      });
+// 單字來源是本機快取（只在有新增時才向 Firestore 補抓）；opts.force 會強制完整重讀
+function fetchAllWords(uid, opts = {}) {
+  return EH.cache.getWords(uid, opts)
+    .then((words) => {
+      allWords = words.map((w) => ({ ...w }));
       allWords.sort((a, b) => a.createdAt - b.createdAt);
       EH.saveStats(allWords);
 
@@ -125,6 +131,8 @@ function renderFolderList() {
     <div id="folder-list-area"></div>
     <div class="import-bar">
       <button class="btn btn-accent" onclick="document.getElementById('import-file-input').click()">📥 匯入單字資料 (JSON)</button>
+      <button class="btn btn-ghost" onclick="forceSync()">🔄 重新同步</button>
+      <p class="muted" style="margin-top:10px;">單字會暫存在本機以節省流量；在別的裝置修改過資料後，按「重新同步」即可更新。</p>
       <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="importData(event)">
     </div>`;
 
@@ -214,15 +222,16 @@ window.createNewEmptyFolder = async function () {
   }
 
   try {
-    await db.collection("users").doc(currentUser.uid).collection("words").add({
+    const newRef = await db.collection("users").doc(currentUser.uid).collection("words").add({
       en: PLACEHOLDER,
       pos: "",
       ch: "（空白資料夾佔位用）",
       folder: cleanName,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    allWords.push({ id: newRef.id, en: PLACEHOLDER, pos: "", ch: "（空白資料夾佔位用）", folder: cleanName, createdAt: Date.now() });
     EH.toast(`📁 已建立資料夾「${cleanName}」`, "success");
-    fetchAllWords(currentUser.uid);
+    refreshAfterChange();
   } catch (err) {
     EH.toast("建立失敗：" + err.message, "error", 4000);
   }
@@ -280,18 +289,22 @@ window.copyToTargetFolder = async function (sourceFolderName) {
 
   try {
     const ref = db.collection("users").doc(currentUser.uid).collection("words");
+    const created = [];
     for (let i = 0; i < targetWords.length; i += 400) {
       const batch = db.batch();
       targetWords.slice(i, i + 400).forEach((w) => {
-        batch.set(ref.doc(), {
+        const r = ref.doc();
+        created.push({ id: r.id, en: w.en, pos: w.pos || "", ch: w.ch, folder: cleanDest, createdAt: Date.now() });
+        batch.set(r, {
           en: w.en, pos: w.pos || "", ch: w.ch, folder: cleanDest,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       });
       await batch.commit();
     }
+    allWords.push(...created);
     EH.toast(`🎉 已複製 ${targetWords.length} 個單字到「${cleanDest}」`, "success");
-    fetchAllWords(currentUser.uid);
+    refreshAfterChange();
   } catch (err) {
     EH.toast("複製失敗：" + err.message, "error", 4000);
   }
@@ -362,11 +375,14 @@ window.importData = function (event) {
       }
 
       const ref = db.collection("users").doc(currentUser.uid).collection("words");
+      const created = [];
       for (let i = 0; i < imported.length; i += 400) {
         const batch = db.batch();
         imported.slice(i, i + 400).forEach((w) => {
           if (w.en && w.ch) {
-            batch.set(ref.doc(), {
+            const r = ref.doc();
+            created.push({ id: r.id, en: w.en, pos: w.pos || "", ch: w.ch, folder: w.folder || "匯入分類", createdAt: Date.now() });
+            batch.set(r, {
               en: w.en, pos: w.pos || "", ch: w.ch, folder: w.folder || "匯入分類",
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -374,9 +390,10 @@ window.importData = function (event) {
         });
         await batch.commit();
       }
-      EH.toast("資料匯入成功！", "success");
+      allWords.push(...created);
+      EH.toast(`資料匯入成功！共 ${created.length} 個單字`, "success");
       event.target.value = "";
-      fetchAllWords(currentUser.uid);
+      refreshAfterChange();
     } catch (err) {
       EH.toast("解析或匯入失敗：" + err.message, "error", 4000);
     }
@@ -407,18 +424,22 @@ window.addAllToLearned = async function (folderName) {
 
   try {
     const ref = db.collection("users").doc(currentUser.uid).collection("words");
+    const created = [];
     for (let i = 0; i < toAdd.length; i += 400) {
       const batch = db.batch();
       toAdd.slice(i, i + 400).forEach((w) => {
-        batch.set(ref.doc(), {
+        const r = ref.doc();
+        created.push({ id: r.id, en: w.en, pos: w.pos || "", ch: w.ch, folder: LEARNED, createdAt: Date.now() });
+        batch.set(r, {
           en: w.en, pos: w.pos || "", ch: w.ch, folder: LEARNED,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       });
       await batch.commit();
     }
+    allWords.push(...created);
     EH.toast(`🎉 已將 ${toAdd.length} 個單字加入「已經背過」`, "success");
-    fetchAllWords(currentUser.uid);
+    refreshAfterChange();
   } catch (err) {
     EH.toast("操作失敗：" + err.message, "error", 4000);
   }
@@ -442,17 +463,21 @@ window.splitFolder = async function (folderName) {
   if (!(await EH.confirm(`確定要將「${folderName}」以每 ${size} 個單字為一組，拆分為階層式小資料夾嗎？`))) return;
 
   const ref = db.collection("users").doc(currentUser.uid).collection("words");
+  const newFolders = new Map();
   try {
     for (let i = 0; i < targetWords.length; i += 400) {
       const batch = db.batch();
       targetWords.slice(i, i + 400).forEach((w, j) => {
         const part = Math.floor((i + j) / size) + 1;
-        batch.update(ref.doc(w.id), { folder: `${folderName}/Part${part}` });
+        const nf = `${folderName}/Part${part}`;
+        newFolders.set(w.id, nf);
+        batch.update(ref.doc(w.id), { folder: nf });
       });
       await batch.commit();
     }
+    allWords.forEach((w) => { if (newFolders.has(w.id)) w.folder = newFolders.get(w.id); });
     EH.toast(`🎉 已拆分為 ${Math.ceil(targetWords.length / size)} 個小資料夾`, "success");
-    fetchAllWords(currentUser.uid);
+    refreshAfterChange();
   } catch (err) {
     EH.toast("拆分失敗：" + err.message, "error", 4000);
   }
@@ -739,7 +764,7 @@ window.markAsLearned = async function () {
     } else {
       EH.toast(`「${word.en}」已經在已經背過裡了`, "info", 1600);
     }
-    EH.saveStats(allWords);
+    persistLocal();
 
     s.words.splice(s.index, 1);
     if (s.words.length === 0) { renderStudyDone(); return; }
@@ -872,6 +897,7 @@ window.saveEditedWord = function (wordId) {
     .then(() => {
       const t = allWords.find((w) => w.id === wordId);
       if (t) { t.en = newEn; t.pos = newPos; t.ch = newCh; }
+      persistLocal();
       closeEditModal();
       openFolderEditModal(currentFolderForManagement);
       EH.toast("✅ 已儲存修改", "success", 1500);
@@ -884,7 +910,7 @@ window.deleteSingleWord = async function (wordId) {
   try {
     await db.collection("users").doc(currentUser.uid).collection("words").doc(wordId).delete();
     allWords = allWords.filter((w) => w.id !== wordId);
-    EH.saveStats(allWords);
+    persistLocal();
     openFolderEditModal(currentFolderForManagement);
     EH.toast("🗑️ 已刪除", "success", 1500);
   } catch (err) {
@@ -916,7 +942,7 @@ window.deleteFolder = function (folderName) {
     .then(() => {
       EH.toast(`🗑️ 已刪除資料夾「${folderName}」`, "success");
       allWords = allWords.filter((w) => w.folder !== folderName && !w.folder.startsWith(`${folderName}/`));
-      EH.saveStats(allWords);
+      persistLocal();
       renderFolderList();
     })
     .catch((err) => EH.toast("刪除資料夾失敗：" + err.message, "error", 4000));
