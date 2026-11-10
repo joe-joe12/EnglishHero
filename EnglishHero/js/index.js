@@ -29,6 +29,7 @@ EH.requireUser((user) => {
 const btnLogout = document.getElementById("btn-logout");
 if (btnLogout) {
   btnLogout.addEventListener("click", () => {
+    EH.cache.clearAll();
     EH.auth.signOut().then(() => {
       window.location.replace("login.html?v=3000");
     });
