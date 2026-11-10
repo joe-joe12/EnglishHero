@@ -16,6 +16,12 @@ EH.requireUser((user) => {
     document.getElementById("stat-folders").textContent = stats.folders;
   }
 
+  // 間隔複習：只看本機資料，不額外讀取 Firestore
+  const due = EH.srs.localDueCount(user.uid);
+  const srsText = document.getElementById("srs-text");
+  if (due > 0) srsText.textContent = `🧠 今天有 ${due} 個單字該複習了`;
+  else if (EH.srs.localHasAny(user.uid)) srsText.textContent = "🎉 今天到期的都複習完了，可以再學一些新單字";
+
   // 繼續上次的資料夾
   const last = EH.store.get("eh_last_study");
   if (last) {
