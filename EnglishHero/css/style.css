@@ -82,6 +82,7 @@ a { color: inherit; }
   align-items: center;
   gap: 12px;
   padding: 12px max(16px, 5%);
+  background: var(--surface);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
@@ -142,6 +143,7 @@ input[type="text"], input[type="email"], input[type="password"], input[type="sea
 }
 input:focus, select:focus, textarea:focus {
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
 }
 textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
@@ -214,7 +216,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .folder-info p { color: var(--muted); font-size: 13px; }
 .learned-card {
   display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; margin-bottom: 14px;
-  background: var(--primary-soft); border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); border-radius: 12px;
+  background: var(--primary-soft); border: 1px solid var(--primary); border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); border-radius: 12px;
 }
 .learned-card .folder-info { cursor: pointer; flex: 1; }
 .learned-card h3 { color: var(--primary-ink); }
@@ -268,7 +270,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
   padding: 24px; text-align: center; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface);
   box-shadow: var(--shadow); backface-visibility: hidden; -webkit-backface-visibility: hidden;
 }
-.flip-back { transform: rotateY(180deg); background: linear-gradient(160deg, var(--surface), var(--primary-soft)); border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); }
+.flip-back { transform: rotateY(180deg); background: linear-gradient(160deg, var(--surface), var(--primary-soft)); border-color: var(--primary); border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); }
 .face-word { font-size: 36px; font-weight: 800; line-height: 1.25; word-break: break-word; }
 .flip-front .face-word { color: var(--accent); }
 .flip-back .face-word { color: var(--text); font-size: 30px; }
@@ -303,7 +305,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .score-big { font-size: 56px; font-weight: 900; color: var(--primary); line-height: 1.1; }
 .result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
 .wrong-box { text-align: left; max-height: 300px; overflow-y: auto; margin-top: 16px; padding: 14px; border-radius: 12px; background: var(--danger-soft); }
-.wrong-item { padding: 8px 0; border-bottom: 1px dashed color-mix(in srgb, var(--danger) 40%, transparent); font-size: 14px; }
+.wrong-item { padding: 8px 0; border-bottom: 1px dashed var(--danger); border-bottom: 1px dashed color-mix(in srgb, var(--danger) 40%, transparent); font-size: 14px; }
 .wrong-item:last-child { border-bottom: none; }
 
 /* ---------- Bulk add ---------- */
@@ -352,3 +354,8 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
   .preset-card { flex-direction: column; align-items: stretch; }
   .logo { font-size: 17px; }
 }
+
+/* ---------- 背單字：翻面後的「記得 / 不記得」 ---------- */
+.study-judge { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.link-btn { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer; padding: 10px 4px 0; }
+.link-btn:hover { text-decoration: underline; }
