@@ -22,7 +22,19 @@ const btnBackFolders = $("btn-back-folders");
 const editModalContainer = $("edit-modal-container");
 
 function setBack(show) { btnBackFolders.classList.toggle("hidden", !show); }
-function leaveStudy() { studyActive = false; }
+// 複習進度：第一次需要時才載入（只讀 1 次），離開背單字時上傳
+let srsReady = null;
+let srsCount = 0;
+function ensureSrs() {
+  if (!srsReady) srsReady = EH.srs.load(currentUser.uid);
+  return srsReady;
+}
+window.addEventListener("pagehide", () => { if (srsReady) EH.srs.flush(); });
+
+function leaveStudy() {
+  studyActive = false;
+  if (srsReady) EH.srs.flush();
+}
 
 // 本機資料有變動：同步寫回快取與統計
 function persistLocal() {
@@ -131,6 +143,7 @@ function renderFolderList() {
     <div id="folder-list-area"></div>
     <div class="import-bar">
       <button class="btn btn-accent" onclick="document.getElementById('import-file-input').click()">📥 匯入單字資料 (JSON)</button>
+      <button class="btn btn-ghost" onclick="exportAllData()">💾 備份全部</button>
       <button class="btn btn-ghost" onclick="forceSync()">🔄 重新同步</button>
       <p class="muted" style="margin-top:10px;">單字會暫存在本機以節省流量；在別的裝置修改過資料後，按「重新同步」即可更新。</p>
       <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="importData(event)">
@@ -357,6 +370,59 @@ window.exportFolderData = function (folderName) {
   EH.toast(`📤 已匯出 ${data.length} 個單字`, "success");
 };
 
+// 備份整個單字庫（格式和「匯入單字資料」相同，之後可直接匯入還原）
+window.exportAllData = function () {
+  const list = allWords.filter((w) => w.en !== PLACEHOLDER)
+    .map((w) => ({ en: w.en, pos: w.pos, ch: w.ch, folder: w.folder }));
+  if (list.length === 0) {
+    EH.toast("單字庫是空的，沒有東西可以備份", "error");
+    return;
+  }
+  const d = new Date();
+  const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const a = document.createElement("a");
+  a.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(list, null, 2)));
+  a.setAttribute("download", `english_hero_全部備份_${stamp}.json`);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  EH.toast(`💾 已備份 ${list.length} 個單字`, "success");
+};
+
+// 清除同一資料夾內「英文與中文都相同」的重複單字（保留最早的一筆）
+window.dedupeFolder = async function (folderName) {
+  const targets = allWords.filter((w) =>
+    (w.folder === folderName || w.folder.startsWith(`${folderName}/`)) && w.en !== PLACEHOLDER);
+  const seen = new Set();
+  const dups = [];
+  targets.forEach((w) => {
+    const k = w.folder + "|" + wordKey(w);
+    if (seen.has(k)) dups.push(w);
+    else seen.add(k);
+  });
+
+  if (dups.length === 0) {
+    EH.toast("這個資料夾沒有重複的單字 👍", "info");
+    return;
+  }
+  if (!(await EH.confirm(`找到 ${dups.length} 個重複的單字（同一個資料夾內，英文與中文都相同），要刪除多出來的嗎？\n每組會保留最早加入的那一筆。`, { danger: true, okText: "刪除重複" }))) return;
+
+  try {
+    const ref = db.collection("users").doc(currentUser.uid).collection("words");
+    for (let i = 0; i < dups.length; i += 400) {
+      const batch = db.batch();
+      dups.slice(i, i + 400).forEach((w) => batch.delete(ref.doc(w.id)));
+      await batch.commit();
+    }
+    const ids = new Set(dups.map((w) => w.id));
+    allWords = allWords.filter((w) => !ids.has(w.id));
+    EH.toast(`🧹 已清除 ${dups.length} 個重複單字`, "success");
+    refreshAfterChange();
+  } catch (err) {
+    EH.toast("清除失敗：" + err.message, "error", 4000);
+  }
+};
+
 window.importData = function (event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -515,6 +581,7 @@ window.toggleFolderDropdown = function (event, folderName, index) {
       !isLearned ? item("is-warn", "copyToTargetFolder", "📁 複製至…資料夾") : "",
       !isLearned ? item("is-success", "addAllToLearned", "✅ 整夾加入已背過") : "",
       !isLearned && !folderName.includes("/") ? item("is-accent", "splitFolder", "📦 拆分為多個子資料夾") : "",
+      item("is-warn", "dedupeFolder", "🧹 清除重複單字"),
       item("is-success", "exportFolderData", "📤 匯出此資料夾"),
       item("is-danger", "confirmDeleteFolder", isLearned ? "🗑️ 清空已背過單字" : "🗑️ 刪除資料夾")
     ].join("");
@@ -615,6 +682,11 @@ function renderStudyShell() {
       <button class="btn btn-secondary" onclick="nextCard()">下一張 ➡️</button>
     </div>
 
+    <div class="study-judge hidden" id="study-judge">
+      <button class="btn btn-danger" onclick="judgeCard(false)">❌ 不記得 <span class="kbd">1</span></button>
+      <button class="btn btn-primary" onclick="judgeCard(true)">✅ 記得 <span class="kbd">2</span></button>
+    </div>
+
     <div class="study-tools">
       <button class="btn btn-ghost btn-sm" onclick="shuffleStudy()">🔀 隨機排序</button>
       <button class="btn btn-ghost btn-sm" id="tool-reverse" onclick="toggleSetting('reverse')">🔁 先看中文</button>
@@ -674,6 +746,7 @@ function updateCard() {
 
   s.flipped = false;
   $("flip-card").classList.remove("is-flipped");
+  $("study-judge").classList.add("hidden");
 
   if (settings.auto && !settings.reverse) EH.speak(w.en);
 }
@@ -685,6 +758,7 @@ function swapCard(applyFn) {
   if (s.flipped && card) {
     card.classList.remove("is-flipped");
     s.flipped = false;
+    $("study-judge").classList.add("hidden");
     setTimeout(applyFn, 170);
   } else {
     applyFn();
@@ -697,6 +771,7 @@ window.flipCard = function () {
   if (!card) return;
   s.flipped = !s.flipped;
   card.classList.toggle("is-flipped", s.flipped);
+  $("study-judge").classList.toggle("hidden", !s.flipped);
   if (settings.auto && settings.reverse && s.flipped) speakCurrent();
 };
 
@@ -712,6 +787,19 @@ window.nextCard = function () {
   if (!s.words.length) return;
   const next = (s.index + 1) % s.words.length;
   swapCard(() => { s.index = next; updateCard(); });
+};
+
+// 翻面看答案後，告訴系統自己記不記得 → 記錄間隔複習進度，並換下一張
+window.judgeCard = async function (ok) {
+  const s = studyState;
+  const w = s.words[s.index];
+  if (!w) return;
+  await ensureSrs();
+  EH.srs.record(w, ok);
+  srsCount++;
+  if (srsCount % 10 === 0) EH.srs.flush();
+  EH.toast(ok ? "✅ 記下來了" : "❌ 明天會再出現", ok ? "success" : "info", 1200);
+  nextCard();
 };
 
 window.speakCurrent = function () {
@@ -794,6 +882,8 @@ document.addEventListener("keydown", (e) => {
       flipCard();
       break;
     case "s": case "S": speakCurrent(); break;
+    case "1": if (studyState.flipped) judgeCard(false); break;
+    case "2": if (studyState.flipped) judgeCard(true); break;
     case "l": case "L":
       if (currentFolderForManagement !== LEARNED) markAsLearned();
       break;
@@ -896,7 +986,11 @@ window.saveEditedWord = function (wordId) {
     .update({ en: newEn, pos: newPos, ch: newCh })
     .then(() => {
       const t = allWords.find((w) => w.id === wordId);
+      const oldW = t ? { en: t.en, ch: t.ch } : null;
       if (t) { t.en = newEn; t.pos = newPos; t.ch = newCh; }
+      if (oldW && (oldW.en !== newEn || oldW.ch !== newCh)) {
+        ensureSrs().then(() => { EH.srs.rename(oldW, { en: newEn, ch: newCh }); EH.srs.flush(); });
+      }
       persistLocal();
       closeEditModal();
       openFolderEditModal(currentFolderForManagement);
