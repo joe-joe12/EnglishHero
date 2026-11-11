@@ -374,6 +374,17 @@
       return true;
     },
 
+    // 單字的英文或中文被修改：把舊的複習進度複製給新的單字
+    rename(oldW, newW) {
+      const ok = srsKey(oldW), nk = srsKey(newW);
+      if (ok === nk) return;
+      const it = this.items[ok];
+      if (!it || this.items[nk]) return;
+      this.items[nk] = { ...it, t: Date.now() };
+      this.dirty.add(nk);
+      this._saveLocal();
+    },
+
     // 把尚未上傳的進度寫到雲端（只傳有變動的）
     async flush() {
       if (!this.uid || this.dirty.size === 0) return;
