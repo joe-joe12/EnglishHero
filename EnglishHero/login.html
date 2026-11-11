@@ -4,62 +4,84 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EnglishHero - 會員登入</title>
-  <link rel="stylesheet" href="css/style.css?v=2026">
-  <style>
-    .auth-container { max-width: 400px; margin: 60px auto; padding: 30px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    .auth-tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; }
-    .auth-tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; border-bottom: 3px solid transparent; }
-    .auth-tab.active { border-bottom-color: #3b82f6; color: #3b82f6; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 6px; font-weight: bold; }
-    .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-    .btn-submit { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
-    .btn-submit:hover { background: #2563eb; }
-    .auth-msg { padding: 10px; margin-bottom: 15px; border-radius: 6px; font-size: 14px; text-align: center; }
-    .auth-msg.error { background: #fee2e2; color: #dc2626; }
-    .auth-msg.success { background: #dcfce7; color: #16a34a; }
-    .hidden { display: none; }
-  </style>
+  <script>
+    try {
+      var t = JSON.parse(localStorage.getItem("eh_theme") || "null");
+      document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css?v=3400">
 </head>
-<body class="dashboard-body">
+<body>
 
-  <div class="auth-container">
-    <h2 style="text-align:center; margin-top:0;">📚 EnglishHero</h2>
-    
-    <div class="auth-tabs">
-      <div id="tab-login" class="auth-tab active">登入</div>
-      <div id="tab-register" class="auth-tab">註冊帳號</div>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand">
+      <span class="emoji">📚</span>
+      <h1>English Hero</h1>
+      <p>自訂單字庫，高效率背誦</p>
+    </div>
+
+    <div class="tabs">
+      <button type="button" id="tab-login" class="tab active">登入</button>
+      <button type="button" id="tab-register" class="tab">註冊帳號</button>
     </div>
 
     <div id="auth-message" class="auth-msg hidden"></div>
 
     <form id="login-form">
       <div class="form-group">
-        <label>電子郵件 (Email)</label>
-        <input type="email" id="login-email" placeholder="example@email.com" required>
+        <label for="login-email">電子郵件 (Email)</label>
+        <input type="email" id="login-email" placeholder="example@email.com" autocomplete="email" required>
       </div>
       <div class="form-group">
-        <label>密碼</label>
-        <input type="password" id="login-password" placeholder="請輸入密碼" required>
+        <label for="login-password">密碼</label>
+        <input type="password" id="login-password" placeholder="請輸入密碼" autocomplete="current-password" required>
       </div>
-      <button type="submit" class="btn-submit">登入</button>
+      <button type="submit" class="btn btn-submit">登入</button>
+      <div style="text-align:center;">
+        <button type="button" id="btn-forgot" class="link-btn">忘記密碼？</button>
+      </div>
     </form>
 
     <form id="register-form" class="hidden">
       <div class="form-group">
-        <label>電子郵件 (Email)</label>
-        <input type="email" id="reg-email" placeholder="example@email.com" required>
+        <label for="reg-email">電子郵件 (Email)</label>
+        <input type="email" id="reg-email" placeholder="example@email.com" autocomplete="email" required>
       </div>
       <div class="form-group">
-        <label>設定密碼 (至少 6 位數)</label>
-        <input type="password" id="reg-password" placeholder="請輸入至少 6 位數密碼" required>
+        <label for="reg-password">設定密碼 (至少 6 位數)</label>
+        <input type="password" id="reg-password" placeholder="請輸入至少 6 位數密碼" autocomplete="new-password" required>
       </div>
-      <button type="submit" class="btn-submit">建立新帳號</button>
+      <button type="submit" class="btn btn-submit">建立新帳號</button>
     </form>
   </div>
+</div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="js/login.js?v=2026"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="js/login.js?v=2026"></script>
+<script>
+  // 忘記密碼：寄出重設密碼信到上方輸入的信箱
+  document.getElementById("btn-forgot").addEventListener("click", async function () {
+    var email = document.getElementById("login-email").value.trim();
+    var box = document.getElementById("auth-message");
+    function show(msg, isError) {
+      box.textContent = msg;
+      box.className = "auth-msg " + (isError ? "error" : "success");
+    }
+    if (!email) {
+      show("請先在上方輸入你的電子郵件，再按「忘記密碼？」", true);
+      document.getElementById("login-email").focus();
+      return;
+    }
+    try {
+      await firebase.auth().sendPasswordResetEmail(email);
+      show("已寄出重設密碼信，請到信箱查看（也看看垃圾郵件匣）", false);
+    } catch (e) {
+      show("寄送失敗：" + e.message, true);
+    }
+  });
+</script>
 </body>
 </html>
