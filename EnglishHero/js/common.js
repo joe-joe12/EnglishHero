@@ -18,6 +18,9 @@
 
   const EH = (window.EH = {});
 
+  // 是否要求「信箱驗證後才能使用」。要暫時關閉驗證功能，把下面改成 false 即可。
+  EH.REQUIRE_VERIFIED = true;
+
   EH.PLACEHOLDER = "___placeholder___";
   EH.LEARNED = "📦 已經背過的單字";
   EH.MISTAKES = "❌ 錯題本";
@@ -54,9 +57,20 @@
 
   // ---------- 登入保護 ----------
   EH.requireUser = (cb) => {
-    EH.auth.onAuthStateChanged((user) => {
-      if (user) cb(user);
-      else window.location.replace("login.html?v=3000");
+    EH.auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.replace("login.html?v=3500");
+        return;
+      }
+      // 信箱尚未驗證：先向伺服器更新一次狀態（可能剛在別的分頁 / 手機點完驗證信），還是沒驗證就導去驗證頁
+      if (EH.REQUIRE_VERIFIED && !user.emailVerified) {
+        try { await user.reload(); } catch (e) { /* 忽略，沿用目前狀態 */ }
+        if (!user.emailVerified) {
+          window.location.replace("verify.html?v=3500");
+          return;
+        }
+      }
+      cb(user);
     });
   };
 
