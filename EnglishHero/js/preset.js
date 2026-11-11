@@ -1,119 +1,95 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyA4bbUoXHi29YAjCgYrnuYRhZJ8_JEtalc",
-  authDomain: "englishhero-d58c6.firebaseapp.com",
-  projectId: "englishhero-d58c6",
-  storageBucket: "englishhero-d58c6.firebasestorage.app",
-  messagingSenderId: "437927020009",
-  appId: "1:437927020009:web:30e18c99cfeec8ef4ef778",
-  measurementId: "G-TZTCS02SK6"
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const db = firebase.firestore();
-
+const db = EH.db;
 let currentUser = null;
-
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    currentUser = user;
-  } else {
-    window.location.replace("login.html?v=2101");
-  }
-});
 
 // 注意：fileUrl 的資料夾名稱 JSON 在 GitHub Pages 等區分大小寫的主機上必須與實際資料夾完全一致
 const PRESET_CONFIGS = {
-  lungting_grade1_l4: {
-    folderName: "📁 龍騰版高一第四課",
-    fileUrl: "./JSON/lungting_grade1_l4.json"
-  },
-  lungting_grade1_l5: {
-    folderName: "📁 龍騰版高一第五課",
-    fileUrl: "./JSON/lungting_grade1_l5.json"
-  },
-  lungting_grade1_l6: {
-    folderName: "📁 龍騰版高一第六課",
-    fileUrl: "./JSON/lungting_grade1_l6.json"
-  },
-  junior_2000: {
-    folderName: "📖 國中基礎2000單",
-    fileUrl: "./JSON/junior_2000.json"
-  },
-  cap_exam: {
-    folderName: "🔥 國中會考高頻單",
-    fileUrl: "./JSON/cap.json"
-  },
-  liveabc_sep: {
-    folderName: "📚 LiveABC 9月份",
-    fileUrl: "./JSON/liveabc_sep.json"
-  }
+  lungting_grade1_l4: { folderName: "📁 龍騰版高一第四課", fileUrl: "./JSON/lungting_grade1_l4.json" },
+  lungting_grade1_l5: { folderName: "📁 龍騰版高一第五課", fileUrl: "./JSON/lungting_grade1_l5.json" },
+  lungting_grade1_l6: { folderName: "📁 龍騰版高一第六課", fileUrl: "./JSON/lungting_grade1_l6.json" },
+  junior_2000: { folderName: "📖 國中基礎2000單", fileUrl: "./JSON/junior_2000.json" },
+  cap_exam: { folderName: "🔥 國中會考高頻單", fileUrl: "./JSON/cap.json" },
+  liveabc_sep: { folderName: "📚 LiveABC 9月份", fileUrl: "./JSON/liveabc_sep.json" }
 };
 
-window.importPreset = async function(presetKey) {
+EH.requireUser((user) => {
+  currentUser = user;
+  markImported();
+});
+
+// 依本機快取，標出已經加入過的題庫（沒有快取時不顯示，不額外讀取資料庫）
+function markImported() {
+  const words = currentUser ? EH.cache.peek(currentUser.uid) : null;
+  const folders = new Set((words || []).map((w) => w.folder));
+  document.querySelectorAll(".preset-card[data-preset]").forEach((card) => {
+    const cfg = PRESET_CONFIGS[card.dataset.preset];
+    const badge = card.querySelector(".preset-badge");
+    if (cfg && badge) badge.classList.toggle("hidden", !folders.has(cfg.folderName));
+  });
+}
+
+window.importPreset = async function (presetKey) {
   if (!currentUser) {
-    alert("登入狀態還在確認中，請稍後再試（或請先登入）。");
+    EH.toast("登入狀態還在確認中，請稍後再試", "error");
     return;
   }
-
   const config = PRESET_CONFIGS[presetKey];
   if (!config) {
-    alert("找不到對應的題庫設定！");
+    EH.toast("找不到對應的題庫設定！", "error");
     return;
   }
 
+  const btn = document.querySelector(`.preset-card[data-preset="${presetKey}"] button`);
   try {
     const response = await fetch(config.fileUrl);
     if (!response.ok) {
       throw new Error(`HTTP 錯誤！狀態碼：${response.status}，請檢查檔案路徑是否正確。`);
     }
     const words = await response.json();
-
     if (!Array.isArray(words) || words.length === 0) {
-      alert("此題庫檔案內容為空或格式不正確！");
+      EH.toast("此題庫檔案內容為空或格式不正確！", "error");
       return;
     }
 
-    if (!confirm(`確定要將「${config.folderName}」共 ${words.length} 個單字加入您的資料庫嗎？`)) {
-      return;
+    if (!(await EH.confirm(`確定要將「${config.folderName}」共 ${words.length} 個單字加入您的資料庫嗎？`))) return;
+
+    const ref = db.collection("users").doc(currentUser.uid).collection("words");
+
+    // 避免重複匯入：先看本機快取，沒有再用查詢確認
+    let already = new Set((EH.cache.peek(currentUser.uid) || []).map((w) => w.folder)).has(config.folderName);
+    if (!already) {
+      const dup = await ref.where("folder", "==", config.folderName).limit(1).get();
+      already = !dup.empty;
     }
+    if (already && !(await EH.confirm("這個題庫已經加入過了，確定要再加一次嗎？\n（會產生重複單字）"))) return;
 
-    const userWordsRef = db.collection("users").doc(currentUser.uid).collection("words");
+    if (btn) { btn.disabled = true; btn.textContent = "加入中..."; }
 
-    // 檢查是否已經匯入過同名題庫，避免重複堆積
-    const dup = await userWordsRef.where("folder", "==", config.folderName).limit(1).get();
-    if (!dup.empty && !confirm("這個題庫已經加入過了，確定要再加一次嗎？（會產生重複單字）")) {
-      return;
-    }
-
-    // 分批寫入 (每 400 筆為一個 Batch)，避免觸發 Firestore 500 筆上限限制
-    const BATCH_SIZE = 400;
-    let added = 0;
-    for (let i = 0; i < words.length; i += BATCH_SIZE) {
-      const chunk = words.slice(i, i + BATCH_SIZE);
+    // 分批寫入 (每 400 筆為一個 Batch)，避免觸發 Firestore 500 筆上限
+    const created = [];
+    for (let i = 0; i < words.length; i += 400) {
       const batch = db.batch();
-
-      chunk.forEach(w => {
+      words.slice(i, i + 400).forEach((w) => {
         if (!w || !w.en || !w.ch) return; // 略過不完整的資料
-        const newDocRef = userWordsRef.doc();
-        batch.set(newDocRef, {
+        const r = ref.doc();
+        created.push({ id: r.id, en: w.en, pos: w.pos || "", ch: w.ch, folder: config.folderName, createdAt: Date.now() });
+        batch.set(r, {
           en: w.en,
           pos: w.pos || "",
           ch: w.ch,
           folder: config.folderName,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        added++;
       });
-
       await batch.commit();
     }
 
-    alert(`🎉 成功加入「${config.folderName}」共 ${added} 個單字！`);
+    EH.cache.append(currentUser.uid, created); // 同步更新本機快取，背單字頁立刻看得到
+    EH.toast(`🎉 已加入「${config.folderName}」共 ${created.length} 個單字`, "success", 3500);
+    markImported();
   } catch (err) {
     console.error("載入 JSON 失敗：", err);
-    alert(`加入題庫失敗：${err.message}\n(請確認專案根目錄是否有 JSON 資料夾以及對應的檔案)`);
+    EH.toast(`加入題庫失敗：${err.message}`, "error", 5000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "➕ 加入題庫"; }
   }
 };
