@@ -495,6 +495,14 @@ function showQuizResult(modeName) {
         共 <b>${total}</b> 題｜答對 <b style="color:var(--primary)">${total - wrongCount}</b>｜答錯 <b style="color:var(--danger)">${wrongCount}</b>
       </p>`;
 
+  html += `<div class="result-actions">`;
+  if (wrongCount > 0) {
+    html += `<button type="button" class="btn btn-primary" onclick="retryWrong()">🎯 只重考錯題 (${uniqueWrongWords().length})</button>`;
+    html += `<button type="button" class="btn btn-secondary" onclick="saveMistakes(this)">📝 存到錯題本</button>`;
+  }
+  html += `<button type="button" class="btn ${wrongCount > 0 ? "btn-ghost" : "btn-primary"}" onclick="initCurrentMode()">🔄 重新測驗</button>`;
+  html += `</div>`;
+
   if (wrongCount > 0) {
     html += `<div class="wrong-box"><b style="color:var(--danger);">📋 錯題訂正清單</b>`;
     wrongList.forEach((item, idx) => {
@@ -509,13 +517,7 @@ function showQuizResult(modeName) {
     html += `</div>`;
   }
 
-  html += `<div class="result-actions">`;
-  if (wrongCount > 0) {
-    html += `<button type="button" class="btn btn-primary" onclick="retryWrong()">🎯 只重考錯題 (${uniqueWrongWords().length})</button>`;
-    html += `<button type="button" class="btn btn-secondary" onclick="saveMistakes(this)">📝 存到錯題本</button>`;
-  }
-  html += `<button type="button" class="btn ${wrongCount > 0 ? "btn-ghost" : "btn-primary"}" onclick="initCurrentMode()">🔄 重新測驗</button>`;
-  html += `</div></div>`;
+  html += `</div>`;
 
   modeFill.classList.add("hidden");
   modeMatch.classList.add("hidden");
