@@ -60,7 +60,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="js/login.js?v=2026"></script>
+<script src="js/login.js?v=3500"></script>
 <script>
   // 忘記密碼：寄出重設密碼信到上方輸入的信箱
   document.getElementById("btn-forgot").addEventListener("click", async function () {
@@ -79,7 +79,7 @@
       await firebase.auth().sendPasswordResetEmail(email);
       show("已寄出重設密碼信，請到信箱查看（也看看垃圾郵件匣）", false);
     } catch (e) {
-      show("寄送失敗：" + e.message, true);
+      show("寄送失敗：" + (typeof zhError === "function" ? zhError(e) : e.message), true);
     }
   });
 </script>
