@@ -8,7 +8,10 @@ EH.requireUser((user) => {
   const hello = h < 12 ? "早安" : h < 18 ? "午安" : "晚安";
   document.getElementById("greeting").textContent = `${hello}，${name}！準備好背單字了嗎？`;
 
-  // 統計（由背單字頁 / 測驗頁載入資料時寫入）
+  // 統計：有本機快取就直接算（不連線）；沒有的話要先進過背單字或考單字一次
+  const cachedWords = EH.cache.peek(user.uid);
+  if (cachedWords) EH.saveStats(cachedWords);
+
   const stats = EH.store.get("eh_stats");
   if (stats) {
     document.getElementById("stat-total").textContent = stats.total;
