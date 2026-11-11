@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Hero - 驗證信箱</title>
+  <script>
+    try {
+      var t = JSON.parse(localStorage.getItem("eh_theme") || "null");
+      document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css?v=3400">
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card" style="text-align:center;">
+    <div class="brand">
+      <span class="emoji">📧</span>
+      <h1>請驗證你的信箱</h1>
+      <p>我們寄了一封驗證信到</p>
+    </div>
+
+    <p style="font-weight:800; word-break:break-all; margin-bottom:10px;" id="verify-email">載入中...</p>
+    <p class="muted" style="margin-bottom:16px; line-height:1.7;">
+      請打開信箱，點信裡的連結完成驗證。<br>
+      找不到信的話，請看看<b>垃圾郵件匣</b>。<br>
+      驗證完成後，這個頁面會自動前進。
+    </p>
+
+    <div id="verify-msg" class="auth-msg hidden"></div>
+
+    <button type="button" id="btn-check" class="btn btn-primary btn-block">✅ 我已完成驗證</button>
+    <button type="button" id="btn-resend" class="btn btn-secondary btn-block" style="margin-top:10px;">📨 重新寄送驗證信</button>
+    <button type="button" id="btn-signout" class="link-btn">換一個帳號 / 登出</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="js/common.js?v=3500"></script>
+<script src="js/verify.js?v=3500"></script>
+</body>
+</html>
