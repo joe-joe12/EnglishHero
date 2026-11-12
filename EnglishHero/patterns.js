@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Hero - 背句型</title>
+  <script>
+    try {
+      var t = JSON.parse(localStorage.getItem("eh_theme") || "null");
+      document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css?v=3700">
+</head>
+<body>
+
+<header class="main-header">
+  <div class="logo"><a href="index.html?v=3000">🧩 背句型</a></div>
+  <div class="user-panel">
+    <a href="index.html?v=3000" class="btn-back">回首頁</a>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page-title-row">
+    <h2 id="cards-title">🧩 背句型</h2>
+  </div>
+  <div id="cards-container">
+    <p class="muted" style="text-align:center; padding:30px;">載入中...</p>
+  </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="js/common.js?v=3700"></script>
+<script src="js/cards.js?v=3700"></script>
+<script src="js/patterns.js?v=3700"></script>
+<script>
+  if (!window.EH || !window.__EH_CARDS_READY) {
+    var b = document.createElement("div");
+    b.className = "auth-msg error";
+    b.textContent = !window.EH
+      ? "⚠️ 找不到 js/common.js，請確認它放在 js 資料夾內並重新整理。"
+      : "⚠️ js/cards.js 或 js/patterns.js 沒有正確載入，請確認檔案都放在 js 資料夾，並清除瀏覽器快取。";
+    var m = document.querySelector(".page");
+    m.insertBefore(b, m.firstChild);
+  }
+</script>
+</body>
+</html>
