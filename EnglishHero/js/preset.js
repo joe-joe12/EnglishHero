@@ -8,7 +8,8 @@ const PRESET_CONFIGS = {
   lungting_grade1_l6: { folderName: "📁 龍騰版高一第六課", fileUrl: "./JSON/lungting_grade1_l6.json" },
   junior_2000: { folderName: "📖 國中基礎2000單", fileUrl: "./JSON/junior_2000.json" },
   cap_exam: { folderName: "🔥 國中會考高頻單", fileUrl: "./JSON/cap.json" },
-  liveabc_sep: { folderName: "📚 LiveABC 9月份", fileUrl: "./JSON/liveabc_sep.json" }
+  liveabc_sep: { folderName: "📚 LiveABC 9月份", fileUrl: "./JSON/liveabc_sep.json" },
+  liveabc_nov: { folderName: "📚 LiveABC 11月份", fileUrl: "./JSON/liveabc_nov.json" }
 };
 
 EH.requireUser((user) => {
