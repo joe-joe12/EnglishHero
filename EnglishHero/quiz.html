@@ -10,7 +10,7 @@
       document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } catch (e) {}
   </script>
-  <link rel="stylesheet" href="css/style.css?v=3400">
+  <link rel="stylesheet" href="css/style.css?v=3700">
 </head>
 <body>
 
@@ -28,6 +28,7 @@
     <div class="tabs">
       <button type="button" id="main-tab-fill" class="tab active">✏️ 填空測驗</button>
       <button type="button" id="main-tab-match" class="tab">🎴 選擇配對</button>
+      <button type="button" id="main-tab-trans" class="tab">✍️ 英翻中</button>
     </div>
 
     <!-- 範圍與題數 -->
@@ -47,6 +48,14 @@
           <option value="30">30 題</option>
           <option value="50">50 題</option>
           <option value="0">全部</option>
+        </select>
+      </div>
+      <div id="trans-source-box" class="form-group full hidden">
+        <label for="quiz-source">📚 題目來源</label>
+        <select id="quiz-source">
+          <option value="word">單字：看英文，寫出中文</option>
+          <option value="pattern">句型：看句型，寫出中文意思（自己評分）</option>
+          <option value="swap">用字改變：看基本字，寫出更好的替代字</option>
         </select>
       </div>
       <div id="sub-folder-select-container" class="form-group full hidden">
@@ -71,6 +80,9 @@
       <p class="muted" style="text-align:center; padding:24px;">載入單字中...</p>
     </div>
 
+    <!-- 英翻中 / 換字（打字）畫面 -->
+    <div id="mode-trans" class="hidden"></div>
+
     <!-- 選擇配對畫面 -->
     <div id="mode-match" class="hidden">
       <div id="match-hud"></div>
@@ -85,8 +97,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/common.js?v=3500"></script>
-<script src="js/quiz.js?v=3400"></script>
+<script src="js/common.js?v=3700"></script>
+<script src="js/quiz.js?v=3700"></script>
 <script>
   // 診斷：程式沒載入成功時，直接在頁面上提示
   if (!window.EH || !window.__EH_QUIZ_READY) {
