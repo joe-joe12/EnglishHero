@@ -21,6 +21,10 @@ const matchHud = $("match-hud");
 const matchQuestion = $("match-question");
 const optionsContainer = $("options-container");
 const matchFeedback = $("match-feedback");
+const mainTabTrans = $("main-tab-trans");
+const modeTrans = $("mode-trans");
+const sourceSelect = $("quiz-source");
+const transSourceBox = $("trans-source-box");
 
 // 結算畫面使用獨立容器，不會蓋掉選擇配對的 DOM
 const resultBox = document.createElement("div");
@@ -56,7 +60,7 @@ EH.requireUser((user) => {
 });
 
 function fetchAllUserData(uid) {
-  Promise.all([EH.cache.getWords(uid), EH.srs.load(uid)])
+  Promise.all([EH.cache.getWords(uid), EH.srs.load(uid), EH.daily.load(uid)])
     .then(([words]) => {
       allWordsList = [];
       words.forEach((d) => {
@@ -148,18 +152,18 @@ countSelect.addEventListener("change", () => {
   initCurrentMode();
 });
 
-mainTabFill.addEventListener("click", () => {
-  mainTabFill.classList.add("active");
-  mainTabMatch.classList.remove("active");
-  subModeBox.classList.add("hidden");
+function selectMainTab(which) {
+  mainTabFill.classList.toggle("active", which === "fill");
+  mainTabMatch.classList.toggle("active", which === "match");
+  mainTabTrans.classList.toggle("active", which === "trans");
+  subModeBox.classList.toggle("hidden", which !== "match");
+  transSourceBox.classList.toggle("hidden", which !== "trans");
   initCurrentMode();
-});
-mainTabMatch.addEventListener("click", () => {
-  mainTabMatch.classList.add("active");
-  mainTabFill.classList.remove("active");
-  subModeBox.classList.remove("hidden");
-  initCurrentMode();
-});
+}
+mainTabFill.addEventListener("click", () => selectMainTab("fill"));
+mainTabMatch.addEventListener("click", () => selectMainTab("match"));
+mainTabTrans.addEventListener("click", () => selectMainTab("trans"));
+sourceSelect.addEventListener("change", () => initCurrentMode());
 subTabEnCh.addEventListener("click", () => {
   subTabEnCh.classList.add("active");
   subTabChEn.classList.remove("active");
@@ -171,25 +175,34 @@ subTabChEn.addEventListener("click", () => {
   initCurrentMode();
 });
 
-function isFillMode() { return mainTabFill.classList.contains("active"); }
+function currentMode() {
+  if (mainTabTrans.classList.contains("active")) return "trans";
+  return mainTabFill.classList.contains("active") ? "fill" : "match";
+}
+function isFillMode() { return currentMode() === "fill"; }
 
 function showActiveMode() {
   resultBox.classList.add("hidden");
-  const fill = isFillMode();
-  modeFill.classList.toggle("hidden", !fill);
-  modeMatch.classList.toggle("hidden", fill);
+  const m = currentMode();
+  modeFill.classList.toggle("hidden", m !== "fill");
+  modeMatch.classList.toggle("hidden", m !== "match");
+  modeTrans.classList.toggle("hidden", m !== "trans");
 }
 
 // 記錄作答結果到複習進度，每 10 題順便上傳一次
 function srsRecord(word, isCorrect) {
-  EH.srs.record(word, isCorrect);
+  if (!word.kind || word.kind === "word") EH.srs.record(word, isCorrect); // 句型、用字不參與單字的間隔複習
+  const daily = EH.daily.add(1);
+  if (daily.reached) EH.toast(`🎉 達成今日目標（${EH.daily.goal()} 題）！`, "success", 3500);
   recordCount++;
-  if (recordCount % 10 === 0) EH.srs.flush();
+  if (recordCount % 10 === 0) EH.flushProgress();
 }
-window.addEventListener("pagehide", () => { EH.srs.flush(); });
+window.addEventListener("pagehide", () => { EH.flushProgress(); });
 
 function showEmptyMessage(msg) {
-  if (isFillMode()) {
+  if (currentMode() === "trans") {
+    modeTrans.innerHTML = `<p class="muted" style="text-align:center; padding:24px; line-height:1.8;">${esc(msg)}</p>`;
+  } else if (isFillMode()) {
     modeFill.innerHTML = `<p class="muted" style="text-align:center; padding:24px;">${esc(msg)}</p>`;
   } else {
     matchHud.innerHTML = "";
@@ -227,6 +240,9 @@ function updateSrsInfo(show) {
 // 開始（或重新開始）一輪完整測驗
 window.initCurrentMode = function () {
   showActiveMode();
+  if (currentMode() === "trans") { initTransMode(); return; }
+  ensureScopeOptions("word");
+  setSrsOptionEnabled(true);
   quizPool = getFilteredWords();
 
   if (quizPool.length === 0) {
@@ -262,7 +278,9 @@ function beginRound() {
   currentIndex = 0;
   correctCount = 0;
   streak = 0;
-  if (isFillMode()) startFillGame();
+  const m = currentMode();
+  if (m === "fill") startFillGame();
+  else if (m === "trans") startTransGame();
   else startMatchGame();
 }
 
@@ -279,6 +297,7 @@ function hudHtml() {
       <span>第 ${Math.min(currentIndex + 1, total)} / ${total} 題</span>
       <span>✅ ${correctCount}</span>
       <span>🔥 連對 ${streak}</span>
+      <span>🎯 今日 ${EH.daily.count()}/${EH.daily.goal()}</span>
     </div>`;
 }
 
@@ -472,14 +491,14 @@ function uniqueWrongWords() {
     const k = wordKey(w);
     if (!seen.has(k)) {
       seen.add(k);
-      words.push({ en: w.en, pos: w.pos, ch: w.ch });
+      words.push(w.q ? { ...w.q } : { en: w.en, pos: w.pos, ch: w.ch });
     }
   });
   return words;
 }
 
 function showQuizResult(modeName) {
-  EH.srs.flush();
+  EH.flushProgress();
   const total = quizQueue.length;
   const wrongCount = wrongList.length;
   const score = total ? Math.round(((total - wrongCount) / total) * 100) : 0;
@@ -498,22 +517,16 @@ function showQuizResult(modeName) {
   html += `<div class="result-actions">`;
   if (wrongCount > 0) {
     html += `<button type="button" class="btn btn-primary" onclick="retryWrong()">🎯 只重考錯題 (${uniqueWrongWords().length})</button>`;
-    html += `<button type="button" class="btn btn-secondary" onclick="saveMistakes(this)">📝 存到錯題本</button>`;
+    if (wrongList.every((w) => !w.kind || w.kind === "word")) { // 句型、用字不存進單字的錯題本
+      html += `<button type="button" class="btn btn-secondary" onclick="saveMistakes(this)">📝 存到錯題本</button>`;
+    }
   }
   html += `<button type="button" class="btn ${wrongCount > 0 ? "btn-ghost" : "btn-primary"}" onclick="initCurrentMode()">🔄 重新測驗</button>`;
   html += `</div>`;
 
   if (wrongCount > 0) {
     html += `<div class="wrong-box"><b style="color:var(--danger);">📋 錯題訂正清單</b>`;
-    wrongList.forEach((item, idx) => {
-      html += `
-        <div class="wrong-item">
-          <b>${idx + 1}.</b> ${posTag(item.pos)}<b>${esc(item.ch)}</b><br>
-          ❌ <span style="color:var(--danger); text-decoration:line-through;">${esc(item.userAnswer)}</span>　
-          ✅ <b style="color:var(--accent);">${esc(item.en)}</b>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(item.en)})">🔊</button>
-        </div>`;
-    });
+    wrongList.forEach((item, idx) => { html += wrongItemHtml(item, idx); });
     html += `</div>`;
   }
 
@@ -521,6 +534,7 @@ function showQuizResult(modeName) {
 
   modeFill.classList.add("hidden");
   modeMatch.classList.add("hidden");
+  modeTrans.classList.add("hidden");
   resultBox.innerHTML = html;
   resultBox.classList.remove("hidden");
 }
@@ -573,4 +587,285 @@ window.saveMistakes = async function (btn) {
 };
 
 // 讓 quiz.html 知道這支程式已完整載入（診斷用）
-window.__EH_QUIZ_READY = "3300";
+
+/* ============================== 英翻中 / 換字（打字測驗） ============================== */
+
+// 題目統一成 {kind, en(題目), ch(答案), ...}，這樣錯題、重考、結算都能共用
+const toWordQ = (w) => ({ kind: "word", en: w.en, pos: w.pos || "", ch: w.ch, folder: w.folder });
+const toPatternQ = (p) => ({ kind: "pattern", en: p.pattern, pos: "", ch: p.ch, example: p.example || "", exampleCh: p.exampleCh || "", folder: p.category || "預設" });
+const toSwapQ = (s) => {
+  const alts = (Array.isArray(s.to) ? s.to : []).filter(Boolean);
+  return { kind: "swap", en: s.from, pos: "", ch: alts.join(" / "), alts, note: s.note || "", example: s.example || "", folder: s.category || "預設" };
+};
+const SOURCE_LABEL = { pattern: "句型", swap: "用字改變" };
+
+const extraData = { pattern: null, swap: null };
+let scopeSource = "word"; // 目前「測驗範圍」選單裡放的是：單字資料夾 / 句型分類 / 用字分類
+let transPending = null;  // 目前這題的作答狀態
+let initSeq = 0;
+
+const normEn = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+const normZh = (s) => String(s || "")
+  .replace(/[\s\u3000，,。.、；;：:！!？?（）()\[\]【】「」『』"'“”‘’~～…\-—]/g, "")
+  .toLowerCase();
+
+// 中文答案比對（寬鬆）：中文意思可能有好幾個（用 / 、 ， ； 分開），符合任何一個就算對
+function zhMeanings(ch) {
+  const parts = String(ch).split(/[\/／、,，;；\n]|\s{2,}/).map(normZh).filter(Boolean);
+  return Array.from(new Set([normZh(ch), ...parts])).filter(Boolean);
+}
+function matchesChinese(answer, ch) {
+  const a = normZh(answer);
+  if (!a) return false;
+  return zhMeanings(ch).some((m) => {
+    if (a === m) return true;
+    if (m.length >= 2 && a.length >= 2) {
+      if (m.includes(a) && a.length >= Math.ceil(m.length / 2)) return true; // 寫了意思的主要部分
+      if (a.includes(m) && a.length <= m.length + 1) return true;            // 多寫了一點點（例如加「的」）
+    }
+    return false;
+  });
+}
+
+async function loadExtra(src) {
+  if (extraData[src]) return;
+  const name = src === "pattern" ? "patterns" : "swaps";
+  extraData[src] = await EH.collection(name).getAll(currentUid);
+}
+
+function setSrsOptionEnabled(on) {
+  Array.from(countSelect.options || []).forEach((o) => { if (o.value === "srs") o.disabled = !on; });
+}
+
+// 「測驗範圍」選單的內容跟著題目來源換：單字→資料夾；句型 / 用字→分類
+function ensureScopeOptions(src) {
+  if (scopeSource === src) return;
+  scopeSource = src;
+  if (src === "word") {
+    quizFolderSelect.innerHTML = `<option value="ALL">全部資料夾 (綜合測驗)</option>`;
+    quizFolderSelect.value = "ALL";
+    buildFolderOptions();
+  } else {
+    const cats = Array.from(new Set((extraData[src] || []).map((x) => x.category || "預設"))).sort((a, b) => a.localeCompare(b));
+    quizFolderSelect.innerHTML = `<option value="ALL">全部分類</option>` +
+      cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  }
+  quizFolderSelect.value = "ALL";
+  updateSubFolderDropdown();
+}
+
+async function initTransMode() {
+  const seq = ++initSeq;
+  const src = sourceSelect.value || "word";
+  setSrsOptionEnabled(src === "word");
+  if (src !== "word" && countSelect.value === "srs") countSelect.value = "10";
+
+  if (src !== "word") {
+    try {
+      await loadExtra(src);
+    } catch (err) {
+      if (seq === initSeq) showEmptyMessage("載入失敗：" + err.message);
+      return;
+    }
+    if (seq !== initSeq) return; // 載入期間使用者又切換了，放棄這次
+  }
+  ensureScopeOptions(src);
+
+  const cat = quizFolderSelect.value;
+  if (src === "word") {
+    quizPool = getFilteredWords().map(toWordQ);
+  } else {
+    quizPool = (extraData[src] || [])
+      .filter((x) => cat === "ALL" || (x.category || "預設") === cat)
+      .map(src === "pattern" ? toPatternQ : toSwapQ);
+  }
+
+  if (quizPool.length === 0) {
+    updateSrsInfo(false);
+    showEmptyMessage(src === "word"
+      ? "此範圍中沒有單字！"
+      : `還沒有任何「${SOURCE_LABEL[src]}」。\n請先回首頁進入「${src === "pattern" ? "背句型" : "用字改變"}」新增，再回來考試！`);
+    return;
+  }
+
+  if (src === "word" && countSelect.value === "srs") {
+    quizQueue = buildSrsQueue();
+    updateSrsInfo(true);
+    if (quizQueue.length === 0) {
+      showEmptyMessage("🎉 這個範圍今天沒有需要複習的單字了！明天再來，或改選「題數」繼續練習。");
+      return;
+    }
+  } else {
+    updateSrsInfo(false);
+    const limit = Number(countSelect.value) || 0;
+    quizQueue = shuffle(quizPool);
+    if (limit > 0) quizQueue = quizQueue.slice(0, limit);
+  }
+  beginRound();
+}
+
+function transQuestionHtml(q) {
+  const size = q.kind === "pattern" ? "font-size:22px;" : "";
+  return `<div class="quiz-question" style="${size}">${q.kind === "word" ? posTag(q.pos) : ""}${esc(q.en)}
+    <button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(q.en)})">🔊</button></div>`;
+}
+
+function startTransGame() {
+  if (currentIndex >= quizQueue.length) { showQuizResult("英翻中測驗"); return; }
+
+  const q = quizQueue[currentIndex];
+  currentWord = q;
+  transPending = null;
+  const prompt = q.kind === "swap" ? "寫出更好的替代用字（寫一個就可以）"
+    : q.kind === "pattern" ? "寫出這個句型的中文意思" : "寫出中文意思";
+
+  modeTrans.innerHTML = `
+    ${hudHtml()}
+    ${transQuestionHtml(q)}
+    <div class="fill-wrap">
+      <p class="muted" style="margin-bottom:8px;">${prompt}</p>
+      <input type="text" id="trans-answer" class="fill-input" placeholder="${q.kind === "swap" ? "例：glad" : "請輸入中文..."}"
+        autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      <div class="result-actions" style="margin-top:0;">
+        <button type="button" id="btn-trans-reveal" class="btn btn-ghost">👀 看答案</button>
+        <button type="button" id="btn-trans-submit" class="btn btn-primary">${q.kind === "pattern" ? "對照答案" : "送出答案"}</button>
+      </div>
+    </div>`;
+
+  const input = $("trans-answer");
+  input.focus();
+  $("btn-trans-submit").addEventListener("click", () => submitTrans(false));
+  $("btn-trans-reveal").addEventListener("click", () => submitTrans(true));
+  input.addEventListener("keypress", (e) => { if (e.key === "Enter") submitTrans(false); });
+}
+
+function submitTrans(reveal) {
+  const input = $("trans-answer");
+  if (!input || input.disabled || transPending) return;
+  const q = currentWord;
+  const typed = input.value.trim();
+  if (!reveal && !typed && q.kind !== "pattern") {
+    EH.toast("請先輸入答案，或按「看答案」", "info", 1500);
+    return;
+  }
+  input.disabled = true;
+
+  // 單字、用字：自動批改；句型：沒辦法自動批改，看完參考答案後自己評分
+  let ok = false;
+  const auto = q.kind !== "pattern";
+  if (!reveal && q.kind === "word") ok = matchesChinese(typed, q.ch);
+  else if (!reveal && q.kind === "swap") ok = q.alts.some((a) => normEn(a) === normEn(typed));
+
+  transPending = { ok, auto, userAnswer: typed || (reveal ? "（看答案）" : "（未作答）") };
+  renderTransResult();
+}
+
+function transAnswerHtml(q) {
+  const lines = [];
+  if (q.kind === "swap") {
+    lines.push(`<b style="color:var(--accent);">${q.alts.map(esc).join("、")}</b>`);
+    if (q.note) lines.push(`<div class="muted" style="margin-top:4px;">${esc(q.note)}</div>`);
+    if (q.example) lines.push(`<div class="muted"><i>${esc(q.example)}</i></div>`);
+  } else if (q.kind === "pattern") {
+    lines.push(`<b style="color:var(--accent);">${esc(q.ch)}</b>`);
+    if (q.example) lines.push(`<div class="muted" style="margin-top:4px;"><i>${esc(q.example)}</i></div>`);
+    if (q.exampleCh) lines.push(`<div class="muted">${esc(q.exampleCh)}</div>`);
+  } else {
+    lines.push(`<b style="color:var(--accent); font-size:19px;">${esc(q.ch)}</b>`);
+  }
+  return lines.join("");
+}
+
+function renderTransResult() {
+  const q = currentWord;
+  const p = transPending;
+  const typedHtml = `<div style="font-size:14px; margin-bottom:4px;">你的回答：<b>${esc(p.userAnswer)}</b></div>`;
+  let box, buttons;
+
+  if (p.auto) {
+    box = `
+      <div class="answer-box ${p.ok ? "ok" : "bad"}">
+        <div style="font-weight:800; margin-bottom:6px; color:${p.ok ? "var(--primary-ink)" : "var(--danger)"};">
+          ${p.ok ? "✅ 答對了！" : "❌ 答錯囉！"}${p.overridden ? "（已改為答對）" : ""}
+        </div>
+        ${typedHtml}
+        <div>${q.kind === "swap" ? "可以換成：" : "正確答案："}${transAnswerHtml(q)}</div>
+      </div>`;
+    buttons = `
+      <div class="result-actions" style="margin-top:0;">
+        ${p.ok ? "" : `<button type="button" id="btn-trans-override" class="btn btn-secondary">✅ 其實我答對了</button>`}
+        <button type="button" id="btn-trans-next" class="btn btn-primary">下一題 ➡️</button>
+      </div>`;
+  } else {
+    box = `
+      <div class="answer-box" style="border-color:var(--border); background:var(--surface-2);">
+        <div style="font-weight:800; margin-bottom:6px;">📖 對照參考答案</div>
+        ${typedHtml}
+        <div>參考答案：${transAnswerHtml(q)}</div>
+      </div>`;
+    buttons = `
+      <div class="result-actions" style="margin-top:0;">
+        <button type="button" id="btn-self-wrong" class="btn btn-danger">❌ 我答錯了</button>
+        <button type="button" id="btn-self-right" class="btn btn-primary">✅ 我答對了</button>
+      </div>`;
+  }
+
+  modeTrans.innerHTML = `${hudHtml()}${transQuestionHtml(q)}<div class="fill-wrap">${box}${buttons}</div>`;
+
+  const next = $("btn-trans-next");
+  if (next) {
+    next.focus();
+    next.addEventListener("click", () => finalizeTrans(p.ok));
+  }
+  const override = $("btn-trans-override");
+  if (override) {
+    override.addEventListener("click", () => {
+      p.ok = true;
+      p.overridden = true;
+      renderTransResult();
+    });
+  }
+  const wrong = $("btn-self-wrong");
+  if (wrong) wrong.addEventListener("click", () => finalizeTrans(false));
+  const right = $("btn-self-right");
+  if (right) right.addEventListener("click", () => finalizeTrans(true));
+}
+
+// 這題最後的結果確定後才計分（讓「其實我答對了」可以改判）
+function finalizeTrans(ok) {
+  const q = currentWord;
+  const p = transPending;
+  if (!p) return;
+  if (ok) {
+    correctCount++;
+    streak++;
+  } else {
+    streak = 0;
+    wrongList.push({ en: q.en, pos: q.pos, ch: q.ch, userAnswer: p.userAnswer, mode: "trans", kind: q.kind, q });
+  }
+  srsRecord(q, ok);
+  currentIndex++;
+  transPending = null;
+  startTransGame();
+}
+
+function wrongItemHtml(item, idx) {
+  if (item.mode === "trans") {
+    return `
+        <div class="wrong-item">
+          <b>${idx + 1}.</b> ${item.kind === "word" ? posTag(item.pos) : ""}<b>${esc(item.en)}</b><br>
+          ❌ <span style="color:var(--danger); text-decoration:line-through;">${esc(item.userAnswer)}</span>　
+          ✅ <b style="color:var(--accent);">${esc(item.ch)}</b>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(item.en)})">🔊</button>
+        </div>`;
+  }
+  return `
+        <div class="wrong-item">
+          <b>${idx + 1}.</b> ${posTag(item.pos)}<b>${esc(item.ch)}</b><br>
+          ❌ <span style="color:var(--danger); text-decoration:line-through;">${esc(item.userAnswer)}</span>　
+          ✅ <b style="color:var(--accent);">${esc(item.en)}</b>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(item.en)})">🔊</button>
+        </div>`;
+}
+
+window.__EH_QUIZ_READY = "3700";
