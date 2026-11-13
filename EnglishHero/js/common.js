@@ -195,100 +195,113 @@
     });
   };
 
-  // ---------- 單字本機快取（大幅減少 Firestore 讀取次數） ----------
-  // 第一次載入：讀取全部單字並存在本機。之後每次只查「新增的單字」；
+  // ---------- 本機快取（大幅減少 Firestore 讀取次數） ----------
+  // 第一次載入：讀取全部資料並存在本機。之後每次只查「新增的」；
   // 本機的新增 / 修改 / 刪除會同步更新快取。超過 24 小時或按「重新同步」才會完整重讀。
-  const CACHE_PREFIX = "eh_words_v1_";
+  // 單字用 EH.cache；其他資料集合（句型、用字改變…）用 EH.collection("名稱")
   const FULL_REFRESH_MS = 24 * 60 * 60 * 1000;
-  const SYNC_MARGIN_MS = 5 * 60 * 1000; // 往前多抓 5 分鐘，避免裝置時間誤差漏掉新單字
+  const SYNC_MARGIN_MS = 5 * 60 * 1000; // 往前多抓 5 分鐘，避免裝置時間誤差漏掉新資料
+  const CACHE_PREFIXES = ["eh_words_v1_", "eh_patterns_v1_", "eh_swaps_v1_", "eh_srs_v1_", "eh_daily_v1_"];
 
-  function cacheRead(uid) {
-    try {
-      const raw = localStorage.getItem(CACHE_PREFIX + uid);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
+  function toMillis(v) {
+    if (v && typeof v.toMillis === "function") return v.toMillis();
+    return typeof v === "number" ? v : 0;
   }
-  function cacheWrite(uid, data) {
-    try {
-      localStorage.setItem(CACHE_PREFIX + uid, JSON.stringify(data));
-    } catch (e) {
-      // 空間不足就放棄快取（之後每次完整讀取，功能不受影響）
-      try { localStorage.removeItem(CACHE_PREFIX + uid); } catch (e2) { /* 忽略 */ }
-    }
-  }
-  function normalizeDoc(doc) {
+  function normalizeDoc(doc) { // 單字
     const d = doc.data();
-    let t = 0;
-    if (d.createdAt && typeof d.createdAt.toMillis === "function") t = d.createdAt.toMillis();
-    else if (typeof d.createdAt === "number") t = d.createdAt;
-    return { id: doc.id, en: d.en || "", pos: d.pos || "", ch: d.ch || "", folder: d.folder || "未分類", createdAt: t };
+    return { id: doc.id, en: d.en || "", pos: d.pos || "", ch: d.ch || "", folder: d.folder || "未分類", createdAt: toMillis(d.createdAt) };
+  }
+  function normalizeGeneric(doc) { // 其他集合：保留所有欄位
+    const d = doc.data();
+    return { ...d, id: doc.id, createdAt: toMillis(d.createdAt) };
   }
 
-  EH.cache = {
-    // 只看本機快取，不連線
-    peek(uid) {
-      const c = cacheRead(uid);
-      return c ? c.words : null;
-    },
-
-    // 取得全部單字：優先用快取，只向 Firestore 補抓新增的
-    async getWords(uid, opts = {}) {
-      const col = EH.db.collection("users").doc(uid).collection("words");
-      const now = Date.now();
-      const c = cacheRead(uid);
-      const needFull = !c || opts.force || !c.fullAt || now - c.fullAt > FULL_REFRESH_MS;
-
-      if (needFull) {
-        const snap = await col.get();
-        const words = [];
-        snap.forEach((doc) => words.push(normalizeDoc(doc)));
-        cacheWrite(uid, { words, syncedAt: now, fullAt: now });
-        return words;
-      }
-
+  function makeCache(name, normalize) {
+    const prefix = `eh_${name}_v1_`;
+    const read = (uid) => {
       try {
-        const since = firebase.firestore.Timestamp.fromMillis(Math.max(0, c.syncedAt - SYNC_MARGIN_MS));
-        const snap = await col.where("createdAt", ">", since).get();
-        const map = new Map(c.words.map((w) => [w.id, w]));
-        snap.forEach((doc) => map.set(doc.id, normalizeDoc(doc)));
-        const words = Array.from(map.values());
-        cacheWrite(uid, { words, syncedAt: now, fullAt: c.fullAt });
-        return words;
+        const raw = localStorage.getItem(prefix + uid);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    };
+    const write = (uid, data) => {
+      try {
+        localStorage.setItem(prefix + uid, JSON.stringify(data));
       } catch (e) {
-        console.warn("增量同步失敗，改用本機快取：", e);
-        return c.words;
+        // 空間不足就放棄快取（之後每次完整讀取，功能不受影響）
+        try { localStorage.removeItem(prefix + uid); } catch (e2) { /* 忽略 */ }
       }
-    },
+    };
 
-    // 本機做了新增：把新單字加進快取
-    append(uid, newWords) {
-      const c = cacheRead(uid);
-      if (!c) return;
-      const map = new Map(c.words.map((w) => [w.id, w]));
-      newWords.forEach((w) => map.set(w.id, w));
-      cacheWrite(uid, { ...c, words: Array.from(map.values()) });
-    },
+    const api = {
+      // 只看本機快取，不連線
+      peek(uid) {
+        const c = read(uid);
+        return c ? c.words : null;
+      },
 
-    // 本機做了修改 / 刪除 / 搬移：用目前完整的單字清單覆蓋快取
-    replaceAll(uid, words) {
-      const c = cacheRead(uid);
-      const now = Date.now();
-      cacheWrite(uid, {
-        words,
-        syncedAt: c ? c.syncedAt : now,
-        fullAt: c ? c.fullAt : now
-      });
-    },
+      // 取得全部資料：優先用快取，只向 Firestore 補抓新增的
+      async getWords(uid, opts = {}) {
+        const col = EH.db.collection("users").doc(uid).collection(name);
+        const now = Date.now();
+        const c = read(uid);
+        const needFull = !c || opts.force || !c.fullAt || now - c.fullAt > FULL_REFRESH_MS;
 
-    // 登出時清除（共用裝置的隱私）
-    clearAll() {
-      try {
-        Object.keys(localStorage)
-          .filter((k) => k.startsWith(CACHE_PREFIX) || k.startsWith("eh_srs_v1_"))
-          .forEach((k) => localStorage.removeItem(k));
-      } catch (e) { /* 忽略 */ }
-    }
-  };
+        if (needFull) {
+          const snap = await col.get();
+          const words = [];
+          snap.forEach((doc) => words.push(normalize(doc)));
+          write(uid, { words, syncedAt: now, fullAt: now });
+          return words;
+        }
+
+        try {
+          const since = firebase.firestore.Timestamp.fromMillis(Math.max(0, c.syncedAt - SYNC_MARGIN_MS));
+          const snap = await col.where("createdAt", ">", since).get();
+          const map = new Map(c.words.map((w) => [w.id, w]));
+          snap.forEach((doc) => map.set(doc.id, normalize(doc)));
+          const words = Array.from(map.values());
+          write(uid, { words, syncedAt: now, fullAt: c.fullAt });
+          return words;
+        } catch (e) {
+          console.warn("增量同步失敗，改用本機快取：", e);
+          return c.words;
+        }
+      },
+
+      // 本機做了新增：把新資料加進快取
+      append(uid, newWords) {
+        const c = read(uid);
+        if (!c) return;
+        const map = new Map(c.words.map((w) => [w.id, w]));
+        newWords.forEach((w) => map.set(w.id, w));
+        write(uid, { ...c, words: Array.from(map.values()) });
+      },
+
+      // 本機做了修改 / 刪除 / 搬移：用目前完整的清單覆蓋快取
+      replaceAll(uid, words) {
+        const c = read(uid);
+        const now = Date.now();
+        write(uid, { words, syncedAt: c ? c.syncedAt : now, fullAt: c ? c.fullAt : now });
+      },
+
+      // 登出時清除所有快取與進度（共用裝置的隱私）
+      clearAll() {
+        try {
+          Object.keys(localStorage)
+            .filter((k) => CACHE_PREFIXES.some((p) => k.startsWith(p)))
+            .forEach((k) => localStorage.removeItem(k));
+        } catch (e) { /* 忽略 */ }
+      }
+    };
+    api.getAll = api.getWords;
+    return api;
+  }
+
+  EH.cache = makeCache("words", normalizeDoc);
+
+  const _collections = {};
+  EH.collection = (name) => _collections[name] || (_collections[name] = makeCache(name, normalizeGeneric));
 
   // ---------- 間隔複習（Leitner 盒子法） ----------
   // 每個單字記錄：b=階段(0~5)、d=下次複習日(第幾天)、c=第一次考的日期、t=最後更新時間
@@ -414,4 +427,118 @@
       }
     }
   };
+
+  // ---------- 每日目標與連續天數 ----------
+  // 每答一題（考單字、背單字按「記得 / 不記得」）就算今天練習 1 題。
+  // 連續天數 = 連續幾天「至少練習 1 題」；今天還沒練習不會中斷，要到明天才會歸零。
+  // 資料先存本機，並同步一份到 users/{uid}/meta/daily（讀一次、寫一次，非常省額度）
+  const DAILY_LOCAL = "eh_daily_v1_";
+  const emptyDaily = () => ({ goal: 20, goalT: 0, days: {} });
+
+  function dailyStreak(days) {
+    let d = dayNow();
+    if (!(days[d] > 0)) d--; // 今天還沒練習：從昨天開始算
+    let n = 0;
+    while (days[d] > 0) { n++; d--; }
+    return n;
+  }
+
+  EH.daily = {
+    DEFAULT_GOAL: 20,
+    uid: null,
+    data: emptyDaily(),
+    dirtyDays: new Set(),
+    goalDirty: false,
+
+    _read(uid) {
+      const d = EH.store.get(DAILY_LOCAL + uid, null);
+      if (!d || typeof d !== "object") return emptyDaily();
+      return { goal: d.goal || 20, goalT: d.goalT || 0, days: d.days || {} };
+    },
+    _saveLocal() {
+      if (!this.uid) return;
+      const t = dayNow();
+      const days = {};
+      Object.keys(this.data.days).forEach((k) => { if (t - Number(k) <= 90) days[k] = this.data.days[k]; });
+      this.data.days = days; // 只保留最近 90 天
+      EH.store.set(DAILY_LOCAL + this.uid, this.data);
+    },
+
+    loadLocal(uid) {
+      this.uid = uid;
+      this.data = this._read(uid);
+      return this.data;
+    },
+
+    // 本機 + 雲端合併：每天取較大的次數，目標取「較晚設定」的
+    async load(uid) {
+      this.loadLocal(uid);
+      try {
+        const doc = await EH.db.collection("users").doc(uid).collection("meta").doc("daily").get();
+        const r = doc.exists ? doc.data() : {};
+        const rdays = r.days || {};
+        Object.keys(rdays).forEach((k) => {
+          const rc = Number(rdays[k]) || 0;
+          if (rc > (this.data.days[k] || 0)) this.data.days[k] = rc;
+        });
+        Object.keys(this.data.days).forEach((k) => {
+          if ((this.data.days[k] || 0) > (Number(rdays[k]) || 0)) this.dirtyDays.add(k);
+        });
+        if ((r.goalT || 0) > this.data.goalT) { this.data.goal = r.goal || 20; this.data.goalT = r.goalT; }
+        else if (this.data.goalT > (r.goalT || 0)) this.goalDirty = true;
+        this._saveLocal();
+      } catch (e) {
+        console.warn("讀取每日進度失敗，先使用本機資料：", e);
+      }
+      return this.data;
+    },
+
+    count() { return this.data.days[dayNow()] || 0; },
+    goal() { return this.data.goal || 20; },
+    streak() { return dailyStreak(this.data.days); },
+
+    // 答一題。reached=true 代表「這一題剛好達成今日目標」
+    add(n = 1) {
+      const t = String(dayNow());
+      const before = this.data.days[t] || 0;
+      this.data.days[t] = before + n;
+      this.dirtyDays.add(t);
+      this._saveLocal();
+      const g = this.goal();
+      return { count: before + n, reached: before < g && before + n >= g };
+    },
+
+    setGoal(g) {
+      this.data.goal = g;
+      this.data.goalT = Date.now();
+      this.goalDirty = true;
+      this._saveLocal();
+    },
+
+    // 首頁用：只看本機，不連線
+    peek(uid) {
+      const d = this._read(uid);
+      return { goal: d.goal || 20, count: d.days[dayNow()] || 0, streak: dailyStreak(d.days) };
+    },
+
+    async flush() {
+      if (!this.uid || (this.dirtyDays.size === 0 && !this.goalDirty)) return;
+      const payload = { goal: this.data.goal, goalT: this.data.goalT };
+      const keys = Array.from(this.dirtyDays);
+      if (keys.length) {
+        payload.days = {};
+        keys.forEach((k) => { payload.days[k] = this.data.days[k]; });
+      }
+      try {
+        await EH.db.collection("users").doc(this.uid).collection("meta").doc("daily").set(payload, { merge: true });
+        keys.forEach((k) => this.dirtyDays.delete(k));
+        this.goalDirty = false;
+      } catch (e) {
+        console.warn("上傳每日進度失敗，稍後再試：", e);
+      }
+    }
+  };
+
+  // 一次上傳「複習進度」與「每日進度」
+  EH.flushProgress = () => Promise.all([EH.srs.flush(), EH.daily.flush()]);
 })();
