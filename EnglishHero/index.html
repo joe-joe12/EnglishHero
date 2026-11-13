@@ -10,7 +10,7 @@
       document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } catch (e) {}
   </script>
-  <link rel="stylesheet" href="css/style.css?v=3400">
+  <link rel="stylesheet" href="css/style.css?v=3700">
 </head>
 <body>
 
@@ -26,6 +26,16 @@
   <div class="hero">
     <h1 id="greeting">準備好提升英文實力了嗎？</h1>
     <p>自訂專屬單字庫，高效率背誦與自選測驗！</p>
+  </div>
+
+  <!-- 每日目標 / 連續天數 -->
+  <div class="daily-card">
+    <div class="daily-top">
+      <span id="daily-streak">🔥 連續 0 天</span>
+      <button type="button" id="btn-goal" class="link-btn" style="padding:0;">🎯 設定目標</button>
+    </div>
+    <div class="progress"><span id="daily-bar"></span></div>
+    <div class="daily-sub" id="daily-text">今天 0 / 20 題</div>
   </div>
 
   <div class="stats">
@@ -69,6 +79,22 @@
       <span class="go">進入單字庫 ➔</span>
     </a>
 
+    <a href="patterns.html?v=3700" class="action-card">
+      <span class="badge tag">寫作必備</span>
+      <div class="icon">🧩</div>
+      <h2>背句型</h2>
+      <p>自己輸入句型與例句，翻牌背誦、搜尋、分類管理</p>
+      <span class="go">進入句型庫 ➔</span>
+    </a>
+
+    <a href="swaps.html?v=3700" class="action-card">
+      <span class="badge tag">用字升級</span>
+      <div class="icon">🔄</div>
+      <h2>用字改變</h2>
+      <p>happy → glad、delighted…記下更好的替代用字</p>
+      <span class="go">進入用字庫 ➔</span>
+    </a>
+
     <a href="preset_library.html?v=3000" class="action-card">
       <span class="badge tag">官方題庫</span>
       <div class="icon">🗂️</div>
@@ -81,7 +107,7 @@
       <span class="badge tag">實力測驗</span>
       <div class="icon">✏️</div>
       <h2>考單字</h2>
-      <p>自選題數、答錯存進錯題本、只重考錯題</p>
+      <p>填空、選擇、英翻中（含句型與換字）、間隔複習、錯題本</p>
       <span class="go">開始測驗 ➔</span>
     </a>
   </div>
@@ -90,7 +116,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/common.js?v=3500"></script>
-<script src="js/index.js?v=3400"></script>
+<script src="js/common.js?v=3700"></script>
+<script src="js/index.js?v=3600"></script>
 </body>
 </html>
