@@ -359,3 +359,12 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .study-judge { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .link-btn { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer; padding: 10px 4px 0; }
 .link-btn:hover { text-decoration: underline; }
+
+/* ---------- 每日目標 ---------- */
+.daily-card { margin-bottom: 18px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.daily-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 16px; font-weight: 800; }
+.daily-sub { margin-top: 8px; font-size: 13px; color: var(--muted); }
+
+/* ---------- 考詞性：詞性選擇按鈕 ---------- */
+.pos-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 12px; }
+.pos-chip { font-weight: 700; }
