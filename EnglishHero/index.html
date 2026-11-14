@@ -10,7 +10,7 @@
       document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } catch (e) {}
   </script>
-  <link rel="stylesheet" href="css/style.css?v=3700">
+  <link rel="stylesheet" href="css/style.css?v=3800">
 </head>
 <body>
 
@@ -79,7 +79,7 @@
       <span class="go">進入單字庫 ➔</span>
     </a>
 
-    <a href="patterns.html?v=3700" class="action-card">
+    <a href="patterns.html?v=3800" class="action-card">
       <span class="badge tag">寫作必備</span>
       <div class="icon">🧩</div>
       <h2>背句型</h2>
@@ -87,12 +87,20 @@
       <span class="go">進入句型庫 ➔</span>
     </a>
 
-    <a href="swaps.html?v=3700" class="action-card">
+    <a href="swaps.html?v=3800" class="action-card">
       <span class="badge tag">用字升級</span>
       <div class="icon">🔄</div>
       <h2>用字改變</h2>
       <p>happy → glad、delighted…記下更好的替代用字</p>
       <span class="go">進入用字庫 ➔</span>
+    </a>
+
+    <a href="forms.html?v=3800" class="action-card">
+      <span class="badge tag">字形變化</span>
+      <div class="icon">🔀</div>
+      <h2>詞性變化</h2>
+      <p>create → creation、creative、creatively…記下同一個字的各種詞性，考詞性轉換</p>
+      <span class="go">進入詞性庫 ➔</span>
     </a>
 
     <a href="preset_library.html?v=3000" class="action-card">
@@ -107,7 +115,7 @@
       <span class="badge tag">實力測驗</span>
       <div class="icon">✏️</div>
       <h2>考單字</h2>
-      <p>填空、選擇、英翻中（含句型與換字）、間隔複習、錯題本</p>
+      <p>填空、選擇、打字測驗（英翻中 / 換字 / 詞性轉換）、可同時考詞性</p>
       <span class="go">開始測驗 ➔</span>
     </a>
   </div>
@@ -116,7 +124,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/common.js?v=3700"></script>
+<script src="js/common.js?v=3800"></script>
 <script src="js/index.js?v=3600"></script>
 </body>
 </html>
