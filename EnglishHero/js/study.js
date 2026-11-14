@@ -22,18 +22,19 @@ const btnBackFolders = $("btn-back-folders");
 const editModalContainer = $("edit-modal-container");
 
 function setBack(show) { btnBackFolders.classList.toggle("hidden", !show); }
-// 複習進度：第一次需要時才載入（只讀 1 次），離開背單字時上傳
+
+// 複習進度 + 每日進度：第一次需要時才載入（各讀 1 次），離開背單字時上傳
 let srsReady = null;
 let srsCount = 0;
 function ensureSrs() {
-  if (!srsReady) srsReady = EH.srs.load(currentUser.uid);
+  if (!srsReady) srsReady = Promise.all([EH.srs.load(currentUser.uid), EH.daily.load(currentUser.uid)]);
   return srsReady;
 }
-window.addEventListener("pagehide", () => { if (srsReady) EH.srs.flush(); });
+window.addEventListener("pagehide", () => { if (srsReady) EH.flushProgress(); });
 
 function leaveStudy() {
   studyActive = false;
-  if (srsReady) EH.srs.flush();
+  if (srsReady) EH.flushProgress();
 }
 
 // 本機資料有變動：同步寫回快取與統計
@@ -789,16 +790,18 @@ window.nextCard = function () {
   swapCard(() => { s.index = next; updateCard(); });
 };
 
-// 翻面看答案後，告訴系統自己記不記得 → 記錄間隔複習進度，並換下一張
+// 翻面看答案後，告訴系統自己記不記得 → 記錄間隔複習進度與每日目標，並換下一張
 window.judgeCard = async function (ok) {
   const s = studyState;
   const w = s.words[s.index];
   if (!w) return;
   await ensureSrs();
   EH.srs.record(w, ok);
+  const d = EH.daily.add(1);
   srsCount++;
-  if (srsCount % 10 === 0) EH.srs.flush();
-  EH.toast(ok ? "✅ 記下來了" : "❌ 明天會再出現", ok ? "success" : "info", 1200);
+  if (srsCount % 10 === 0) EH.flushProgress();
+  if (d.reached) EH.toast(`🎉 達成今日目標（${EH.daily.goal()} 題）！`, "success", 3500);
+  else EH.toast(ok ? "✅ 記下來了" : "❌ 明天會再出現", ok ? "success" : "info", 1200);
   nextCard();
 };
 
@@ -934,13 +937,17 @@ window.openSingleEditModal = function (wordId) {
   const target = allWords.find((w) => w.id === wordId);
   if (!target) return;
   const known = ["n.", "v.", "adj.", "adv.", "prep.", "conj.", "phr."];
+  // 題庫裡有 vt.、vi.、pron. 等特殊詞性：加一個「原本」選項，避免儲存時被洗成空白
+  const customOpt = target.pos && !known.includes(target.pos)
+    ? `<option value="${esc(target.pos)}" selected>${esc(target.pos)}（原本）</option>`
+    : "";
   const opts = [
     ["n.", "n. (名詞)"], ["v.", "v. (動詞)"], ["adj.", "adj. (形容詞)"], ["adv.", "adv. (副詞)"],
     ["prep.", "prep. (介系詞)"], ["conj.", "conj. (連接詞)"], ["phr.", "phr. (片語)"], ["", "(無/其他)"]
   ].map(([v, label]) => {
-    const selected = v === "" ? !known.includes(target.pos) : target.pos === v;
+    const selected = v === "" ? !target.pos : target.pos === v;
     return `<option value="${v}" ${selected ? "selected" : ""}>${label}</option>`;
-  }).join("");
+  }).join("") + customOpt;
 
   const submit = `if(event.key==='Enter'){saveEditedWord(${jsArg(target.id)})}`;
   editModalContainer.innerHTML = `
