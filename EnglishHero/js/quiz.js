@@ -48,6 +48,16 @@ const savedCount = EH.store.get("eh_quiz_count");
 if (savedCount !== null) countSelect.value = String(savedCount);
 if (new URLSearchParams(location.search).get("srs")) countSelect.value = "srs";
 
+// 「同時考詞性」開關：記住上次的選擇，切換時重新出題
+const posBox = $("quiz-pos");
+if (posBox) {
+  posBox.checked = !!EH.store.get("eh_quiz_pos", false);
+  posBox.addEventListener("change", () => {
+    EH.store.set("eh_quiz_pos", posBox.checked);
+    initCurrentMode();
+  });
+}
+
 // 間隔複習設定（想調整就改這兩個數字）
 const NEW_PER_DAY = 10; // 每天最多加入幾個「新單字」
 const MAX_SRS = 40;     // 每次複習最多幾題
@@ -317,11 +327,14 @@ function startFillGame() {
 
   currentWord = quizQueue[currentIndex];
   hintLevel = 0;
+  chosenPos = null;
+  const askPos = needPos(currentWord); // 勾了「同時考詞性」：題目不再直接顯示詞性，改成讓你選
 
   modeFill.innerHTML = `
     ${hudHtml()}
-    <div class="quiz-question">${posTag(currentWord.pos)}${esc(currentWord.ch)}</div>
+    <div class="quiz-question">${askPos ? "" : posTag(currentWord.pos)}${esc(currentWord.ch)}</div>
     <div class="fill-wrap">
+      ${askPos ? posPickerHtml() : ""}
       <div class="hint-text" id="fill-hint"></div>
       <input type="text" id="fill-answer" class="fill-input" placeholder="請輸入英文單字..."
         autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
@@ -355,19 +368,35 @@ function checkFillAnswer() {
   const userInput = input.value.trim().toLowerCase().replace(/\s+/g, " ");
   if (!userInput) return;
 
+  const askPos = needPos(currentWord);
+  if (askPos && !chosenPos) {
+    EH.toast("請也選一下這個字的詞性", "info", 1800);
+    return;
+  }
+
   input.disabled = true;
   btnCheck.disabled = true;
 
-  const isCorrect = userInput === currentWord.en.trim().toLowerCase().replace(/\s+/g, " ");
+  const spellOk = userInput === currentWord.en.trim().toLowerCase().replace(/\s+/g, " ");
+  const posOk = !askPos || posMatches(chosenPos, currentWord.pos);
+  const isCorrect = spellOk && posOk;
   srsRecord(currentWord, isCorrect);
   if (isCorrect) {
     correctCount++;
     streak++;
   } else {
     streak = 0;
-    wrongList.push({ en: currentWord.en, pos: currentWord.pos, ch: currentWord.ch, userAnswer: userInput });
+    wrongList.push({
+      en: currentWord.en, pos: currentWord.pos, ch: currentWord.ch, userAnswer: userInput,
+      answerOk: spellOk,
+      posNote: askPos && !posOk ? `詞性選 ${chosenPos}，正確是 ${posName(currentWord.pos)}` : ""
+    });
   }
   currentIndex++;
+
+  const posLine = askPos
+    ? `<div style="font-size:14px; margin-bottom:4px;">詞性：你選 <b>${esc(chosenPos)}</b>　${posOk ? "✅" : `❌ 正確是 <b style="color:var(--accent);">${esc(posName(currentWord.pos))}</b>`}</div>`
+    : "";
 
   modeFill.innerHTML = `
     ${hudHtml()}
@@ -377,7 +406,8 @@ function checkFillAnswer() {
         <div style="font-weight:800; margin-bottom:6px; color:${isCorrect ? "var(--primary-ink)" : "var(--danger)"};">
           ${isCorrect ? "✅ 答對了！" : "❌ 答錯囉！"}
         </div>
-        <div style="font-size:14px; margin-bottom:4px;">你的回答：<b ${isCorrect ? "" : 'style="text-decoration:line-through; color:var(--danger);"'}>${esc(userInput)}</b></div>
+        <div style="font-size:14px; margin-bottom:4px;">你的回答：<b ${spellOk ? "" : 'style="text-decoration:line-through; color:var(--danger);"'}>${esc(userInput)}</b></div>
+        ${posLine}
         <div>正確答案：<b style="color:var(--accent); font-size:19px;">${esc(currentWord.en)}</b></div>
       </div>
       <div class="result-actions" style="margin-top:0;">
@@ -398,6 +428,8 @@ function startMatchGame() {
   if (currentIndex >= quizQueue.length) { showQuizResult("選擇測驗"); return; }
 
   isAnswerLocked = false;
+  pendingMatch = null;
+  chosenPos = null;
   matchHud.innerHTML = hudHtml();
   matchFeedback.textContent = "";
   optionsContainer.innerHTML = "";
@@ -409,11 +441,12 @@ function startMatchGame() {
 
   const isEnToCh = subTabEnCh.classList.contains("active");
   currentWord = quizQueue[currentIndex];
+  const showPos = !needPos(currentWord); // 要考詞性時，不能在題目 / 選項上直接露出詞性
 
   if (isEnToCh) {
     matchQuestion.innerHTML = `${esc(currentWord.en)} <button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(currentWord.en)})">🔊</button>`;
   } else {
-    matchQuestion.innerHTML = `${posTag(currentWord.pos)}${esc(currentWord.ch)}`;
+    matchQuestion.innerHTML = `${showPos ? posTag(currentWord.pos) : ""}${esc(currentWord.ch)}`;
   }
 
   // 優先挑「英文與中文都不同」的干擾選項，避免同義詞造成兩個答案
@@ -428,7 +461,7 @@ function startMatchGame() {
   }
 
   const makeChoice = (w, ok) => ({
-    html: isEnToCh ? `${posTag(w.pos)}${esc(w.ch)}` : esc(w.en),
+    html: isEnToCh ? `${showPos ? posTag(w.pos) : ""}${esc(w.ch)}` : esc(w.en),
     isCorrect: ok
   });
   const choices = shuffle([makeChoice(currentWord, true), makeChoice(wrong[0], false), makeChoice(wrong[1], false)]);
@@ -447,28 +480,66 @@ function startMatchGame() {
 function handleMatchClick(clickedBtn, isCorrect) {
   if (isAnswerLocked) return;
   isAnswerLocked = true;
-  srsRecord(currentWord, isCorrect);
 
+  // 先標示「這個選項」對或錯
   if (isCorrect) {
     clickedBtn.classList.add("correct");
-    correctCount++;
-    streak++;
-    matchFeedback.textContent = streak >= 3 ? `✅ 答對了！🔥 連對 ${streak}` : "✅ 答對了！";
-    matchFeedback.style.color = "var(--primary)";
   } else {
     clickedBtn.classList.add("wrong");
-    streak = 0;
-    wrongList.push({ en: currentWord.en, pos: currentWord.pos, ch: currentWord.ch, userAnswer: "選擇錯誤選項" });
-    matchFeedback.textContent = "❌ 答錯囉！";
-    matchFeedback.style.color = "var(--danger)";
     optionsContainer.querySelectorAll(".option-btn").forEach((btn) => {
       if (btn.dataset.correct === "1") btn.classList.add("correct");
     });
   }
 
+  // 有勾「同時考詞性」：還要再選詞性，選完才算這題的結果
+  if (needPos(currentWord)) {
+    pendingMatch = { answerOk: isCorrect };
+    chosenPos = null;
+    matchFeedback.innerHTML = `
+      <div style="margin-top:6px; font-weight:400;">
+        <div class="muted" style="margin-bottom:6px;">${isCorrect ? "✅ 選對了！" : "❌ 選錯了。"}再選這個字的詞性：</div>
+        ${posPickerHtml("pickMatchPos")}
+      </div>`;
+    return;
+  }
+  finalizeMatch(isCorrect, null);
+}
+
+window.pickMatchPos = function (p) {
+  if (!pendingMatch) return;
+  const info = pendingMatch;
+  pendingMatch = null;
+  chosenPos = p;
+  finalizeMatch(info.answerOk, p);
+};
+
+function finalizeMatch(answerOk, pickedPos) {
+  const w = currentWord;
+  const askPos = pickedPos !== null;
+  const posOk = !askPos || posMatches(pickedPos, w.pos);
+  const ok = answerOk && posOk;
+  srsRecord(w, ok);
+
+  if (ok) {
+    correctCount++;
+    streak++;
+    matchFeedback.textContent = (askPos ? "✅ 答對了，詞性也對！" : "✅ 答對了！") + (streak >= 3 ? `🔥 連對 ${streak}` : "");
+    matchFeedback.style.color = "var(--primary)";
+  } else {
+    streak = 0;
+    wrongList.push({
+      en: w.en, pos: w.pos, ch: w.ch,
+      userAnswer: answerOk ? "（答案正確）" : "選擇錯誤選項",
+      answerOk,
+      posNote: askPos && !posOk ? `詞性選 ${pickedPos}，正確是 ${posName(w.pos)}` : ""
+    });
+    matchFeedback.textContent = !answerOk ? "❌ 答錯囉！" : `❌ 詞性不對，正確是 ${posName(w.pos)}`;
+    matchFeedback.style.color = "var(--danger)";
+  }
+
   currentIndex++;
   matchHud.innerHTML = hudHtml();
-  setTimeout(startMatchGame, isCorrect ? 800 : 1500);
+  setTimeout(startMatchGame, ok ? 800 : 1800);
 }
 
 // 數字鍵 1 / 2 / 3 直接作答
@@ -588,7 +659,39 @@ window.saveMistakes = async function (btn) {
 
 // 讓 quiz.html 知道這支程式已完整載入（診斷用）
 
-/* ============================== 英翻中 / 換字（打字測驗） ============================== */
+/* ============================== 詞性（勾選「同時考詞性」時使用） ============================== */
+
+const POS_OPTIONS = [["n.", "名詞"], ["v.", "動詞"], ["adj.", "形容詞"], ["adv.", "副詞"], ["prep.", "介系詞"], ["conj.", "連接詞"], ["phr.", "片語"]];
+const normPos = (p) => String(p || "").trim().toLowerCase().replace(/\.+$/, "");
+const posList = (p) => String(p || "").split(/[\/,、\s]+/).map(normPos).filter(Boolean); // 「n./v.」這種多詞性也能比對
+let chosenPos = null;
+let pendingMatch = null;
+
+function posTestOn() {
+  const el = $("quiz-pos");
+  return !!(el && el.checked);
+}
+// 只有「單字」、而且這個單字有填詞性，才會考詞性
+function needPos(q) {
+  return posTestOn() && (!q.kind || q.kind === "word") && posList(q.pos).length > 0;
+}
+function posMatches(chosen, expected) { return posList(expected).includes(normPos(chosen)); }
+function posName(p) {
+  const f = POS_OPTIONS.find(([k]) => normPos(k) === normPos(p));
+  return f ? `${f[0]} ${f[1]}` : String(p || "");
+}
+function posPickerHtml(onPick) {
+  const fn = onPick || "selectPos";
+  return `<div class="muted" style="margin-bottom:6px;">🏷️ 這個字的詞性是？</div>
+    <div class="pos-picker">${POS_OPTIONS.map(([k, n]) =>
+      `<button type="button" class="btn btn-secondary btn-sm pos-chip" data-pos="${esc(k)}" onclick="${fn}(${jsArg(k)})">${esc(k)} ${esc(n)}</button>`).join("")}</div>`;
+}
+window.selectPos = function (p) {
+  chosenPos = p;
+  document.querySelectorAll(".pos-chip").forEach((b) => b.classList.toggle("is-on", b.dataset.pos === p));
+};
+
+/* ============================== 打字測驗（英翻中 / 換字 / 詞性轉換） ============================== */
 
 // 題目統一成 {kind, en(題目), ch(答案), ...}，這樣錯題、重考、結算都能共用
 const toWordQ = (w) => ({ kind: "word", en: w.en, pos: w.pos || "", ch: w.ch, folder: w.folder });
@@ -597,10 +700,33 @@ const toSwapQ = (s) => {
   const alts = (Array.isArray(s.to) ? s.to : []).filter(Boolean);
   return { kind: "swap", en: s.from, pos: "", ch: alts.join(" / "), alts, note: s.note || "", example: s.example || "", folder: s.category || "預設" };
 };
-const SOURCE_LABEL = { pattern: "句型", swap: "用字改變" };
 
-const extraData = { pattern: null, swap: null };
-let scopeSource = "word"; // 目前「測驗範圍」選單裡放的是：單字資料夾 / 句型分類 / 用字分類
+// 詞性轉換：一組「詞性變化」（create / creation、creativity / creative / creatively）
+// 會隨機組出「給一個字，寫出指定詞性的字」的題目
+const FORM_POS = [["v", "動詞", "v."], ["n", "名詞", "n."], ["adj", "形容詞", "adj."], ["adv", "副詞", "adv."]];
+const FORM_PER_FAMILY = 3; // 每組每次最多出幾題，避免同一個字佔太多題
+function toFormQs(fam) {
+  const lists = FORM_POS
+    .map(([k, name, abbr]) => ({ k, name, abbr, words: (Array.isArray(fam[k]) ? fam[k] : []).filter(Boolean) }))
+    .filter((x) => x.words.length);
+  const summary = lists.map((x) => `${x.words.join("、")} (${x.abbr})`).join(" → ");
+  const qs = [];
+  lists.forEach((s) => s.words.forEach((word) => lists.forEach((t) => {
+    if (t.k === s.k) return;
+    qs.push({
+      kind: "form", en: word, pos: s.abbr, ch: t.words.join(" / "), alts: t.words,
+      targetPos: t.abbr, targetName: t.name, meaning: fam.ch || "", summary, folder: fam.category || "預設"
+    });
+  })));
+  return shuffle(qs).slice(0, FORM_PER_FAMILY);
+}
+
+const SOURCE_COLLECTION = { pattern: "patterns", swap: "swaps", form: "forms" };
+const SOURCE_LABEL = { pattern: "句型", swap: "用字改變", form: "詞性變化" };
+const SOURCE_BUILD = { pattern: (x) => [toPatternQ(x)], swap: (x) => [toSwapQ(x)], form: toFormQs };
+
+const extraData = { pattern: null, swap: null, form: null };
+let scopeSource = "word"; // 目前「測驗範圍」選單裡放的是：單字資料夾 / 句型、用字、詞性變化的分類
 let transPending = null;  // 目前這題的作答狀態
 let initSeq = 0;
 
@@ -629,15 +755,14 @@ function matchesChinese(answer, ch) {
 
 async function loadExtra(src) {
   if (extraData[src]) return;
-  const name = src === "pattern" ? "patterns" : "swaps";
-  extraData[src] = await EH.collection(name).getAll(currentUid);
+  extraData[src] = await EH.collection(SOURCE_COLLECTION[src]).getAll(currentUid);
 }
 
 function setSrsOptionEnabled(on) {
   Array.from(countSelect.options || []).forEach((o) => { if (o.value === "srs") o.disabled = !on; });
 }
 
-// 「測驗範圍」選單的內容跟著題目來源換：單字→資料夾；句型 / 用字→分類
+// 「測驗範圍」選單的內容跟著題目來源換：單字→資料夾；其他→分類
 function ensureScopeOptions(src) {
   if (scopeSource === src) return;
   scopeSource = src;
@@ -677,14 +802,14 @@ async function initTransMode() {
   } else {
     quizPool = (extraData[src] || [])
       .filter((x) => cat === "ALL" || (x.category || "預設") === cat)
-      .map(src === "pattern" ? toPatternQ : toSwapQ);
+      .flatMap(SOURCE_BUILD[src]);
   }
 
   if (quizPool.length === 0) {
     updateSrsInfo(false);
     showEmptyMessage(src === "word"
       ? "此範圍中沒有單字！"
-      : `還沒有任何「${SOURCE_LABEL[src]}」。\n請先回首頁進入「${src === "pattern" ? "背句型" : "用字改變"}」新增，再回來考試！`);
+      : `還沒有任何「${SOURCE_LABEL[src]}」。\n請先回首頁進入「${SOURCE_LABEL[src]}」新增，再回來考試！`);
     return;
   }
 
@@ -704,27 +829,41 @@ async function initTransMode() {
   beginRound();
 }
 
-function transQuestionHtml(q) {
+function transPrompt(q) {
+  if (q.kind === "swap") return "寫出更好的替代用字（寫一個就可以）";
+  if (q.kind === "form") return `寫出它的「${q.targetName} ${q.targetPos}」形式（寫一個就可以）`;
+  if (q.kind === "pattern") return "寫出這個句型的中文意思";
+  return "寫出中文意思";
+}
+
+function transQuestionHtml(q, showPos) {
   const size = q.kind === "pattern" ? "font-size:22px;" : "";
-  return `<div class="quiz-question" style="${size}">${q.kind === "word" ? posTag(q.pos) : ""}${esc(q.en)}
-    <button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(q.en)})">🔊</button></div>`;
+  const tag = (q.kind === "word" && showPos) || q.kind === "form" ? posTag(q.pos) : "";
+  const sub = q.kind === "form"
+    ? `<div style="font-size:15px; font-weight:700; margin-top:8px;">→ ${esc(q.targetName)} ${esc(q.targetPos)}</div>` +
+      (q.meaning ? `<div class="muted" style="font-size:13px; font-weight:400;">${esc(q.meaning)}</div>` : "")
+    : "";
+  return `<div class="quiz-question" style="${size}">${tag}${esc(q.en)}
+    <button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(q.en)})">🔊</button>${sub}</div>`;
 }
 
 function startTransGame() {
-  if (currentIndex >= quizQueue.length) { showQuizResult("英翻中測驗"); return; }
+  if (currentIndex >= quizQueue.length) { showQuizResult("打字測驗"); return; }
 
   const q = quizQueue[currentIndex];
   currentWord = q;
   transPending = null;
-  const prompt = q.kind === "swap" ? "寫出更好的替代用字（寫一個就可以）"
-    : q.kind === "pattern" ? "寫出這個句型的中文意思" : "寫出中文意思";
+  chosenPos = null;
+  const askPos = needPos(q);
+  const placeholder = q.kind === "swap" ? "例：glad" : q.kind === "form" ? "請輸入英文單字..." : "請輸入中文...";
 
   modeTrans.innerHTML = `
     ${hudHtml()}
-    ${transQuestionHtml(q)}
+    ${transQuestionHtml(q, !askPos)}
     <div class="fill-wrap">
-      <p class="muted" style="margin-bottom:8px;">${prompt}</p>
-      <input type="text" id="trans-answer" class="fill-input" placeholder="${q.kind === "swap" ? "例：glad" : "請輸入中文..."}"
+      <p class="muted" style="margin-bottom:8px;">${transPrompt(q)}</p>
+      ${askPos ? posPickerHtml() : ""}
+      <input type="text" id="trans-answer" class="fill-input" placeholder="${placeholder}"
         autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
       <div class="result-actions" style="margin-top:0;">
         <button type="button" id="btn-trans-reveal" class="btn btn-ghost">👀 看答案</button>
@@ -744,19 +883,28 @@ function submitTrans(reveal) {
   if (!input || input.disabled || transPending) return;
   const q = currentWord;
   const typed = input.value.trim();
+  const askPos = needPos(q);
   if (!reveal && !typed && q.kind !== "pattern") {
     EH.toast("請先輸入答案，或按「看答案」", "info", 1500);
     return;
   }
+  if (!reveal && askPos && !chosenPos) {
+    EH.toast("請也選一下這個字的詞性", "info", 1800);
+    return;
+  }
   input.disabled = true;
 
-  // 單字、用字：自動批改；句型：沒辦法自動批改，看完參考答案後自己評分
-  let ok = false;
+  // 單字、用字、詞性轉換：自動批改；句型：沒辦法自動批改，看完參考答案後自己評分
   const auto = q.kind !== "pattern";
-  if (!reveal && q.kind === "word") ok = matchesChinese(typed, q.ch);
-  else if (!reveal && q.kind === "swap") ok = q.alts.some((a) => normEn(a) === normEn(typed));
+  let meaningOk = false;
+  if (!reveal && q.kind === "word") meaningOk = matchesChinese(typed, q.ch);
+  else if (!reveal && (q.kind === "swap" || q.kind === "form")) meaningOk = q.alts.some((a) => normEn(a) === normEn(typed));
+  const posOk = !askPos || (!reveal && posMatches(chosenPos, q.pos));
 
-  transPending = { ok, auto, userAnswer: typed || (reveal ? "（看答案）" : "（未作答）") };
+  transPending = {
+    ok: meaningOk && posOk, auto, meaningOk, askPos, posOk, chosen: chosenPos,
+    userAnswer: typed || (reveal ? "（看答案）" : "（未作答）")
+  };
   renderTransResult();
 }
 
@@ -766,6 +914,9 @@ function transAnswerHtml(q) {
     lines.push(`<b style="color:var(--accent);">${q.alts.map(esc).join("、")}</b>`);
     if (q.note) lines.push(`<div class="muted" style="margin-top:4px;">${esc(q.note)}</div>`);
     if (q.example) lines.push(`<div class="muted"><i>${esc(q.example)}</i></div>`);
+  } else if (q.kind === "form") {
+    lines.push(`<b style="color:var(--accent);">${q.alts.map(esc).join("、")}</b>`);
+    if (q.summary) lines.push(`<div class="muted" style="margin-top:4px;">${esc(q.summary)}</div>`);
   } else if (q.kind === "pattern") {
     lines.push(`<b style="color:var(--accent);">${esc(q.ch)}</b>`);
     if (q.example) lines.push(`<div class="muted" style="margin-top:4px;"><i>${esc(q.example)}</i></div>`);
@@ -780,6 +931,9 @@ function renderTransResult() {
   const q = currentWord;
   const p = transPending;
   const typedHtml = `<div style="font-size:14px; margin-bottom:4px;">你的回答：<b>${esc(p.userAnswer)}</b></div>`;
+  const posLine = p.askPos
+    ? `<div style="font-size:14px; margin-bottom:4px;">詞性：你選 <b>${esc(p.chosen || "（未選）")}</b>　${p.posOk ? "✅" : `❌ 正確是 <b style="color:var(--accent);">${esc(posName(q.pos))}</b>`}</div>`
+    : "";
   let box, buttons;
 
   if (p.auto) {
@@ -789,6 +943,7 @@ function renderTransResult() {
           ${p.ok ? "✅ 答對了！" : "❌ 答錯囉！"}${p.overridden ? "（已改為答對）" : ""}
         </div>
         ${typedHtml}
+        ${posLine}
         <div>${q.kind === "swap" ? "可以換成：" : "正確答案："}${transAnswerHtml(q)}</div>
       </div>`;
     buttons = `
@@ -810,7 +965,7 @@ function renderTransResult() {
       </div>`;
   }
 
-  modeTrans.innerHTML = `${hudHtml()}${transQuestionHtml(q)}<div class="fill-wrap">${box}${buttons}</div>`;
+  modeTrans.innerHTML = `${hudHtml()}${transQuestionHtml(q, true)}<div class="fill-wrap">${box}${buttons}</div>`;
 
   const next = $("btn-trans-next");
   if (next) {
@@ -841,7 +996,11 @@ function finalizeTrans(ok) {
     streak++;
   } else {
     streak = 0;
-    wrongList.push({ en: q.en, pos: q.pos, ch: q.ch, userAnswer: p.userAnswer, mode: "trans", kind: q.kind, q });
+    wrongList.push({
+      en: q.en, pos: q.pos, ch: q.ch, userAnswer: p.userAnswer, mode: "trans", kind: q.kind, q,
+      answerOk: p.auto && p.meaningOk,
+      posNote: p.askPos && !p.posOk ? `詞性選 ${p.chosen || "（未選）"}，正確是 ${posName(q.pos)}` : ""
+    });
   }
   srsRecord(q, ok);
   currentIndex++;
@@ -850,22 +1009,28 @@ function finalizeTrans(ok) {
 }
 
 function wrongItemHtml(item, idx) {
+  const speak = `<button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(item.en)})">🔊</button>`;
+  const posLine = item.posNote ? `<br>🏷️ ${esc(item.posNote)}` : "";
+  const strike = (t) => `<span style="color:var(--danger); text-decoration:line-through;">${esc(t)}</span>`;
+
   if (item.mode === "trans") {
+    const target = item.q && item.q.kind === "form" ? ` <span class="tag tag-pos">→ ${esc(item.q.targetPos)}</span>` : "";
+    const tag = item.kind === "word" || item.kind === "form" ? posTag(item.pos) : "";
+    const body = item.answerOk ? "✅ 答案正確" : `❌ ${strike(item.userAnswer)}　✅ <b style="color:var(--accent);">${esc(item.ch)}</b>`;
     return `
         <div class="wrong-item">
-          <b>${idx + 1}.</b> ${item.kind === "word" ? posTag(item.pos) : ""}<b>${esc(item.en)}</b><br>
-          ❌ <span style="color:var(--danger); text-decoration:line-through;">${esc(item.userAnswer)}</span>　
-          ✅ <b style="color:var(--accent);">${esc(item.ch)}</b>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(item.en)})">🔊</button>
+          <b>${idx + 1}.</b> ${tag}<b>${esc(item.en)}</b>${target}<br>
+          ${body}${posLine} ${speak}
         </div>`;
   }
+  const body = item.answerOk
+    ? `✅ 答案正確（<b style="color:var(--accent);">${esc(item.en)}</b>）`
+    : `❌ ${strike(item.userAnswer)}　✅ <b style="color:var(--accent);">${esc(item.en)}</b>`;
   return `
         <div class="wrong-item">
           <b>${idx + 1}.</b> ${posTag(item.pos)}<b>${esc(item.ch)}</b><br>
-          ❌ <span style="color:var(--danger); text-decoration:line-through;">${esc(item.userAnswer)}</span>　
-          ✅ <b style="color:var(--accent);">${esc(item.en)}</b>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="EH.speak(${jsArg(item.en)})">🔊</button>
+          ${body}${posLine} ${speak}
         </div>`;
 }
 
-window.__EH_QUIZ_READY = "3700";
+window.__EH_QUIZ_READY = "3800";
