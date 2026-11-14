@@ -167,6 +167,13 @@ EH.cardsPage = function (cfg) {
       data[f.key] = v;
     }
     data.category = ($("cf-category").value || "").trim() || "預設";
+    if (cfg.validate) {
+      const msg = cfg.validate(data);
+      if (msg) {
+        EH.toast(msg, "error", 3500);
+        return;
+      }
+    }
 
     try {
       if (editingId) {
@@ -235,10 +242,10 @@ EH.cardsPage = function (cfg) {
       try {
         const arr = JSON.parse(e.target.result);
         if (!Array.isArray(arr)) { EH.toast("檔案格式錯誤！", "error"); return; }
-        const valid = arr.filter((x) => x && cfg.fields.filter((f) => f.required).every((f) => {
+        const valid = arr.filter((x) => x && (cfg.isValid ? cfg.isValid(x) : cfg.fields.filter((f) => f.required).every((f) => {
           const v = x[f.key];
           return Array.isArray(v) ? v.length > 0 : !!v;
-        }));
+        })));
         if (valid.length === 0) { EH.toast("檔案裡沒有可匯入的資料", "error"); return; }
         if (!(await EH.confirm(`確定要匯入 ${valid.length} 筆資料嗎？`))) { event.target.value = ""; return; }
 
