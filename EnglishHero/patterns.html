@@ -9,8 +9,18 @@
       var t = JSON.parse(localStorage.getItem("eh_theme") || "null");
       document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } catch (e) {}
+    // 記錄「找不到的檔案」與「執行時的錯誤」，載入完成後用來顯示診斷訊息
+    window.__loadErrors = [];
+    window.__jsErrors = [];
+    window.addEventListener("error", function (e) {
+      if (e.target && e.target.tagName === "SCRIPT") {
+        window.__loadErrors.push((e.target.getAttribute("src") || "").split("?")[0]);
+      } else {
+        window.__jsErrors.push(((e.filename || "").split("/").pop().split("?")[0] || "程式") + "：" + e.message);
+      }
+    }, true);
   </script>
-  <link rel="stylesheet" href="css/style.css?v=3700">
+  <link rel="stylesheet" href="css/style.css?v=3800">
 </head>
 <body>
 
@@ -33,19 +43,36 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/common.js?v=3700"></script>
-<script src="js/cards.js?v=3700"></script>
-<script src="js/patterns.js?v=3700"></script>
+<script src="js/common.js?v=3800"></script>
+<script src="js/cards.js?v=3800"></script>
+<script src="js/patterns.js?v=3800"></script>
 <script>
-  if (!window.EH || !window.__EH_CARDS_READY) {
-    var b = document.createElement("div");
-    b.className = "auth-msg error";
-    b.textContent = !window.EH
-      ? "⚠️ 找不到 js/common.js，請確認它放在 js 資料夾內並重新整理。"
-      : "⚠️ js/cards.js 或 js/patterns.js 沒有正確載入，請確認檔案都放在 js 資料夾，並清除瀏覽器快取。";
-    var m = document.querySelector(".page");
-    m.insertBefore(b, m.firstChild);
-  }
+  (function () {
+    var msgs = [];
+    if (window.__loadErrors.length) {
+      msgs.push("找不到這些檔案（404）：" + window.__loadErrors.join("、") + "。請確認檔名完全一樣（全小寫），並放在 js 資料夾裡。");
+    }
+    if (!window.EH) {
+      msgs.push("js/common.js 沒有載入成功。");
+    } else if (typeof EH.collection !== "function") {
+      msgs.push("js/common.js 是舊版（缺少新功能），請用最新的 common.js 覆蓋。");
+    }
+    if (window.__jsErrors.length) {
+      msgs.push("程式執行時出錯：" + window.__jsErrors[0]);
+    }
+    if (!msgs.length && !window.__EH_CARDS_READY) {
+      msgs.push("頁面程式沒有完整載入，請清除瀏覽器快取後重新整理。");
+    }
+    if (msgs.length) {
+      var b = document.createElement("div");
+      b.className = "auth-msg error";
+      b.style.whiteSpace = "pre-line";
+      b.style.textAlign = "left";
+      b.textContent = "⚠️ " + msgs.join("\n");
+      var m = document.querySelector(".page");
+      m.insertBefore(b, m.firstChild);
+    }
+  })();
 </script>
 </body>
 </html>
