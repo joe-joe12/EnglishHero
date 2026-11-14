@@ -657,13 +657,16 @@ window.saveMistakes = async function (btn) {
   }
 };
 
-// 讓 quiz.html 知道這支程式已完整載入（診斷用）
-
 /* ============================== 詞性（勾選「同時考詞性」時使用） ============================== */
 
 const POS_OPTIONS = [["n.", "名詞"], ["v.", "動詞"], ["adj.", "形容詞"], ["adv.", "副詞"], ["prep.", "介系詞"], ["conj.", "連接詞"], ["phr.", "片語"]];
 const normPos = (p) => String(p || "").trim().toLowerCase().replace(/\.+$/, "");
-const posList = (p) => String(p || "").split(/[\/,、\s]+/).map(normPos).filter(Boolean); // 「n./v.」這種多詞性也能比對
+const POS_KEYS = POS_OPTIONS.map(([k]) => normPos(k));
+const POS_ALIAS = { vt: "v", vi: "v" }; // 及物 / 不及物動詞都算動詞
+// 「n./v.」「n. / vt.」這種多詞性也能比對；只保留按鈕選得到的詞性，
+// pron.、num.、n. sing. 之類選不到的會被忽略（該單字就不考詞性）
+const posList = (p) => String(p || "").split(/[\/,、\s]+/).map(normPos)
+  .map((x) => POS_ALIAS[x] || x).filter((x) => POS_KEYS.includes(x));
 let chosenPos = null;
 let pendingMatch = null;
 
@@ -671,14 +674,18 @@ function posTestOn() {
   const el = $("quiz-pos");
   return !!(el && el.checked);
 }
-// 只有「單字」、而且這個單字有填詞性，才會考詞性
+// 只有「單字」、而且這個單字有填可考的詞性，才會考詞性
 function needPos(q) {
   return posTestOn() && (!q.kind || q.kind === "word") && posList(q.pos).length > 0;
 }
 function posMatches(chosen, expected) { return posList(expected).includes(normPos(chosen)); }
 function posName(p) {
-  const f = POS_OPTIONS.find(([k]) => normPos(k) === normPos(p));
-  return f ? `${f[0]} ${f[1]}` : String(p || "");
+  const l = posList(p);
+  if (!l.length) return String(p || "");
+  return l.map((k) => {
+    const f = POS_OPTIONS.find(([o]) => normPos(o) === k);
+    return f ? `${f[0]} ${f[1]}` : k;
+  }).join(" / ");
 }
 function posPickerHtml(onPick) {
   const fn = onPick || "selectPos";
@@ -1033,4 +1040,5 @@ function wrongItemHtml(item, idx) {
         </div>`;
 }
 
-window.__EH_QUIZ_READY = "3800";
+// 讓 quiz.html 知道這支程式已完整載入（診斷用）
+window.__EH_QUIZ_READY = "3900";
