@@ -10,7 +10,7 @@
       document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } catch (e) {}
   </script>
-  <link rel="stylesheet" href="css/style.css?v=3700">
+  <link rel="stylesheet" href="css/style.css?v=3800">
 </head>
 <body>
 
@@ -28,7 +28,7 @@
     <div class="tabs">
       <button type="button" id="main-tab-fill" class="tab active">✏️ 填空測驗</button>
       <button type="button" id="main-tab-match" class="tab">🎴 選擇配對</button>
-      <button type="button" id="main-tab-trans" class="tab">✍️ 英翻中</button>
+      <button type="button" id="main-tab-trans" class="tab">✍️ 打字測驗</button>
     </div>
 
     <!-- 範圍與題數 -->
@@ -50,12 +50,19 @@
           <option value="0">全部</option>
         </select>
       </div>
+      <div class="form-group full">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:0;">
+          <input type="checkbox" id="quiz-pos" style="width:auto; flex:none;">
+          <span>🏷️ 同時考詞性<span class="muted"> （單字答對後，還要選對詞性才算對）</span></span>
+        </label>
+      </div>
       <div id="trans-source-box" class="form-group full hidden">
         <label for="quiz-source">📚 題目來源</label>
         <select id="quiz-source">
-          <option value="word">單字：看英文，寫出中文</option>
-          <option value="pattern">句型：看句型，寫出中文意思（自己評分）</option>
+          <option value="word">單字（英翻中）：看英文，寫出中文</option>
+          <option value="pattern">句型（英翻中）：寫出中文意思，自己評分</option>
           <option value="swap">用字改變：看基本字，寫出更好的替代字</option>
+          <option value="form">詞性轉換：看一個字，寫出指定詞性的字</option>
         </select>
       </div>
       <div id="sub-folder-select-container" class="form-group full hidden">
@@ -97,8 +104,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="js/common.js?v=3700"></script>
-<script src="js/quiz.js?v=3700"></script>
+<script src="js/common.js?v=3800"></script>
+<script src="js/quiz.js?v=3800"></script>
 <script>
   // 診斷：程式沒載入成功時，直接在頁面上提示
   if (!window.EH || !window.__EH_QUIZ_READY) {
