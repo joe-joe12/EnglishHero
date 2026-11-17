@@ -23,6 +23,15 @@ const editModalContainer = $("edit-modal-container");
 
 function setBack(show) { btnBackFolders.classList.toggle("hidden", !show); }
 
+// 子資料夾（例：「課文/Part1」）的上一層名稱；不是子資料夾就回傳 null
+const parentOf = (f) => (f && f.includes("/") ? f.split("/")[0] : null);
+function subBackBtn(folderName) {
+  const p = parentOf(folderName);
+  return p
+    ? `<button class="btn btn-ghost btn-sm" onclick="openSubFolderView(${jsArg(p)})">📂 返回子資料夾</button>`
+    : "";
+}
+
 // 複習進度 + 每日進度：第一次需要時才載入（各讀 1 次），離開背單字時上傳
 let srsReady = null;
 let srsCount = 0;
@@ -645,7 +654,10 @@ function renderStudyShell() {
       <div class="done-box">
         <div class="big">📭</div>
         <p>這個資料夾目前沒有任何單字。</p>
-        <button class="btn btn-primary" style="margin-top:14px" onclick="renderFolderList()">返回資料夾列表</button>
+        <div class="result-actions">
+          ${subBackBtn(currentFolderForManagement)}
+          <button class="btn btn-primary" onclick="renderFolderList()">返回資料夾列表</button>
+        </div>
       </div>`;
     return;
   }
@@ -655,6 +667,7 @@ function renderStudyShell() {
     : `<button class="btn btn-success btn-sm" onclick="markAsLearned()">✅ 我已經會了</button>`;
 
   containerEl.innerHTML = `
+    ${parentOf(currentFolderForManagement) ? `<div style="margin-bottom:10px;">${subBackBtn(currentFolderForManagement)}</div>` : ""}
     <div class="progress"><span id="study-progress"></span></div>
     <div class="study-meta">
       <span id="study-count"></span>
@@ -833,6 +846,7 @@ function renderStudyDone() {
       <p class="muted" style="margin-top:6px;">去測驗看看記得多少吧</p>
       <div class="result-actions">
         <a class="btn btn-primary" href="quiz.html?v=3000">✏️ 去考單字</a>
+        ${subBackBtn(currentFolderForManagement)}
         <button class="btn btn-ghost" onclick="renderFolderList()">返回列表</button>
       </div>
     </div>`;
