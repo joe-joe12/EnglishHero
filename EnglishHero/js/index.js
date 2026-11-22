@@ -69,11 +69,7 @@ EH.requireUser((user) => {
 const btnLogout = document.getElementById("btn-logout");
 if (btnLogout) {
   btnLogout.addEventListener("click", () => {
-    EH.cache.clearAll();
-    // 共用裝置：一併清掉上一位使用者的統計與上次進度
-    ["eh_stats", "eh_last_study", "eh_last_add_folder"].forEach((k) => {
-      try { localStorage.removeItem(k); } catch (e) { /* 忽略 */ }
-    });
+    EH.clearUserState();
     EH.auth.signOut().then(() => {
       window.location.replace("login.html?v=3000");
     });
