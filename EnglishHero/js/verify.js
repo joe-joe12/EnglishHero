@@ -82,7 +82,7 @@ EH.auth.onAuthStateChanged(async (u) => {
 $("btn-check").addEventListener("click", () => check(false));
 $("btn-resend").addEventListener("click", resend);
 $("btn-signout").addEventListener("click", async () => {
-  EH.cache.clearAll();
+  EH.clearUserState();
   await EH.auth.signOut();
   window.location.replace("login.html?v=3500");
 });
