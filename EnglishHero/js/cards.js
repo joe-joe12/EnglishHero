@@ -234,6 +234,28 @@ EH.cardsPage = function (cfg) {
     EH.toast(`💾 已備份 ${list.length} 筆`, "success");
   }
 
+  // 把匯入的資料轉成正確型別：list 欄位一律變成字串陣列，其他欄位變成字串
+  function coerceField(f, v) {
+    if (f.type === "list") {
+      if (Array.isArray(v)) return v.map((s) => String(s).trim()).filter(Boolean);
+      if (typeof v === "string") return v.split(/[,，、;；\/／\n]+/).map((s) => s.trim()).filter(Boolean);
+      return [];
+    }
+    return v === undefined || v === null ? "" : String(v).trim();
+  }
+
+  // 回傳整理好的資料；不合格就回傳 null
+  function normalizeImported(x) {
+    if (!x || typeof x !== "object" || Array.isArray(x)) return null;
+    const data = { category: String(x.category || "").trim() || "預設" };
+    cfg.fields.forEach((f) => { data[f.key] = coerceField(f, x[f.key]); });
+    const missing = cfg.fields.some((f) =>
+      f.required && (Array.isArray(data[f.key]) ? data[f.key].length === 0 : !data[f.key]));
+    if (missing) return null;
+    if (cfg.validate && cfg.validate(data)) return null;
+    return data;
+  }
+
   function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -241,42 +263,49 @@ EH.cardsPage = function (cfg) {
     reader.onload = async (e) => {
       try {
         const arr = JSON.parse(e.target.result);
-        if (!Array.isArray(arr)) { EH.toast("檔案格式錯誤！", "error"); return; }
-        const valid = arr.filter((x) => x && (cfg.isValid ? cfg.isValid(x) : cfg.fields.filter((f) => f.required).every((f) => {
-          const v = x[f.key];
-          return Array.isArray(v) ? v.length > 0 : !!v;
-        })));
-        if (valid.length === 0) { EH.toast("檔案裡沒有可匯入的資料", "error"); return; }
-        if (!(await EH.confirm(`確定要匯入 ${valid.length} 筆資料嗎？`))) { event.target.value = ""; return; }
+        if (!Array.isArray(arr)) { EH.toast("檔案格式錯誤！", "error"); event.target.value = ""; return; }
+        const valid = arr.map(normalizeImported).filter(Boolean);
+        const skipped = arr.length - valid.length;
+        if (valid.length === 0) { EH.toast("檔案裡沒有可匯入的資料", "error"); event.target.value = ""; return; }
+        const note = skipped ? `（另有 ${skipped} 筆格式不符，會略過）` : "";
+        if (!(await EH.confirm(`確定要匯入 ${valid.length} 筆資料嗎？${note}`))) { event.target.value = ""; return; }
 
         const created = [];
-        for (let i = 0; i < valid.length; i += 400) {
-          const batch = EH.db.batch();
-          valid.slice(i, i + 400).forEach((x) => {
-            const data = { category: x.category || "預設" };
-            cfg.fields.forEach((f) => { data[f.key] = x[f.key] !== undefined ? x[f.key] : (f.type === "list" ? [] : ""); });
-            const r = colRef().doc();
-            created.push({ id: r.id, ...data, createdAt: Date.now() });
-            batch.set(r, { ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-          });
-          await batch.commit();
+        let failed = false;
+        try {
+          for (let i = 0; i < valid.length; i += 400) {
+            const batch = EH.db.batch();
+            const chunk = [];
+            valid.slice(i, i + 400).forEach((data) => {
+              const r = colRef().doc();
+              chunk.push({ id: r.id, ...data, createdAt: Date.now() });
+              batch.set(r, { ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            });
+            await batch.commit();
+            created.push(...chunk); // 這批成功才算數
+          }
+        } catch (err) {
+          failed = true;
+          EH.toast(`匯入中斷：已成功 ${created.length} 筆，第 ${created.length + 1} 筆起失敗（${err.message}）`, "error", 6000);
         }
-        items.push(...created);
-        persist();
+
+        if (created.length) {
+          items.push(...created);
+          persist();
+          renderCategoryOptions();
+          renderItems();
+        }
         event.target.value = "";
-        renderCategoryOptions();
-        renderItems();
-        EH.toast(`✅ 已匯入 ${created.length} 筆`, "success");
+        if (!failed) EH.toast(`✅ 已匯入 ${created.length} 筆`, "success");
       } catch (err) {
         EH.toast("匯入失敗：" + err.message, "error", 4000);
+        event.target.value = "";
       }
     };
     reader.readAsText(file);
   }
 
   /* ============================== 翻牌背誦 ============================== */
-
-  const faceInner = (html) => `<div style="margin:auto 0; width:100%;">${html}</div>`;
 
   function startStudy() {
     const list = filtered();
