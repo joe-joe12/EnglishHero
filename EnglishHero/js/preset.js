@@ -7,6 +7,7 @@ const PRESET_CONFIGS = {
   lungting_grade1_l4: { folderName: "📁 龍騰版高一第四課", fileUrl: "./JSON/lungting_grade1_l4.json" },
   lungting_grade1_l5: { folderName: "📁 龍騰版高一第五課", fileUrl: "./JSON/lungting_grade1_l5.json" },
   lungting_grade1_l6: { folderName: "📁 龍騰版高一第六課", fileUrl: "./JSON/lungting_grade1_l6.json" },
+  lungting_grade1_R2: { folderName: "📁 龍騰版高一複習二", fileUrl: "./JSON/lungting_grade1_R2.json" },
   junior_2000: { folderName: "📖 國中基礎2000單", fileUrl: "./JSON/junior_2000.json" },
   liveabc_sep: { folderName: "📚 LiveABC 9月份", fileUrl: "./JSON/liveabc_sep.json" },
   liveabc_nov: { folderName: "📚 LiveABC 11月份", fileUrl: "./JSON/liveabc_nov.json" }
