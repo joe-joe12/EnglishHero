@@ -1,14 +1,13 @@
 const db = EH.db;
 let currentUser = null;
- 
+
 // 注意：fileUrl 的資料夾名稱 JSON 在 GitHub Pages 等區分大小寫的主機上必須與實際資料夾完全一致
+// （「國中會考高頻單」因為 JSON/cap.json 不存在，已先移除；補上檔案後再加回來）
 const PRESET_CONFIGS = {
-  lungting_grade1_R2: { folderName: "📁 龍騰版高一複習二", fileUrl: "./JSON/lungting_grade1_R2.json?v=2" },
   lungting_grade1_l4: { folderName: "📁 龍騰版高一第四課", fileUrl: "./JSON/lungting_grade1_l4.json" },
   lungting_grade1_l5: { folderName: "📁 龍騰版高一第五課", fileUrl: "./JSON/lungting_grade1_l5.json" },
   lungting_grade1_l6: { folderName: "📁 龍騰版高一第六課", fileUrl: "./JSON/lungting_grade1_l6.json" },
   junior_2000: { folderName: "📖 國中基礎2000單", fileUrl: "./JSON/junior_2000.json" },
-  cap_exam: { folderName: "🔥 國中會考高頻單", fileUrl: "./JSON/cap.json" },
   liveabc_sep: { folderName: "📚 LiveABC 9月份", fileUrl: "./JSON/liveabc_sep.json" },
   liveabc_nov: { folderName: "📚 LiveABC 11月份", fileUrl: "./JSON/liveabc_nov.json" }
 };
