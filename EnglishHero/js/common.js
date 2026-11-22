@@ -198,10 +198,11 @@
   // ---------- 本機快取（大幅減少 Firestore 讀取次數） ----------
   // 第一次載入：讀取全部資料並存在本機。之後每次只查「新增的」；
   // 本機的新增 / 修改 / 刪除會同步更新快取。超過 24 小時或按「重新同步」才會完整重讀。
-  // 單字用 EH.cache；其他資料集合（句型、用字改變…）用 EH.collection("名稱")
+  // 單字用 EH.cache；其他資料集合（句型、用字改變、詞性變化…）用 EH.collection("名稱")
   const FULL_REFRESH_MS = 24 * 60 * 60 * 1000;
   const SYNC_MARGIN_MS = 5 * 60 * 1000; // 往前多抓 5 分鐘，避免裝置時間誤差漏掉新資料
-  const CACHE_PREFIXES = ["eh_words_v1_", "eh_patterns_v1_", "eh_swaps_v1_", "eh_srs_v1_", "eh_daily_v1_"];
+  // 新增資料集合時，記得把它的前綴 eh_<名稱>_v1_ 加進來，登出才會清乾淨
+  const CACHE_PREFIXES = ["eh_words_v1_", "eh_patterns_v1_", "eh_swaps_v1_", "eh_forms_v1_", "eh_srs_v1_", "eh_daily_v1_"];
 
   function toMillis(v) {
     if (v && typeof v.toMillis === "function") return v.toMillis();
@@ -541,4 +542,12 @@
 
   // 一次上傳「複習進度」與「每日進度」
   EH.flushProgress = () => Promise.all([EH.srs.flush(), EH.daily.flush()]);
+
+  // 登出時統一清除本機快取與上一位使用者的狀態（所有登出入口都呼叫這個）
+  EH.clearUserState = () => {
+    EH.cache.clearAll();
+    ["eh_stats", "eh_last_study", "eh_last_add_folder"].forEach((k) => {
+      try { localStorage.removeItem(k); } catch (e) { /* 忽略 */ }
+    });
+  };
 })();
