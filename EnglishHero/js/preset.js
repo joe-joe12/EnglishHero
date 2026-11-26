@@ -1,8 +1,6 @@
 const db = EH.db;
 let currentUser = null;
 
-// 注意：fileUrl 的資料夾名稱 JSON 在 GitHub Pages 等區分大小寫的主機上必須與實際資料夾完全一致
-// （「國中會考高頻單」因為 JSON/cap.json 不存在，已先移除；補上檔案後再加回來）
 const PRESET_CONFIGS = {
   lungting_grade1_l4: { folderName: "📁 龍騰版高一第四課", fileUrl: "./JSON/lungting_grade1_l4.json" },
   lungting_grade1_l5: { folderName: "📁 龍騰版高一第五課", fileUrl: "./JSON/lungting_grade1_l5.json" },
@@ -13,19 +11,27 @@ const PRESET_CONFIGS = {
   liveabc_nov: { folderName: "📚 LiveABC 11月份", fileUrl: "./JSON/liveabc_nov.json" }
 };
 
+// 單字所屬資料夾：有 unit → 「主資料夾/單元名稱」，沒有 → 主資料夾
+const cleanUnit = (u) => String(u || "").replace(/\//g, "-").trim();
+function targetFolder(parent, w) {
+  const unit = cleanUnit(w.unit);
+  return unit ? `${parent}/${unit}` : parent;
+}
+// 這個題庫（含子資料夾）是否已存在
+const inPreset = (folder, parent) => folder === parent || (folder || "").startsWith(parent + "/");
+
 EH.requireUser((user) => {
   currentUser = user;
   markImported();
 });
 
-// 依本機快取，標出已經加入過的題庫（沒有快取時不顯示，不額外讀取資料庫）
 function markImported() {
   const words = currentUser ? EH.cache.peek(currentUser.uid) : null;
-  const folders = new Set((words || []).map((w) => w.folder));
+  const folders = (words || []).map((w) => w.folder);
   document.querySelectorAll(".preset-card[data-preset]").forEach((card) => {
     const cfg = PRESET_CONFIGS[card.dataset.preset];
     const badge = card.querySelector(".preset-badge");
-    if (cfg && badge) badge.classList.toggle("hidden", !folders.has(cfg.folderName));
+    if (cfg && badge) badge.classList.toggle("hidden", !folders.some((f) => inPreset(f, cfg.folderName)));
   });
 }
 
@@ -52,40 +58,46 @@ window.importPreset = async function (presetKey) {
       return;
     }
 
-    if (!(await EH.confirm(`確定要將「${config.folderName}」共 ${words.length} 個單字加入您的資料庫嗎？`))) return;
+    const valid = words.filter((w) => w && w.en && w.ch);
+    const units = new Set(valid.map((w) => cleanUnit(w.unit)).filter(Boolean));
+    const unitNote = units.size ? `，分成 ${units.size} 個單元子資料夾` : "";
+    if (!(await EH.confirm(`確定要將「${config.folderName}」共 ${valid.length} 個單字加入您的資料庫嗎？${unitNote}`))) return;
 
     const ref = db.collection("users").doc(currentUser.uid).collection("words");
 
-    // 避免重複匯入：先看本機快取，沒有再用查詢確認
-    let already = new Set((EH.cache.peek(currentUser.uid) || []).map((w) => w.folder)).has(config.folderName);
+    // 避免重複匯入：先看本機快取，沒有再用查詢確認（含子資料夾）
+    let already = (EH.cache.peek(currentUser.uid) || []).some((w) => inPreset(w.folder, config.folderName));
     if (!already) {
-      const dup = await ref.where("folder", "==", config.folderName).limit(1).get();
-      already = !dup.empty;
+      const prefix = config.folderName + "/";
+      const [a, b] = await Promise.all([
+        ref.where("folder", "==", config.folderName).limit(1).get(),
+        ref.where("folder", ">=", prefix).where("folder", "<", prefix + "\uf8ff").limit(1).get()
+      ]);
+      already = !a.empty || !b.empty;
     }
     if (already && !(await EH.confirm("這個題庫已經加入過了，確定要再加一次嗎？\n（會產生重複單字）"))) return;
 
     if (btn) { btn.disabled = true; btn.textContent = "加入中..."; }
 
-    // 分批寫入 (每 400 筆為一個 Batch)，避免觸發 Firestore 500 筆上限
     const created = [];
-    for (let i = 0; i < words.length; i += 400) {
+    for (let i = 0; i < valid.length; i += 400) {
       const batch = db.batch();
-      words.slice(i, i + 400).forEach((w) => {
-        if (!w || !w.en || !w.ch) return; // 略過不完整的資料
+      valid.slice(i, i + 400).forEach((w) => {
+        const folder = targetFolder(config.folderName, w);
         const r = ref.doc();
-        created.push({ id: r.id, en: w.en, pos: w.pos || "", ch: w.ch, folder: config.folderName, createdAt: Date.now() });
+        created.push({ id: r.id, en: w.en, pos: w.pos || "", ch: w.ch, folder, createdAt: Date.now() });
         batch.set(r, {
           en: w.en,
           pos: w.pos || "",
           ch: w.ch,
-          folder: config.folderName,
+          folder,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       });
       await batch.commit();
     }
 
-    EH.cache.append(currentUser.uid, created); // 同步更新本機快取，背單字頁立刻看得到
+    EH.cache.append(currentUser.uid, created);
     EH.toast(`🎉 已加入「${config.folderName}」共 ${created.length} 個單字`, "success", 3500);
     markImported();
   } catch (err) {
