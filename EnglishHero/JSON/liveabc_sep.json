@@ -1,596 +1,626 @@
 [
   {
     "en": "cave",
+    "ipa": "[kev]",
     "pos": "n.",
     "ch": "洞穴、山洞",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "jewel",
+    "ipa": "[`dʒuəl]",
     "pos": "n.",
     "ch": "珠寶、寶石（作此義時，常用複數形）",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "silk",
+    "ipa": "[sɪlk]",
     "pos": "n.",
     "ch": "絲綢；絲線、絲製品",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "warn",
+    "ipa": "[wɔrn]",
     "pos": "v.",
     "ch": "警告、提醒；告誡",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "greedy",
+    "ipa": "[`gridi]",
     "pos": "adj.",
     "ch": "貪心的、貪婪的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "signal",
+    "ipa": "[`sɪɡnl̩]",
     "pos": "n.",
     "ch": "信號、暗號",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "jar",
+    "ipa": "[dʒɑr]",
     "pos": "n.",
     "ch": "罐子、罈；陶罐；玻璃罐",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "slave",
+    "ipa": "[slev]",
     "pos": "n.",
     "ch": "奴隸",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "pour",
+    "ipa": "[pɔr]",
     "pos": "v.",
     "ch": "倒、傾倒（液體）；大量湧出",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "pretend",
+    "ipa": "[prɪ`tɛnd]",
     "pos": "v.",
     "ch": "假裝、佯裝",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 1 〈阿里巴巴與四十大盜〉"
   },
   {
     "en": "amazingly",
+    "ipa": "[ə`mezɪŋli]",
     "pos": "adv.",
     "ch": "出乎意料地、令人驚訝地",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 2 從市場到音樂廳：認識維也納蔬果管弦樂團"
   },
   {
     "en": "concert",
+    "ipa": "[`kɑnsɚt]",
     "pos": "n.",
     "ch": "音樂會；演唱會",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 2 從市場到音樂廳：認識維也納蔬果管弦樂團"
   },
   {
     "en": "mix",
+    "ipa": "[mɪks]",
     "pos": "n.",
     "ch": "混合、融合",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 2 從市場到音樂廳：認識維也納蔬果管弦樂團"
   },
   {
     "en": "audience",
+    "ipa": "[`ɔdiəns]",
     "pos": "n.",
     "ch": "觀眾",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 2 從市場到音樂廳：認識維也納蔬果管弦樂團"
   },
   {
     "en": "prove",
+    "ipa": "[pruv]",
     "pos": "v.",
     "ch": "證明、證實",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 2 從市場到音樂廳：認識維也納蔬果管弦樂團"
   },
   {
     "en": "worth",
+    "ipa": "[wɝθ]",
     "pos": "adj.",
     "ch": "價值⋯⋯的；值⋯⋯錢的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 3 一百歐元抽走畢卡索名畫"
   },
   {
     "en": "contact",
+    "ipa": "[`kɑn͵tækt]",
     "pos": "v.",
     "ch": "聯絡；與⋯⋯取得聯繫",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 3 一百歐元抽走畢卡索名畫"
   },
   {
     "en": "support",
+    "ipa": "[sə`pɔrt]",
     "pos": "v.",
     "ch": "支持；資助",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 3 一百歐元抽走畢卡索名畫"
   },
   {
     "en": "cause",
+    "ipa": "[kɔz]",
     "pos": "n.",
     "ch": "公益事業；理念；目標",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 3 一百歐元抽走畢卡索名畫"
   },
   {
     "en": "outdoors",
+    "ipa": "[͵aᴜt`dɔrz]",
     "pos": "adv.",
     "ch": "在戶外、在室外",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "colorful",
+    "ipa": "[`kʌlɚfəl]",
     "pos": "adj.",
     "ch": "色彩繽紛的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "trail",
+    "ipa": "[trel]",
     "pos": "n.",
     "ch": "痕跡、足跡、軌跡；步道、小徑",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "earn",
+    "ipa": "[ɝn]",
     "pos": "v.",
     "ch": "獲得、贏得；賺取",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "nearby",
+    "ipa": "[nɪr`baɪ]",
     "pos": "adj.",
     "ch": "附近的；鄰近的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "location",
+    "ipa": "[lo`keʃən]",
     "pos": "n.",
     "ch": "地點、位置",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "mushroom",
+    "ipa": "[`mʌʃ͵rum]",
     "pos": "n.",
     "ch": "蘑菇；蕈",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "adventure",
+    "ipa": "[əd`vɛntʃɚ]",
     "pos": "n.",
     "ch": "冒險（活動）；刺激的經歷",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "casual",
+    "ipa": "[`kæʒəwəl]",
     "pos": "adj.",
     "ch": "隨興的、休閒的、輕鬆的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "journey",
+    "ipa": "[`dʒɝni]",
     "pos": "n.",
     "ch": "旅程、旅行",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 4 走路、種花、打菇：歡迎來到皮克敏的繽紛世界"
   },
   {
     "en": "dine",
+    "ipa": "[daɪn]",
     "pos": "v.",
     "ch": "用餐",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
   },
   {
     "en": "international",
+    "ipa": "[͵ɪntɚ`næʃnəl]",
     "pos": "adj.",
     "ch": "國際的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
   },
   {
     "en": "owner",
+    "ipa": "[`onɚ]",
     "pos": "n.",
     "ch": "所有人；店主、老闆",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
   },
   {
     "en": "stare",
+    "ipa": "[stɛr]",
     "pos": "v.",
     "ch": "盯著看",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
   },
   {
     "en": "global",
+    "ipa": "[`globəl]",
     "pos": "adj.",
     "ch": "全球（性）的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
   },
   {
     "en": "review",
+    "ipa": "[rɪ`vju]",
     "pos": "n.",
     "ch": "（書、電影、店家等的）評論、評價",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
   },
   {
     "en": "especially",
+    "ipa": "[ɪ`spɛʃəli]",
     "pos": "adv.",
     "ch": "尤其、特別地",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
+  },
+  {
+    "en": "limited",
+    "ipa": "[`lɪmətəd]",
+    "pos": "adj.",
+    "ch": "有限的、不多的",
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
+  },
+  {
+    "en": "constantly",
+    "ipa": "[`kɑnstəntli]",
+    "pos": "adv.",
+    "ch": "持續不斷地、不停地；總是、一直",
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
+  },
+  {
+    "en": "situation",
+    "ipa": "[͵sɪtʃə`weʃən]",
+    "pos": "n.",
+    "ch": "情況、狀況、形勢",
+    "folder": "9月",
+    "unit": "Unit 5 用餐該禁手機嗎？餐桌上的手機論戰"
   },
   {
     "en": "recognize",
+    "ipa": "[`rɛkɪg͵naɪz]",
     "pos": "v.",
     "ch": "辨識、識別；認出；認可",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 6 數位筆記，讓學習更聰明"
   },
   {
     "en": "reorganize",
+    "ipa": "[ri`ɔrgə͵naɪz]",
     "pos": "v.",
     "ch": "重新整理；重新安排",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 6 數位筆記，讓學習更聰明"
   },
   {
     "en": "automatically",
+    "ipa": "[͵ɔtə`mætɪkli]",
     "pos": "adv.",
     "ch": "自動地",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 6 數位筆記，讓學習更聰明"
   },
   {
     "en": "neat",
+    "ipa": "[nit]",
     "pos": "adj.",
     "ch": "整齊的、整潔的；簡潔俐落的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 6 數位筆記，讓學習更聰明"
   },
   {
     "en": "lively",
+    "ipa": "[`laɪvli]",
     "pos": "adj.",
     "ch": "充滿活力的；熱鬧的；生動的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "plenty",
+    "ipa": "[`plɛnti]",
     "pos": "pron.",
     "ch": "大量；充足",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "collection",
+    "ipa": "[kə`lɛkʃən]",
     "pos": "n.",
     "ch": "收藏品；收集",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "weapon",
+    "ipa": "[`wɛpən]",
     "pos": "n.",
     "ch": "武器、兵器",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "remain",
+    "ipa": "[rɪ`men]",
     "pos": "v.",
     "ch": "仍然是、保持、持續",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "studio",
+    "ipa": "[`studio]",
     "pos": "n.",
     "ch": "工作室；錄音室；製作公司",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "magical",
+    "ipa": "[`mædʒɪkəl]",
     "pos": "adj.",
     "ch": "神奇的、如魔法般的；夢幻的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "design",
+    "ipa": "[dɪ`zaɪn]",
     "pos": "v.",
     "ch": "設計",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "dip",
+    "ipa": "[dɪp]",
     "pos": "v.",
     "ch": "浸、蘸、泡",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "various",
+    "ipa": "[`vɛriəs]",
     "pos": "adj.",
     "ch": "各種不同的；各式各樣的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 8 名古屋必訪景點"
   },
   {
     "en": "chess",
+    "ipa": "[tʃɛs]",
     "pos": "n.",
     "ch": "西洋棋",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "amazed",
+    "ipa": "[ə`mezd]",
     "pos": "adj.",
     "ch": "感到驚訝的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "unique",
+    "ipa": "[jᴜ`nik]",
     "pos": "adj.",
     "ch": "獨一無二的；獨特的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "champion",
+    "ipa": "[`tʃæmpiən]",
     "pos": "n.",
     "ch": "冠軍；優勝者",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "career",
+    "ipa": "[kə`rɪr]",
     "pos": "n.",
     "ch": "（長期的）職業、事業；職業生涯",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "produce",
+    "ipa": "[prə`dus]",
     "pos": "v.",
     "ch": "製作；生產",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "proof",
+    "ipa": "[pruf]",
     "pos": "n.",
     "ch": "證明；證據",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "volume",
+    "ipa": "[`vɑljum]",
     "pos": "n.",
     "ch": "音量",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "honor",
+    "ipa": "[`ɑnɚ]",
     "pos": "n.",
     "ch": "榮譽；榮幸、殊榮",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "talent",
+    "ipa": "[`tælənt]",
     "pos": "n.",
     "ch": "天賦；才能（可作可數或不可數名詞用）",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 9 粉紅豹女孩：棋盤高手，樂壇新女王"
   },
   {
     "en": "pub",
+    "ipa": "[pʌb]",
     "pos": "n.",
     "ch": "英式酒館、酒吧",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 10 炸魚薯條：英國最受歡迎的食物"
   },
   {
     "en": "roughly",
+    "ipa": "[`rʌfli]",
     "pos": "adv.",
     "ch": "大約、粗略地",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 10 炸魚薯條：英國最受歡迎的食物"
   },
   {
     "en": "portion",
+    "ipa": "[`pɔrʃən]",
     "pos": "n.",
     "ch": "（食物的）一份、一客；部分",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 10 炸魚薯條：英國最受歡迎的食物"
   },
   {
     "en": "suggest",
+    "ipa": "[sə`dʒɛst]",
     "pos": "v.",
     "ch": "顯示、表明；暗示",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 10 炸魚薯條：英國最受歡迎的食物"
   },
   {
     "en": "variety",
+    "ipa": "[və`raɪəti]",
     "pos": "n.",
     "ch": "種類；多樣性；各式各樣",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 10 炸魚薯條：英國最受歡迎的食物"
   },
   {
     "en": "scientist",
+    "ipa": "[`saɪəntɪst]",
     "pos": "n.",
     "ch": "科學家",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   },
   {
     "en": "threaten",
+    "ipa": "[`θrɛtn̩]",
     "pos": "v.",
     "ch": "威脅、恐嚇；危及",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   },
   {
     "en": "hug",
-    "pos": "n. v.",
+    "ipa": "[hʌg]",
+    "pos": "n. / v.",
     "ch": "擁抱",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   },
   {
     "en": "charming",
+    "ipa": "[`tʃɑrmɪŋ]",
     "pos": "adj.",
     "ch": "迷人的、討喜的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   },
   {
     "en": "strategy",
+    "ipa": "[`strætədʒi]",
     "pos": "n.",
     "ch": "策略；戰略",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   },
   {
     "en": "freezing",
-    "pos": "adv. adj.",
-    "ch": "極寒地 / 極冷的；結冰的",
-    "folder": "9月"
+    "ipa": "[`frizɪŋ]",
+    "pos": "adv. / adj.",
+    "ch": "極寒地；極冷的；結冰的",
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   },
   {
     "en": "romantic",
+    "ipa": "[ro`mæntɪk]",
     "pos": "adj.",
     "ch": "浪漫的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   },
   {
     "en": "practical",
+    "ipa": "[`præktɪkəl]",
     "pos": "adj.",
     "ch": "實際的、實用的；務實的",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   },
   {
     "en": "nest",
+    "ipa": "[nɛst]",
     "pos": "n.",
     "ch": "巢、鳥巢",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   },
   {
     "en": "icy",
+    "ipa": "[`aɪsi]",
     "pos": "adj.",
     "ch": "冰冷的；結冰的",
-    "folder": "9月"
-  },
-  {
-    "en": "entrance",
-    "pos": "n.",
-    "ch": "入口；大門",
-    "folder": "9月"
-  },
-  {
-    "en": "confirm",
-    "pos": "v.",
-    "ch": "確認；證實；使更加確信",
-    "folder": "9月"
-  },
-  {
-    "en": "campus",
-    "pos": "n.",
-    "ch": "校園",
-    "folder": "9月"
-  },
-  {
-    "en": "supposed",
-    "pos": "adj.",
-    "ch": "應該的；被預期的",
-    "folder": "9月"
-  },
-  {
-    "en": "environment",
-    "pos": "n.",
-    "ch": "環境",
-    "folder": "9月"
-  },
-  {
-    "en": "familiar",
-    "pos": "adj.",
-    "ch": "熟悉的",
-    "folder": "9月"
-  },
-  {
-    "en": "rent",
-    "pos": "v.",
-    "ch": "租借、租用；出租",
-    "folder": "9月"
-  },
-  {
-    "en": "original",
-    "pos": "adj.",
-    "ch": "本來的、最初的；原始的",
-    "folder": "9月"
-  },
-  {
-    "en": "normal",
-    "pos": "adj.",
-    "ch": "普通的、正常的",
-    "folder": "9月"
-  },
-  {
-    "en": "asleep",
-    "pos": "adj.",
-    "ch": "睡著的",
-    "folder": "9月"
-  },
-  {
-    "en": "dull",
-    "pos": "adj.",
-    "ch": "沉悶的、無聊的",
-    "folder": "9月"
-  },
-  {
-    "en": "curious",
-    "pos": "adj.",
-    "ch": "好奇的",
-    "folder": "9月"
-  },
-  {
-    "en": "term",
-    "pos": "n.",
-    "ch": "術語、專門名稱、措詞",
-    "folder": "9月"
-  },
-  {
-    "en": "develop",
-    "pos": "v.",
-    "ch": "培養、養成；開發",
-    "folder": "9月"
-  },
-  {
-    "en": "threat",
-    "pos": "n.",
-    "ch": "威脅；構成威脅的人或事物",
-    "folder": "9月"
-  },
-  {
-    "en": "request",
-    "pos": "v.",
-    "ch": "正式要求；請求",
-    "folder": "9月"
-  },
-  {
-    "en": "detail",
-    "pos": "n.",
-    "ch": "（關於某人或某事的）資料、細節（常用複數）",
-    "folder": "9月"
-  },
-  {
-    "en": "private",
-    "pos": "adj.",
-    "ch": "私密的；私人的；不公開的",
-    "folder": "9月"
-  },
-  {
-    "en": "fake",
-    "pos": "adj. v.",
-    "ch": "偽造的、假的 / 偽造；假裝",
-    "folder": "9月"
-  },
-  {
-    "en": "identity",
-    "pos": "n.",
-    "ch": "身分；認同",
-    "folder": "9月"
-  },
-  {
-    "en": "recently",
-    "pos": "adv.",
-    "ch": "最近；近來；不久之前",
-    "folder": "9月"
-  },
-  {
-    "en": "avoid",
-    "pos": "v.",
-    "ch": "避免；逃避、迴避",
-    "folder": "9月"
-  },
-  {
-    "en": "claim",
-    "pos": "v.",
-    "ch": "聲稱；主張（權利）；宣稱擁有",
-    "folder": "9月"
-  },
-  {
-    "en": "platform",
-    "pos": "n.",
-    "ch": "平台",
-    "folder": "9月"
+    "folder": "9月",
+    "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
   }
 ]
