@@ -265,27 +265,41 @@ window.openSubFolderView = function (parentFolderName) {
   pageTitleEl.textContent = `📁 ${parentFolderName}`;
   setBack(true);
 
-  const subFolders = Array.from(new Set(allWords.map((w) => w.folder)))
-    .filter((f) => f.startsWith(`${parentFolderName}/`))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-  let html = `<p class="muted" style="margin-bottom:12px;">點擊小資料夾即可開始背單字，或按右側 ⚙️ 管理：</p>`;
-  subFolders.forEach((full, index) => {
-    const subName = full.slice(parentFolderName.length + 1);
-    const count = allWords.filter((w) => w.folder === full && w.en !== PLACEHOLDER).length;
-    html += `
-      <div class="folder-wrapper">
-        <div class="folder-item" onclick="startStudy(${jsArg(full)})">
-          <div class="folder-info">
-            <h3>📂 ${esc(subName)}</h3>
-            <p>共 ${count} 個單字</p>
-          </div>
-          <div onclick="event.stopPropagation()">
-            <button class="dots-btn" id="sub-dots-${index}" onclick="toggleFolderDropdown(event, ${jsArg(full)}, ${jsArg("sub-" + index)})">⚙️</button>
-          </div>
-        </div>
-      </div>`;
+  // 只列出目前資料夾的「直接下一層」，不再把所有後代路徑攤平。
+  const descendants = Array.from(new Set(allWords.map((w) => w.folder)))
+    .filter((f) => f && f.startsWith(`${parentFolderName}/`));
+  const childPaths = new Set();
+  descendants.forEach((full) => {
+    const rest = full.slice(parentFolderName.length + 1);
+    const child = rest.split("/")[0];
+    childPaths.add(`${parentFolderName}/${child}`);
   });
+
+  const countWords = (folder) => allWords.filter((w) =>
+    w.en !== PLACEHOLDER && (w.folder === folder || w.folder.startsWith(`${folder}/`))).length;
+  const hasChildren = (folder) => descendants.some((f) => f.startsWith(`${folder}/`));
+
+  let html = `<p class="muted" style="margin-bottom:12px;">點擊資料夾進入下一層，或按右側 ⚙️ 管理：</p>`;
+  Array.from(childPaths)
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .forEach((full, index) => {
+      const childName = full.slice(parentFolderName.length + 1);
+      const nested = hasChildren(full);
+      const click = nested ? `openSubFolderView(${jsArg(full)})` : `startStudy(${jsArg(full)})`;
+      const label = nested ? "階層資料夾" : "點擊開始背單字";
+      html += `
+        <div class="folder-wrapper">
+          <div class="folder-item" onclick="${click}">
+            <div class="folder-info">
+              <h3>📂 ${esc(childName)} ${nested ? '<span class="tag tag-accent">階層資料夾</span>' : ""}</h3>
+              <p>${nested ? `包含下一層資料夾（共 ${countWords(full)} 個單字）` : `共 ${countWords(full)} 個單字（${label}）`}</p>
+            </div>
+            <div onclick="event.stopPropagation()">
+              <button class="dots-btn" id="sub-dots-${index}" onclick="toggleFolderDropdown(event, ${jsArg(full)}, ${jsArg("sub-" + index)})">⚙️</button>
+            </div>
+          </div>
+        </div>`;
+    });
   containerEl.innerHTML = html;
 };
 
