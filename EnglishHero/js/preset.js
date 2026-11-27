@@ -10,6 +10,9 @@ const PRESET_CONFIGS = {
   liveabc_sep: { folderName: "📚 LiveABC 9月份", fileUrl: "./JSON/liveabc_sep.json" },
   liveabc_nov: { folderName: "📚 LiveABC 11月份", fileUrl: "./JSON/liveabc_nov.json" },
   liveabc_dec: { folderName: "📚 LiveABC 12月號", fileUrl: "./JSON/liveabc_dec.json" },
+  high_frequency_unit7: { folderName: "📖 高頻單字/Unit 7", fileUrl: "./JSON/high_frequency_unit7.json" },
+  high_frequency_unit8: { folderName: "📖 高頻單字/Unit 8", fileUrl: "./JSON/high_frequency_unit8.json" },
+  high_frequency_unit9: { folderName: "📖 高頻單字/Unit 9", fileUrl: "./JSON/high_frequency_unit9.json" },
 };
 
 // 單字所屬資料夾：有 unit → 「主資料夾/單元名稱」，沒有 → 主資料夾
