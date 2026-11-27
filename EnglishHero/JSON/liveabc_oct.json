@@ -1,0 +1,802 @@
+[
+  {
+    "en": "statue",
+    "ipa": "[`stætʃu]",
+    "pos": "n.",
+    "ch": "雕像、雕塑",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "sword",
+    "ipa": "[sɔrd]",
+    "pos": "n.",
+    "ch": "劍、刀",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "palace",
+    "ipa": "[`pæləs]",
+    "pos": "n.",
+    "ch": "宮殿、皇宮",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "hunger",
+    "ipa": "[`hʌŋgɚ]",
+    "pos": "n.",
+    "ch": "飢餓（不可數名詞）",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "suffering",
+    "ipa": "[`sʌfərɪŋ]",
+    "pos": "n.",
+    "ch": "受苦、苦難（不可數名詞）",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "strip",
+    "ipa": "[strɪp]",
+    "pos": "v.",
+    "ch": "剝奪、移除",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "jewel",
+    "ipa": "[`dʒuəl]",
+    "pos": "n.",
+    "ch": "寶石；珠寶（作此義時常用複數形）",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "angel",
+    "ipa": "[`endʒəl]",
+    "pos": "n.",
+    "ch": "天使",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "precious",
+    "ipa": "[`prɛʃəs]",
+    "pos": "adj.",
+    "ch": "珍貴的、寶貴的",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "forever",
+    "ipa": "[fə`rɛvɚ]",
+    "pos": "adv.",
+    "ch": "永遠、永久地",
+    "folder": "10月",
+    "unit": "Unit 1 〈快樂王子〉"
+  },
+  {
+    "en": "military",
+    "ipa": "[`mɪlə͵tɛri]",
+    "pos": "adj. / n.",
+    "ch": "軍隊的、軍事的；軍隊、軍方",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "pilot",
+    "ipa": "[`paɪlət]",
+    "pos": "n.",
+    "ch": "飛行員",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "introduce",
+    "ipa": "[͵ɪntrə`dus]",
+    "pos": "v.",
+    "ch": "推出；引進；介紹",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "originally",
+    "ipa": "[ə`rɪdʒənl̩i]",
+    "pos": "adv.",
+    "ch": "最初、原本",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "protect",
+    "ipa": "[prə`tɛkt]",
+    "pos": "v.",
+    "ch": "保護、防護",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "navy",
+    "ipa": "[`nevi]",
+    "pos": "n.",
+    "ch": "海軍",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "sleeve",
+    "ipa": "[sliv]",
+    "pos": "n.",
+    "ch": "袖子、衣袖",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "extra",
+    "ipa": "[`ɛkstrə]",
+    "pos": "adj.",
+    "ch": "額外的、多出的",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "loose",
+    "ipa": "[lus]",
+    "pos": "adj.",
+    "ch": "寬鬆的、不貼身的",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "significant",
+    "ipa": "[sɪg`nɪfɪkənt]",
+    "pos": "adj.",
+    "ch": "重要的；顯著的",
+    "folder": "10月",
+    "unit": "Unit 2 從軍服到日常穿搭"
+  },
+  {
+    "en": "advice",
+    "ipa": "[əd`vaɪs]",
+    "pos": "n.",
+    "ch": "建議、忠告",
+    "folder": "10月",
+    "unit": "Unit 3 當 AI 只會當你的「應聲蟲」"
+  },
+  {
+    "en": "confident",
+    "ipa": "[`kɑnfədənt]",
+    "pos": "adj.",
+    "ch": "有信心的、自信的",
+    "folder": "10月",
+    "unit": "Unit 3 當 AI 只會當你的「應聲蟲」"
+  },
+  {
+    "en": "apologize",
+    "ipa": "[ə`pɑlə͵dʒaɪz]",
+    "pos": "v.",
+    "ch": "道歉、認錯",
+    "folder": "10月",
+    "unit": "Unit 3 當 AI 只會當你的「應聲蟲」"
+  },
+  {
+    "en": "situation",
+    "ipa": "[͵sɪtʃə`weʃən]",
+    "pos": "n.",
+    "ch": "情況、形勢；處境",
+    "folder": "10月",
+    "unit": "Unit 3 當 AI 只會當你的「應聲蟲」"
+  },
+  {
+    "en": "replace",
+    "ipa": "[rɪ`ples]",
+    "pos": "v.",
+    "ch": "取代、代替",
+    "folder": "10月",
+    "unit": "Unit 3 當 AI 只會當你的「應聲蟲」"
+  },
+  {
+    "en": "cart",
+    "ipa": "[kɑrt]",
+    "pos": "n.",
+    "ch": "購物車；手推車",
+    "folder": "10月",
+    "unit": "Unit 4 外送實用英語"
+  },
+  {
+    "en": "customer",
+    "ipa": "[`kʌstəmɚ]",
+    "pos": "n.",
+    "ch": "顧客",
+    "folder": "10月",
+    "unit": "Unit 4 外送實用英語"
+  },
+  {
+    "en": "realize",
+    "ipa": "[`riə͵laɪz]",
+    "pos": "v.",
+    "ch": "發現、意識到",
+    "folder": "10月",
+    "unit": "Unit 4 外送實用英語"
+  },
+  {
+    "en": "relief",
+    "ipa": "[rɪ`lif]",
+    "pos": "n.",
+    "ch": "解脫、寬慰、如釋重負",
+    "folder": "10月",
+    "unit": "Unit 4 外送實用英語"
+  },
+  {
+    "en": "alley",
+    "ipa": "[`æli]",
+    "pos": "n.",
+    "ch": "小巷",
+    "folder": "10月",
+    "unit": "Unit 4 外送實用英語"
+  },
+  {
+    "en": "patience",
+    "ipa": "[`peʃəns]",
+    "pos": "n.",
+    "ch": "耐心；忍耐力",
+    "folder": "10月",
+    "unit": "Unit 4 外送實用英語"
+  },
+  {
+    "en": "include",
+    "ipa": "[ɪn`klud]",
+    "pos": "v.",
+    "ch": "包含；包括",
+    "folder": "10月",
+    "unit": "Unit 4 外送實用英語"
+  },
+  {
+    "en": "immediately",
+    "ipa": "[ɪ`midiətli]",
+    "pos": "adv.",
+    "ch": "立刻、立即地",
+    "folder": "10月",
+    "unit": "Unit 4 外送實用英語"
+  },
+  {
+    "en": "debate",
+    "ipa": "[dɪ`bet]",
+    "pos": "v. / n.",
+    "ch": "討論、辯論；辯論、討論",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "flavor",
+    "ipa": "[`flevɚ]",
+    "pos": "n. / v.",
+    "ch": "味道；風味、口味；給（食物或飲品）調味",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "specific",
+    "ipa": "[spɪ`sɪfɪk]",
+    "pos": "adj.",
+    "ch": "特定的、特有的；明確的",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "process",
+    "ipa": "[`prɑ͵sɛs]",
+    "pos": "v. / n.",
+    "ch": "處理、解讀、理解；加工；過程",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "reaction",
+    "ipa": "[ri`ækʃən]",
+    "pos": "n.",
+    "ch": "反應；回應",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "stretch",
+    "ipa": "[strɛtʃ]",
+    "pos": "v.",
+    "ch": "延續、追溯；伸展肢體",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "spread",
+    "ipa": "[sprɛd]",
+    "pos": "v.",
+    "ch": "傳播、擴散、蔓延",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "product",
+    "ipa": "[`prɑ͵dʌkt]",
+    "pos": "n.",
+    "ch": "產品",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "release",
+    "ipa": "[rɪ`lis]",
+    "pos": "v.",
+    "ch": "推出、發行",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "chain",
+    "ipa": "[tʃen]",
+    "pos": "n.",
+    "ch": "連鎖店；連鎖企業（可置於名詞前作修飾）",
+    "folder": "10月",
+    "unit": "Unit 5 香菜背後的科學與文化"
+  },
+  {
+    "en": "award",
+    "ipa": "[ə`wɔrd]",
+    "pos": "n.",
+    "ch": "獎項",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "quit",
+    "ipa": "[kwɪt]",
+    "pos": "v.",
+    "ch": "放棄、退出；辭職",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "bomb",
+    "ipa": "[bɑm]",
+    "pos": "n.",
+    "ch": "炸彈",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "stadium",
+    "ipa": "[`stediəm]",
+    "pos": "n.",
+    "ch": "（露天）體育館；體育場",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "engagement",
+    "ipa": "[ɪn`gedʒmənt]",
+    "pos": "n.",
+    "ch": "婚約；訂婚",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "admit",
+    "ipa": "[əd`mɪt]",
+    "pos": "v.",
+    "ch": "承認；坦言",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "creative",
+    "ipa": "[kri`etɪv]",
+    "pos": "adj.",
+    "ch": "創作的；有創意的；與創意相關的",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "focus",
+    "ipa": "[`fokəs]",
+    "pos": "n.",
+    "ch": "重點；焦點",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "bold",
+    "ipa": "[bold]",
+    "pos": "adj.",
+    "ch": "大膽的；勇敢的（強調有魄力、不畏風險）",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "daring",
+    "ipa": "[`dɛrɪŋ]",
+    "pos": "adj.",
+    "ch": "大膽創新的；勇於冒險的（強調具冒險精神、突破常規）",
+    "folder": "10月",
+    "unit": "Unit 7 亞莉安娜：天后的重生之路"
+  },
+  {
+    "en": "monster",
+    "ipa": "[`mɑnstɚ]",
+    "pos": "n.",
+    "ch": "怪物、怪獸",
+    "folder": "10月",
+    "unit": "Unit 8 日本機器狼對抗野熊"
+  },
+  {
+    "en": "frightening",
+    "ipa": "[`fraɪtn̩ɪŋ]",
+    "pos": "adj.",
+    "ch": "令人害怕的；駭人的",
+    "folder": "10月",
+    "unit": "Unit 8 日本機器狼對抗野熊"
+  },
+  {
+    "en": "flash",
+    "ipa": "[flæʃ]",
+    "pos": "v.",
+    "ch": "（使）閃爍（燈光）；（使）閃耀",
+    "folder": "10月",
+    "unit": "Unit 8 日本機器狼對抗野熊"
+  },
+  {
+    "en": "kilometer",
+    "ipa": "[kə`lɑmətɚ]",
+    "pos": "n.",
+    "ch": "公里",
+    "folder": "10月",
+    "unit": "Unit 8 日本機器狼對抗野熊"
+  },
+  {
+    "en": "relaxed",
+    "ipa": "[rɪ`lækst]",
+    "pos": "adj.",
+    "ch": "輕鬆的、悠閒的；放鬆的",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "appeal",
+    "ipa": "[ə`pil]",
+    "pos": "n.",
+    "ch": "吸引力、魅力",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "tunnel",
+    "ipa": "[`tʌnl̩]",
+    "pos": "n.",
+    "ch": "隧道；地道",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "farther",
+    "ipa": "[`fɑrðɚ]",
+    "pos": "adv.",
+    "ch": "（空間距離）更遠地",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "electricity",
+    "ipa": "[ɪ͵lɛk`trɪsəti]",
+    "pos": "n.",
+    "ch": "電力、電",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "native",
+    "ipa": "[`netɪv]",
+    "pos": "adj.",
+    "ch": "原住民的；土生土長的；本地的",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "raw",
+    "ipa": "[rɔ]",
+    "pos": "adj.",
+    "ch": "生的、未煮熟的；未經加工的",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "oven",
+    "ipa": "[`ʌvən]",
+    "pos": "n.",
+    "ch": "烤箱、烤爐",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "avenue",
+    "ipa": "[`ævə͵nu]",
+    "pos": "n.",
+    "ch": "大街、大道（常用於街名）；林蔭大道",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "shadow",
+    "ipa": "[`ʃædo]",
+    "pos": "n.",
+    "ch": "陰影、陰暗處；影子",
+    "folder": "10月",
+    "unit": "Unit 9 夏威夷風情：漫遊歐胡島"
+  },
+  {
+    "en": "tasty",
+    "ipa": "[`testi]",
+    "pos": "adj.",
+    "ch": "美味的、好吃的",
+    "folder": "10月",
+    "unit": "Unit 10 品嚐美味的臺灣水果"
+  },
+  {
+    "en": "vitamin",
+    "ipa": "[`vaɪtəmən]",
+    "pos": "n.",
+    "ch": "維生素、維他命",
+    "folder": "10月",
+    "unit": "Unit 10 品嚐美味的臺灣水果"
+  },
+  {
+    "en": "ripe",
+    "ipa": "[raɪp]",
+    "pos": "adj.",
+    "ch": "（果實或作物）成熟的",
+    "folder": "10月",
+    "unit": "Unit 10 品嚐美味的臺灣水果"
+  },
+  {
+    "en": "paradise",
+    "ipa": "[`pɛrə͵daɪs]",
+    "pos": "n.",
+    "ch": "天堂；樂園",
+    "folder": "10月",
+    "unit": "Unit 10 品嚐美味的臺灣水果"
+  },
+  {
+    "en": "toward",
+    "ipa": "[`toɚd]",
+    "pos": "prep.",
+    "ch": "朝、向",
+    "folder": "10月",
+    "unit": "Unit 11 巴黎迪士尼夢幻一日遊"
+  },
+  {
+    "en": "courage",
+    "ipa": "[`kɝɪdʒ]",
+    "pos": "n.",
+    "ch": "勇氣、膽量（不可數）",
+    "folder": "10月",
+    "unit": "Unit 11 巴黎迪士尼夢幻一日遊"
+  },
+  {
+    "en": "classic",
+    "ipa": "[`klæsɪk]",
+    "pos": "n.",
+    "ch": "經典作品、名著",
+    "folder": "10月",
+    "unit": "Unit 11 巴黎迪士尼夢幻一日遊"
+  },
+  {
+    "en": "bar",
+    "ipa": "[bɑr]",
+    "pos": "n.",
+    "ch": "條狀物；塊",
+    "folder": "10月",
+    "unit": "Unit 11 巴黎迪士尼夢幻一日遊"
+  },
+  {
+    "en": "firework",
+    "ipa": "[`faɪr͵wɝk]",
+    "pos": "n.",
+    "ch": "煙火、煙火表演",
+    "folder": "10月",
+    "unit": "Unit 11 巴黎迪士尼夢幻一日遊"
+  },
+  {
+    "en": "represent",
+    "ipa": "[͵rɛprɪ`zɛnt]",
+    "pos": "v.",
+    "ch": "代表；象徵",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "meanwhile",
+    "ipa": "[`min͵waɪl]",
+    "pos": "adv.",
+    "ch": "同時；在此期間",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "excellence",
+    "ipa": "[`ɛksələns]",
+    "pos": "n.",
+    "ch": "卓越、傑出",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "visible",
+    "ipa": "[`vɪzəbəl]",
+    "pos": "adj.",
+    "ch": "看得見的；清楚可見的",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "sweat",
+    "ipa": "[swɛt]",
+    "pos": "n. / v.",
+    "ch": "汗水；流汗",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "promote",
+    "ipa": "[prə`mot]",
+    "pos": "v.",
+    "ch": "促進、提倡、推廣",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "unity",
+    "ipa": "[`junəti]",
+    "pos": "n.",
+    "ch": "團結；團結一致",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "plastic",
+    "ipa": "[`plæstɪk]",
+    "pos": "n. / adj.",
+    "ch": "塑膠（材料、製品）；塑膠製的",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "security",
+    "ipa": "[sɪ`kjᴜrəti]",
+    "pos": "n.",
+    "ch": "安全、保護措施",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "shiny",
+    "ipa": "[`ʃaɪni]",
+    "pos": "adj.",
+    "ch": "閃亮的",
+    "folder": "10月",
+    "unit": "Unit 12 紙鈔訴說著發行國家的故事"
+  },
+  {
+    "en": "leisure",
+    "ipa": "[`liʒɚ]",
+    "pos": "n.",
+    "ch": "閒暇；空閒時間",
+    "folder": "10月",
+    "unit": "Unit 13 英文寫作課：我最喜歡的休閒活動"
+  },
+  {
+    "en": "anxious",
+    "ipa": "[`æŋkʃəs]",
+    "pos": "adj.",
+    "ch": "焦慮不安的；擔心的",
+    "folder": "10月",
+    "unit": "Unit 13 英文寫作課：我最喜歡的休閒活動"
+  },
+  {
+    "en": "afterward",
+    "ipa": "[`æftɚwɚd]",
+    "pos": "adv.",
+    "ch": "之後、後來",
+    "folder": "10月",
+    "unit": "Unit 13 英文寫作課：我最喜歡的休閒活動"
+  },
+  {
+    "en": "passion",
+    "ipa": "[`pæʃən]",
+    "pos": "n.",
+    "ch": "熱情；強烈興趣",
+    "folder": "10月",
+    "unit": "Unit 13 英文寫作課：我最喜歡的休閒活動"
+  },
+  {
+    "en": "goal",
+    "ipa": "[gol]",
+    "pos": "n.",
+    "ch": "目標、目的",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  },
+  {
+    "en": "maintain",
+    "ipa": "[men`ten]",
+    "pos": "v.",
+    "ch": "維持、保持；維護、保養",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  },
+  {
+    "en": "task",
+    "ipa": "[tæsk]",
+    "pos": "n.",
+    "ch": "任務；工作",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  },
+  {
+    "en": "skip",
+    "ipa": "[skɪp]",
+    "pos": "v.",
+    "ch": "不做（某事）；跳過、略過",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  },
+  {
+    "en": "achievement",
+    "ipa": "[ə`tʃivmənt]",
+    "pos": "n.",
+    "ch": "成就、成果（可數）；完成、實現（不可數）",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  },
+  {
+    "en": "memory",
+    "ipa": "[`mɛməri]",
+    "pos": "n.",
+    "ch": "記憶（力）；回憶",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  },
+  {
+    "en": "further",
+    "ipa": "[`fɝðɚ]",
+    "pos": "adv.",
+    "ch": "進一步地；更深入地",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  },
+  {
+    "en": "brief",
+    "ipa": "[brif]",
+    "pos": "adj.",
+    "ch": "簡短的；短暫的",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  },
+  {
+    "en": "track",
+    "ipa": "[træk]",
+    "pos": "v.",
+    "ch": "追蹤、記錄⋯⋯的進展",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  },
+  {
+    "en": "progress",
+    "ipa": "[`prɑgrəs]",
+    "pos": "n.",
+    "ch": "進展；進步",
+    "folder": "10月",
+    "unit": "Unit 14 微習慣：小小成功推動你持續前進"
+  }
+]

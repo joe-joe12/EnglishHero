@@ -8,6 +8,7 @@ const PRESET_CONFIGS = {
   lungting_grade1_R2: { folderName: "📖 龍騰版本/複習二", fileUrl: "./JSON/lungting_grade1_R2.json" },
   junior_2000: { folderName: "📖 國中基礎2000單", fileUrl: "./JSON/junior_2000.json" },
   liveabc_sep: { folderName: "📖 live abc/9月", fileUrl: "./JSON/liveabc_sep.json" },
+  liveabc_oct: { folderName: "📖 live abc/10月", fileUrl: "./JSON/liveabc_oct.json" },
   liveabc_nov: { folderName: "📖 live abc/11月", fileUrl: "./JSON/liveabc_nov.json" },
   liveabc_dec: { folderName: "📖 live abc/12月", fileUrl: "./JSON/liveabc_dec.json" },
   high_frequency_unit7: { folderName: "📖 高頻單字/Unit 7", fileUrl: "./JSON/high_frequency_unit7.json" },
