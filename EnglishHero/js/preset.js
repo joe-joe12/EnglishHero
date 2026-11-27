@@ -18,8 +18,11 @@ const PRESET_CONFIGS = {
 // 單字所屬資料夾：有 unit → 「主資料夾/單元名稱」，沒有 → 主資料夾
 const cleanUnit = (u) => String(u || "").replace(/\//g, "-").trim();
 function targetFolder(parent, w) {
-  const unit = cleanUnit(w.folder || w.unit);
-  return unit ? `${parent}/${unit}` : parent;
+  const parentLeaf = cleanUnit(parent.split("/").pop());
+  const folder = cleanUnit(w.folder);
+  const base = folder && folder !== parentLeaf ? `${parent}/${folder}` : parent;
+  const unit = cleanUnit(w.unit);
+  return unit ? `${base}/${unit}` : base;
 }
 // 這個題庫（含子資料夾）是否已存在
 const inPreset = (folder, parent) => folder === parent || (folder || "").startsWith(parent + "/");

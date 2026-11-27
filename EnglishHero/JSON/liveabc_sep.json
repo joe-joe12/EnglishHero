@@ -1,101 +1,596 @@
 [
-  { "en": "cave", "pos": "n.", "ch": "洞穴、山洞" },
-  { "en": "jewel", "pos": "n.", "ch": "珠寶、寶石（作此義時，常用複數形）" },
-  { "en": "silk", "pos": "n.", "ch": "絲綢；絲線、絲製品" },
-  { "en": "warn", "pos": "v.", "ch": "警告、提醒；告誡" },
-  { "en": "greedy", "pos": "adj.", "ch": "貪心的、貪婪的" },
-  { "en": "signal", "pos": "n.", "ch": "信號、暗號" },
-  { "en": "jar", "pos": "n.", "ch": "罐子、罈；陶罐；玻璃罐" },
-  { "en": "slave", "pos": "n.", "ch": "奴隸" },
-  { "en": "pour", "pos": "v.", "ch": "倒、傾倒（液體）；大量湧出" },
-  { "en": "pretend", "pos": "v.", "ch": "假裝、佯裝" },
-  { "en": "amazingly", "pos": "adv.", "ch": "出乎意料地、令人驚訝地" },
-  { "en": "concert", "pos": "n.", "ch": "音樂會；演唱會" },
-  { "en": "mix", "pos": "n.", "ch": "混合、融合" },
-  { "en": "audience", "pos": "n.", "ch": "觀眾" },
-  { "en": "prove", "pos": "v.", "ch": "證明、證實" },
-  { "en": "worth", "pos": "adj.", "ch": "價值⋯⋯的；值⋯⋯錢的" },
-  { "en": "contact", "pos": "v.", "ch": "聯絡；與⋯⋯取得聯繫" },
-  { "en": "support", "pos": "v.", "ch": "支持；資助" },
-  { "en": "cause", "pos": "n.", "ch": "公益事業；理念；目標" },
-  { "en": "outdoors", "pos": "adv.", "ch": "在戶外、在室外" },
-  { "en": "colorful", "pos": "adj.", "ch": "色彩繽紛的" },
-  { "en": "trail", "pos": "n.", "ch": "痕跡、足跡、軌跡；步道、小徑" },
-  { "en": "earn", "pos": "v.", "ch": "獲得、贏得；賺取" },
-  { "en": "nearby", "pos": "adj.", "ch": "附近的；鄰近的" },
-  { "en": "location", "pos": "n.", "ch": "地點、位置" },
-  { "en": "mushroom", "pos": "n.", "ch": "蘑菇；蕈" },
-  { "en": "adventure", "pos": "n.", "ch": "冒險（活動）；刺激的經歷" },
-  { "en": "casual", "pos": "adj.", "ch": "隨興的、休閒的、輕鬆的" },
-  { "en": "journey", "pos": "n.", "ch": "旅程、旅行" },
-  { "en": "dine", "pos": "v.", "ch": "用餐" },
-  { "en": "international", "pos": "adj.", "ch": "國際的" },
-  { "en": "owner", "pos": "n.", "ch": "所有人；店主、老闆" },
-  { "en": "stare", "pos": "v.", "ch": "盯著看" },
-  { "en": "global", "pos": "adj.", "ch": "全球（性）的" },
-  { "en": "review", "pos": "n.", "ch": "（書、電影、店家等的）評論、評價" },
-  { "en": "especially", "pos": "adv.", "ch": "尤其、特別地" },
-  { "en": "recognize", "pos": "v.", "ch": "辨識、識別；認出；認可" },
-  { "en": "reorganize", "pos": "v.", "ch": "重新整理；重新安排" },
-  { "en": "automatically", "pos": "adv.", "ch": "自動地" },
-  { "en": "neat", "pos": "adj.", "ch": "整齊的、整潔的；簡潔俐落的" },
-  { "en": "lively", "pos": "adj.", "ch": "充滿活力的；熱鬧的；生動的" },
-  { "en": "plenty", "pos": "pron.", "ch": "大量；充足" },
-  { "en": "collection", "pos": "n.", "ch": "收藏品；收集" },
-  { "en": "weapon", "pos": "n.", "ch": "武器、兵器" },
-  { "en": "remain", "pos": "v.", "ch": "仍然是、保持、持續" },
-  { "en": "studio", "pos": "n.", "ch": "工作室；錄音室；製作公司" },
-  { "en": "magical", "pos": "adj.", "ch": "神奇的、如魔法般的；夢幻的" },
-  { "en": "design", "pos": "v.", "ch": "設計" },
-  { "en": "dip", "pos": "v.", "ch": "浸、蘸、泡" },
-  { "en": "various", "pos": "adj.", "ch": "各種不同的；各式各樣的" },
-  { "en": "chess", "pos": "n.", "ch": "西洋棋" },
-  { "en": "amazed", "pos": "adj.", "ch": "感到驚訝的" },
-  { "en": "unique", "pos": "adj.", "ch": "獨一無二的；獨特的" },
-  { "en": "champion", "pos": "n.", "ch": "冠軍；優勝者" },
-  { "en": "career", "pos": "n.", "ch": "（長期的）職業、事業；職業生涯" },
-  { "en": "produce", "pos": "v.", "ch": "製作；生產" },
-  { "en": "proof", "pos": "n.", "ch": "證明；證據" },
-  { "en": "volume", "pos": "n.", "ch": "音量" },
-  { "en": "honor", "pos": "n.", "ch": "榮譽；榮幸、殊榮" },
-  { "en": "talent", "pos": "n.", "ch": "天賦；才能（可作可數或不可數名詞用）" },
-  { "en": "pub", "pos": "n.", "ch": "英式酒館、酒吧" },
-  { "en": "roughly", "pos": "adv.", "ch": "大約、粗略地" },
-  { "en": "portion", "pos": "n.", "ch": "（食物的）一份、一客；部分" },
-  { "en": "suggest", "pos": "v.", "ch": "顯示、表明；暗示" },
-  { "en": "variety", "pos": "n.", "ch": "種類；多樣性；各式各樣" },
-  { "en": "scientist", "pos": "n.", "ch": "科學家" },
-  { "en": "threaten", "pos": "v.", "ch": "威脅、恐嚇；危及" },
-  { "en": "hug", "pos": "n. v.", "ch": "擁抱" },
-  { "en": "charming", "pos": "adj.", "ch": "迷人的、討喜的" },
-  { "en": "strategy", "pos": "n.", "ch": "策略；戰略" },
-  { "en": "freezing", "pos": "adv. adj.", "ch": "極寒地 / 極冷的；結冰的" },
-  { "en": "romantic", "pos": "adj.", "ch": "浪漫的" },
-  { "en": "practical", "pos": "adj.", "ch": "實際的、實用的；務實的" },
-  { "en": "nest", "pos": "n.", "ch": "巢、鳥巢" },
-  { "en": "icy", "pos": "adj.", "ch": "冰冷的；結冰的" },
-  { "en": "entrance", "pos": "n.", "ch": "入口；大門" },
-  { "en": "confirm", "pos": "v.", "ch": "確認；證實；使更加確信" },
-  { "en": "campus", "pos": "n.", "ch": "校園" },
-  { "en": "supposed", "pos": "adj.", "ch": "應該的；被預期的" },
-  { "en": "environment", "pos": "n.", "ch": "環境" },
-  { "en": "familiar", "pos": "adj.", "ch": "熟悉的" },
-  { "en": "rent", "pos": "v.", "ch": "租借、租用；出租" },
-  { "en": "original", "pos": "adj.", "ch": "本來的、最初的；原始的" },
-  { "en": "normal", "pos": "adj.", "ch": "普通的、正常的" },
-  { "en": "asleep", "pos": "adj.", "ch": "睡著的" },
-  { "en": "dull", "pos": "adj.", "ch": "沉悶的、無聊的" },
-  { "en": "curious", "pos": "adj.", "ch": "好奇的" },
-  { "en": "term", "pos": "n.", "ch": "術語、專門名稱、措詞" },
-  { "en": "develop", "pos": "v.", "ch": "培養、養成；開發" },
-  { "en": "threat", "pos": "n.", "ch": "威脅；構成威脅的人或事物" },
-  { "en": "request", "pos": "v.", "ch": "正式要求；請求" },
-  { "en": "detail", "pos": "n.", "ch": "（關於某人或某事的）資料、細節（常用複數）" },
-  { "en": "private", "pos": "adj.", "ch": "私密的；私人的；不公開的" },
-  { "en": "fake", "pos": "adj. v.", "ch": "偽造的、假的 / 偽造；假裝" },
-  { "en": "identity", "pos": "n.", "ch": "身分；認同" },
-  { "en": "recently", "pos": "adv.", "ch": "最近；近來；不久之前" },
-  { "en": "avoid", "pos": "v.", "ch": "避免；逃避、迴避" },
-  { "en": "claim", "pos": "v.", "ch": "聲稱；主張（權利）；宣稱擁有" },
-  { "en": "platform", "pos": "n.", "ch": "平台" }
+  {
+    "en": "cave",
+    "pos": "n.",
+    "ch": "洞穴、山洞",
+    "folder": "9月"
+  },
+  {
+    "en": "jewel",
+    "pos": "n.",
+    "ch": "珠寶、寶石（作此義時，常用複數形）",
+    "folder": "9月"
+  },
+  {
+    "en": "silk",
+    "pos": "n.",
+    "ch": "絲綢；絲線、絲製品",
+    "folder": "9月"
+  },
+  {
+    "en": "warn",
+    "pos": "v.",
+    "ch": "警告、提醒；告誡",
+    "folder": "9月"
+  },
+  {
+    "en": "greedy",
+    "pos": "adj.",
+    "ch": "貪心的、貪婪的",
+    "folder": "9月"
+  },
+  {
+    "en": "signal",
+    "pos": "n.",
+    "ch": "信號、暗號",
+    "folder": "9月"
+  },
+  {
+    "en": "jar",
+    "pos": "n.",
+    "ch": "罐子、罈；陶罐；玻璃罐",
+    "folder": "9月"
+  },
+  {
+    "en": "slave",
+    "pos": "n.",
+    "ch": "奴隸",
+    "folder": "9月"
+  },
+  {
+    "en": "pour",
+    "pos": "v.",
+    "ch": "倒、傾倒（液體）；大量湧出",
+    "folder": "9月"
+  },
+  {
+    "en": "pretend",
+    "pos": "v.",
+    "ch": "假裝、佯裝",
+    "folder": "9月"
+  },
+  {
+    "en": "amazingly",
+    "pos": "adv.",
+    "ch": "出乎意料地、令人驚訝地",
+    "folder": "9月"
+  },
+  {
+    "en": "concert",
+    "pos": "n.",
+    "ch": "音樂會；演唱會",
+    "folder": "9月"
+  },
+  {
+    "en": "mix",
+    "pos": "n.",
+    "ch": "混合、融合",
+    "folder": "9月"
+  },
+  {
+    "en": "audience",
+    "pos": "n.",
+    "ch": "觀眾",
+    "folder": "9月"
+  },
+  {
+    "en": "prove",
+    "pos": "v.",
+    "ch": "證明、證實",
+    "folder": "9月"
+  },
+  {
+    "en": "worth",
+    "pos": "adj.",
+    "ch": "價值⋯⋯的；值⋯⋯錢的",
+    "folder": "9月"
+  },
+  {
+    "en": "contact",
+    "pos": "v.",
+    "ch": "聯絡；與⋯⋯取得聯繫",
+    "folder": "9月"
+  },
+  {
+    "en": "support",
+    "pos": "v.",
+    "ch": "支持；資助",
+    "folder": "9月"
+  },
+  {
+    "en": "cause",
+    "pos": "n.",
+    "ch": "公益事業；理念；目標",
+    "folder": "9月"
+  },
+  {
+    "en": "outdoors",
+    "pos": "adv.",
+    "ch": "在戶外、在室外",
+    "folder": "9月"
+  },
+  {
+    "en": "colorful",
+    "pos": "adj.",
+    "ch": "色彩繽紛的",
+    "folder": "9月"
+  },
+  {
+    "en": "trail",
+    "pos": "n.",
+    "ch": "痕跡、足跡、軌跡；步道、小徑",
+    "folder": "9月"
+  },
+  {
+    "en": "earn",
+    "pos": "v.",
+    "ch": "獲得、贏得；賺取",
+    "folder": "9月"
+  },
+  {
+    "en": "nearby",
+    "pos": "adj.",
+    "ch": "附近的；鄰近的",
+    "folder": "9月"
+  },
+  {
+    "en": "location",
+    "pos": "n.",
+    "ch": "地點、位置",
+    "folder": "9月"
+  },
+  {
+    "en": "mushroom",
+    "pos": "n.",
+    "ch": "蘑菇；蕈",
+    "folder": "9月"
+  },
+  {
+    "en": "adventure",
+    "pos": "n.",
+    "ch": "冒險（活動）；刺激的經歷",
+    "folder": "9月"
+  },
+  {
+    "en": "casual",
+    "pos": "adj.",
+    "ch": "隨興的、休閒的、輕鬆的",
+    "folder": "9月"
+  },
+  {
+    "en": "journey",
+    "pos": "n.",
+    "ch": "旅程、旅行",
+    "folder": "9月"
+  },
+  {
+    "en": "dine",
+    "pos": "v.",
+    "ch": "用餐",
+    "folder": "9月"
+  },
+  {
+    "en": "international",
+    "pos": "adj.",
+    "ch": "國際的",
+    "folder": "9月"
+  },
+  {
+    "en": "owner",
+    "pos": "n.",
+    "ch": "所有人；店主、老闆",
+    "folder": "9月"
+  },
+  {
+    "en": "stare",
+    "pos": "v.",
+    "ch": "盯著看",
+    "folder": "9月"
+  },
+  {
+    "en": "global",
+    "pos": "adj.",
+    "ch": "全球（性）的",
+    "folder": "9月"
+  },
+  {
+    "en": "review",
+    "pos": "n.",
+    "ch": "（書、電影、店家等的）評論、評價",
+    "folder": "9月"
+  },
+  {
+    "en": "especially",
+    "pos": "adv.",
+    "ch": "尤其、特別地",
+    "folder": "9月"
+  },
+  {
+    "en": "recognize",
+    "pos": "v.",
+    "ch": "辨識、識別；認出；認可",
+    "folder": "9月"
+  },
+  {
+    "en": "reorganize",
+    "pos": "v.",
+    "ch": "重新整理；重新安排",
+    "folder": "9月"
+  },
+  {
+    "en": "automatically",
+    "pos": "adv.",
+    "ch": "自動地",
+    "folder": "9月"
+  },
+  {
+    "en": "neat",
+    "pos": "adj.",
+    "ch": "整齊的、整潔的；簡潔俐落的",
+    "folder": "9月"
+  },
+  {
+    "en": "lively",
+    "pos": "adj.",
+    "ch": "充滿活力的；熱鬧的；生動的",
+    "folder": "9月"
+  },
+  {
+    "en": "plenty",
+    "pos": "pron.",
+    "ch": "大量；充足",
+    "folder": "9月"
+  },
+  {
+    "en": "collection",
+    "pos": "n.",
+    "ch": "收藏品；收集",
+    "folder": "9月"
+  },
+  {
+    "en": "weapon",
+    "pos": "n.",
+    "ch": "武器、兵器",
+    "folder": "9月"
+  },
+  {
+    "en": "remain",
+    "pos": "v.",
+    "ch": "仍然是、保持、持續",
+    "folder": "9月"
+  },
+  {
+    "en": "studio",
+    "pos": "n.",
+    "ch": "工作室；錄音室；製作公司",
+    "folder": "9月"
+  },
+  {
+    "en": "magical",
+    "pos": "adj.",
+    "ch": "神奇的、如魔法般的；夢幻的",
+    "folder": "9月"
+  },
+  {
+    "en": "design",
+    "pos": "v.",
+    "ch": "設計",
+    "folder": "9月"
+  },
+  {
+    "en": "dip",
+    "pos": "v.",
+    "ch": "浸、蘸、泡",
+    "folder": "9月"
+  },
+  {
+    "en": "various",
+    "pos": "adj.",
+    "ch": "各種不同的；各式各樣的",
+    "folder": "9月"
+  },
+  {
+    "en": "chess",
+    "pos": "n.",
+    "ch": "西洋棋",
+    "folder": "9月"
+  },
+  {
+    "en": "amazed",
+    "pos": "adj.",
+    "ch": "感到驚訝的",
+    "folder": "9月"
+  },
+  {
+    "en": "unique",
+    "pos": "adj.",
+    "ch": "獨一無二的；獨特的",
+    "folder": "9月"
+  },
+  {
+    "en": "champion",
+    "pos": "n.",
+    "ch": "冠軍；優勝者",
+    "folder": "9月"
+  },
+  {
+    "en": "career",
+    "pos": "n.",
+    "ch": "（長期的）職業、事業；職業生涯",
+    "folder": "9月"
+  },
+  {
+    "en": "produce",
+    "pos": "v.",
+    "ch": "製作；生產",
+    "folder": "9月"
+  },
+  {
+    "en": "proof",
+    "pos": "n.",
+    "ch": "證明；證據",
+    "folder": "9月"
+  },
+  {
+    "en": "volume",
+    "pos": "n.",
+    "ch": "音量",
+    "folder": "9月"
+  },
+  {
+    "en": "honor",
+    "pos": "n.",
+    "ch": "榮譽；榮幸、殊榮",
+    "folder": "9月"
+  },
+  {
+    "en": "talent",
+    "pos": "n.",
+    "ch": "天賦；才能（可作可數或不可數名詞用）",
+    "folder": "9月"
+  },
+  {
+    "en": "pub",
+    "pos": "n.",
+    "ch": "英式酒館、酒吧",
+    "folder": "9月"
+  },
+  {
+    "en": "roughly",
+    "pos": "adv.",
+    "ch": "大約、粗略地",
+    "folder": "9月"
+  },
+  {
+    "en": "portion",
+    "pos": "n.",
+    "ch": "（食物的）一份、一客；部分",
+    "folder": "9月"
+  },
+  {
+    "en": "suggest",
+    "pos": "v.",
+    "ch": "顯示、表明；暗示",
+    "folder": "9月"
+  },
+  {
+    "en": "variety",
+    "pos": "n.",
+    "ch": "種類；多樣性；各式各樣",
+    "folder": "9月"
+  },
+  {
+    "en": "scientist",
+    "pos": "n.",
+    "ch": "科學家",
+    "folder": "9月"
+  },
+  {
+    "en": "threaten",
+    "pos": "v.",
+    "ch": "威脅、恐嚇；危及",
+    "folder": "9月"
+  },
+  {
+    "en": "hug",
+    "pos": "n. v.",
+    "ch": "擁抱",
+    "folder": "9月"
+  },
+  {
+    "en": "charming",
+    "pos": "adj.",
+    "ch": "迷人的、討喜的",
+    "folder": "9月"
+  },
+  {
+    "en": "strategy",
+    "pos": "n.",
+    "ch": "策略；戰略",
+    "folder": "9月"
+  },
+  {
+    "en": "freezing",
+    "pos": "adv. adj.",
+    "ch": "極寒地 / 極冷的；結冰的",
+    "folder": "9月"
+  },
+  {
+    "en": "romantic",
+    "pos": "adj.",
+    "ch": "浪漫的",
+    "folder": "9月"
+  },
+  {
+    "en": "practical",
+    "pos": "adj.",
+    "ch": "實際的、實用的；務實的",
+    "folder": "9月"
+  },
+  {
+    "en": "nest",
+    "pos": "n.",
+    "ch": "巢、鳥巢",
+    "folder": "9月"
+  },
+  {
+    "en": "icy",
+    "pos": "adj.",
+    "ch": "冰冷的；結冰的",
+    "folder": "9月"
+  },
+  {
+    "en": "entrance",
+    "pos": "n.",
+    "ch": "入口；大門",
+    "folder": "9月"
+  },
+  {
+    "en": "confirm",
+    "pos": "v.",
+    "ch": "確認；證實；使更加確信",
+    "folder": "9月"
+  },
+  {
+    "en": "campus",
+    "pos": "n.",
+    "ch": "校園",
+    "folder": "9月"
+  },
+  {
+    "en": "supposed",
+    "pos": "adj.",
+    "ch": "應該的；被預期的",
+    "folder": "9月"
+  },
+  {
+    "en": "environment",
+    "pos": "n.",
+    "ch": "環境",
+    "folder": "9月"
+  },
+  {
+    "en": "familiar",
+    "pos": "adj.",
+    "ch": "熟悉的",
+    "folder": "9月"
+  },
+  {
+    "en": "rent",
+    "pos": "v.",
+    "ch": "租借、租用；出租",
+    "folder": "9月"
+  },
+  {
+    "en": "original",
+    "pos": "adj.",
+    "ch": "本來的、最初的；原始的",
+    "folder": "9月"
+  },
+  {
+    "en": "normal",
+    "pos": "adj.",
+    "ch": "普通的、正常的",
+    "folder": "9月"
+  },
+  {
+    "en": "asleep",
+    "pos": "adj.",
+    "ch": "睡著的",
+    "folder": "9月"
+  },
+  {
+    "en": "dull",
+    "pos": "adj.",
+    "ch": "沉悶的、無聊的",
+    "folder": "9月"
+  },
+  {
+    "en": "curious",
+    "pos": "adj.",
+    "ch": "好奇的",
+    "folder": "9月"
+  },
+  {
+    "en": "term",
+    "pos": "n.",
+    "ch": "術語、專門名稱、措詞",
+    "folder": "9月"
+  },
+  {
+    "en": "develop",
+    "pos": "v.",
+    "ch": "培養、養成；開發",
+    "folder": "9月"
+  },
+  {
+    "en": "threat",
+    "pos": "n.",
+    "ch": "威脅；構成威脅的人或事物",
+    "folder": "9月"
+  },
+  {
+    "en": "request",
+    "pos": "v.",
+    "ch": "正式要求；請求",
+    "folder": "9月"
+  },
+  {
+    "en": "detail",
+    "pos": "n.",
+    "ch": "（關於某人或某事的）資料、細節（常用複數）",
+    "folder": "9月"
+  },
+  {
+    "en": "private",
+    "pos": "adj.",
+    "ch": "私密的；私人的；不公開的",
+    "folder": "9月"
+  },
+  {
+    "en": "fake",
+    "pos": "adj. v.",
+    "ch": "偽造的、假的 / 偽造；假裝",
+    "folder": "9月"
+  },
+  {
+    "en": "identity",
+    "pos": "n.",
+    "ch": "身分；認同",
+    "folder": "9月"
+  },
+  {
+    "en": "recently",
+    "pos": "adv.",
+    "ch": "最近；近來；不久之前",
+    "folder": "9月"
+  },
+  {
+    "en": "avoid",
+    "pos": "v.",
+    "ch": "避免；逃避、迴避",
+    "folder": "9月"
+  },
+  {
+    "en": "claim",
+    "pos": "v.",
+    "ch": "聲稱；主張（權利）；宣稱擁有",
+    "folder": "9月"
+  },
+  {
+    "en": "platform",
+    "pos": "n.",
+    "ch": "平台",
+    "folder": "9月"
+  }
 ]
