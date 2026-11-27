@@ -234,6 +234,37 @@
       }
     };
 
+    // 將早期匯入的 Live ABC 單元資料夾遷移為「Unit 編號＋名稱」。
+    // 這會直接更新 Firestore，因此既有資料不必刪除後重新匯入。
+    const migrateLiveAbcFolders = async (uid, col, words) => {
+      const numeral = { 一: "1", 二: "2", 三: "3", 四: "4", 五: "5", 六: "6", 七: "7", 八: "8", 九: "9", 十: "10",
+        十一: "11", 十二: "12", 十三: "13", 十四: "14", 十五: "15", 十六: "16", 十七: "17", 十八: "18", 十九: "19", 二十: "20" };
+      const changed = [];
+      const convert = (folder) => {
+        if (!folder) return folder;
+        // 支援完整路徑與目前畫面中可能存在的相對路徑。
+        const re = /(.*(?:live abc|LiveABC[^/]*|12月))\/((一|二|三|四|五|六|七|八|九|十|十一|十二|十三|十四|十五|十六|十七|十八|十九|二十)單元)(.*)$/i;
+        const m = String(folder).match(re);
+        if (!m || !numeral[m[3]]) return folder;
+        return `${m[1]}/Unit ${numeral[m[3]]}${m[4]}`;
+      };
+      words.forEach((w) => {
+        const next = convert(w.folder);
+        if (next !== w.folder) {
+          w.folder = next;
+          changed.push(w);
+        }
+      });
+      if (!changed.length) return words;
+      for (let i = 0; i < changed.length; i += 400) {
+        const batch = EH.db.batch();
+        changed.slice(i, i + 400).forEach((w) => batch.update(col.doc(w.id), { folder: w.folder }));
+        await batch.commit();
+      }
+      console.info(`Live ABC 資料夾已更新 ${changed.length} 筆`);
+      return words;
+    };
+
     const api = {
       // 只看本機快取，不連線
       peek(uid) {
@@ -252,6 +283,7 @@
           const snap = await col.get();
           const words = [];
           snap.forEach((doc) => words.push(normalize(doc)));
+          await migrateLiveAbcFolders(uid, col, words);
           write(uid, { words, syncedAt: now, fullAt: now });
           return words;
         }
@@ -262,10 +294,13 @@
           const map = new Map(c.words.map((w) => [w.id, w]));
           snap.forEach((doc) => map.set(doc.id, normalize(doc)));
           const words = Array.from(map.values());
+          await migrateLiveAbcFolders(uid, col, words);
           write(uid, { words, syncedAt: now, fullAt: c.fullAt });
           return words;
         } catch (e) {
           console.warn("增量同步失敗，改用本機快取：", e);
+          await migrateLiveAbcFolders(uid, col, c.words);
+          write(uid, { ...c, words: c.words });
           return c.words;
         }
       },
