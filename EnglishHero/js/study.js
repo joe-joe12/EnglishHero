@@ -166,6 +166,15 @@ function renderFolderList() {
   renderFolderItems();
 }
 
+function folderCompare(a, b) {
+  const monthA = String(a).match(/(?:^|\/)(\d+)月(?:\/|$)/);
+  const monthB = String(b).match(/(?:^|\/)(\d+)月(?:\/|$)/);
+  if (monthA && monthB && Number(monthA[1]) !== Number(monthB[1])) {
+    return Number(monthA[1]) - Number(monthB[1]);
+  }
+  return String(a).localeCompare(String(b), undefined, { numeric: true });
+}
+
 function renderFolderItems() {
   const area = $("folder-list-area");
   const special = $("special-area");
@@ -185,7 +194,7 @@ function renderFolderItems() {
     </div>`;
 
   let mains = Array.from(new Set([...Object.keys(rootFoldersMap), ...Object.keys(subFoldersMap)]))
-    .sort((a, b) => a.localeCompare(b));
+    .sort(folderCompare);
   if (q) {
     mains = mains.filter((m) =>
       m.toLowerCase().includes(q) ||
@@ -281,7 +290,7 @@ window.openSubFolderView = function (parentFolderName) {
 
   let html = `<p class="muted" style="margin-bottom:12px;">點擊資料夾進入下一層，或按右側 ⚙️ 管理：</p>`;
   Array.from(childPaths)
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .sort(folderCompare)
     .forEach((full, index) => {
       const childName = full.slice(parentFolderName.length + 1);
       const nested = hasChildren(full);
