@@ -622,5 +622,197 @@
     "ch": "冰冷的；結冰的",
     "folder": "9月",
     "unit": "Unit 11 不是在賣萌：動物行為背後的真相"
+  },
+  {
+    "en": "entrance",
+    "ipa": "[`ɛntrəns]",
+    "pos": "n.",
+    "ch": "入口；大門",
+    "folder": "9月",
+    "unit": "Unit 12 自我介紹"
+  },
+  {
+    "en": "confirm",
+    "ipa": "[kən`fɝm]",
+    "pos": "v.",
+    "ch": "確認；證實；使更加確信",
+    "folder": "9月",
+    "unit": "Unit 12 自我介紹"
+  },
+  {
+    "en": "campus",
+    "ipa": "[`kæmpəs]",
+    "pos": "n.",
+    "ch": "校園",
+    "folder": "9月",
+    "unit": "Unit 12 自我介紹"
+  },
+  {
+    "en": "supposed",
+    "ipa": "[sə`post]",
+    "pos": "adj.",
+    "ch": "應該的；被預期的",
+    "folder": "9月",
+    "unit": "Unit 12 自我介紹"
+  },
+  {
+    "en": "environment",
+    "ipa": "[ɪn`vaɪrəmənt]",
+    "pos": "n.",
+    "ch": "環境",
+    "folder": "9月",
+    "unit": "Unit 12 自我介紹"
+  },
+  {
+    "en": "familiar",
+    "ipa": "[fə`mɪljɚ]",
+    "pos": "adj.",
+    "ch": "熟悉的",
+    "folder": "9月",
+    "unit": "Unit 12 自我介紹"
+  },
+  {
+    "en": "rent",
+    "ipa": "[rɛnt]",
+    "pos": "v.",
+    "ch": "租借、租用；出租",
+    "folder": "9月",
+    "unit": "Unit 12 自我介紹"
+  },
+  {
+    "en": "original",
+    "ipa": "[ə`rɪdʒənl̩]",
+    "pos": "adj.",
+    "ch": "原本的、最初的；原始的",
+    "folder": "9月",
+    "unit": "Unit 12 自我介紹"
+  },
+  {
+    "en": "normal",
+    "ipa": "[`nɔrməl]",
+    "pos": "adj.",
+    "ch": "普通的、正常的",
+    "folder": "9月",
+    "unit": "Unit 13 英文寫作課：我生活中的一天"
+  },
+  {
+    "en": "asleep",
+    "ipa": "[ə`slip]",
+    "pos": "adj.",
+    "ch": "睡著的",
+    "folder": "9月",
+    "unit": "Unit 13 英文寫作課：我生活中的一天"
+  },
+  {
+    "en": "dull",
+    "ipa": "[dʌl]",
+    "pos": "adj.",
+    "ch": "沉悶的、無聊的",
+    "folder": "9月",
+    "unit": "Unit 13 英文寫作課：我生活中的一天"
+  },
+  {
+    "en": "curious",
+    "ipa": "[`kjᴜriəs]",
+    "pos": "adj.",
+    "ch": "好奇的",
+    "folder": "9月",
+    "unit": "Unit 13 英文寫作課：我生活中的一天"
+  },
+  {
+    "en": "term",
+    "ipa": "[tɝm]",
+    "pos": "n.",
+    "ch": "術語、專門名稱、措詞",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "develop",
+    "ipa": "[dɪ`vɛləp]",
+    "pos": "v.",
+    "ch": "培養、養成；開發",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "threat",
+    "ipa": "[θrɛt]",
+    "pos": "n.",
+    "ch": "威脅；構成威脅的人或事物",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "request",
+    "ipa": "[rɪ`kwɛst]",
+    "pos": "v.",
+    "ch": "正式要求；請求",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "detail",
+    "ipa": "[`di͵tel]",
+    "pos": "n.",
+    "ch": "（關於某人或某事的）資料、細節（常用複數）",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "private",
+    "ipa": "[`praɪvət]",
+    "pos": "adj.",
+    "ch": "私密的；私人的；不公開的",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "fake",
+    "ipa": "[fek]",
+    "pos": "adj. / v.",
+    "ch": "偽造的、假的；偽造；假裝",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "identity",
+    "ipa": "[aɪ`dɛntəti]",
+    "pos": "n.",
+    "ch": "身分；認同",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "recently",
+    "ipa": "[`risn̩tli]",
+    "pos": "adv.",
+    "ch": "最近；近來；不久之前",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "avoid",
+    "ipa": "[ə`vɔɪd]",
+    "pos": "v.",
+    "ch": "避免；逃避、迴避",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "claim",
+    "ipa": "[klem]",
+    "pos": "v.",
+    "ch": "聲稱；主張（權利）；宣稱擁有",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
+  },
+  {
+    "en": "platform",
+    "ipa": "[`plæt͵fɔrm]",
+    "pos": "n.",
+    "ch": "平台",
+    "folder": "9月",
+    "unit": "Unit 14 網路假冒身分詐騙：如何自保"
   }
 ]
