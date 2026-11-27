@@ -20,9 +20,17 @@ const cleanUnit = (u) => String(u || "").replace(/\//g, "-").trim();
 function targetFolder(parent, w) {
   const parentLeaf = cleanUnit(parent.split("/").pop());
   const folder = cleanUnit(w.folder);
-  const base = folder && folder !== parentLeaf ? `${parent}/${folder}` : parent;
   const unit = cleanUnit(w.unit);
-  return unit ? `${base}/${unit}` : base;
+
+  // 新格式：folder 是月份、unit 是月份底下的單元。
+  if (folder && unit && folder !== parentLeaf && folder !== unit) {
+    return `${parent}/${folder}/${unit}`;
+  }
+  // 舊格式或過渡格式：只有 unit，或 folder 已經是單元名稱。
+  if (unit) return `${parent}/${unit}`;
+  // 只有 folder 時，將 folder 當作子資料夾；若它就是目前題庫月份則不重複。
+  if (folder && folder !== parentLeaf) return `${parent}/${folder}`;
+  return parent;
 }
 // 這個題庫（含子資料夾）是否已存在
 const inPreset = (folder, parent) => folder === parent || (folder || "").startsWith(parent + "/");
